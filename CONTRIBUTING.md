@@ -18,7 +18,7 @@ Issue (mã FR/NFR + tiêu chí dừng)
 ## 2. Thiết lập lần đầu (mỗi người)
 
 1. Clone repo, đọc `README.md`, `docs/SRS.md` mục 1–2 và 6, `AGENTS.md`.
-2. Gửi TV1 **public key** SSH và **IP /32** để được thêm vào SG. Không gửi private key.
+2. Gửi TV1 **public key** SSH. Không gửi private key. Chưa cần IP: cổng 22 đang mở theo ADR-07; từ freeze 06/11 mới gửi **IP /32** để TV1 thêm vào SG.
 3. TV1 tạo cho mỗi người **một user Linux riêng trên host A** (`tv2`, `tv3`, `tv4`), không sudo, thuộc nhóm `systemd-journal` để đọc log. Lý do: mỗi người có `clouds.yaml` riêng, biết ai chạy lệnh gì, và AI chạy dưới user đó không thể vô tình phá host. Chỉ TV1 dùng `ubuntu`/`stack`.
    `~/.ssh/config` trên máy mình:
 

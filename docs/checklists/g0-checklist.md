@@ -31,7 +31,7 @@ Ghi giờ **UTC** cho mỗi bước. Lưu output đã che vào `evidence/G0/`. M
 | 2.2 | 4 subnet đúng AZ | public-A/private-A ở AZ-A; public-B/private-B ở AZ-B | ✔ |
 | 2.3 | IGW attach + public RT 0.0.0.0/0 → IGW | public-A/B associate | ✔ |
 | 2.4 | private RT (chỉ local lúc này) | private-A/B associate | ✔ |
-| 2.5 | SG `campus-hosts` (self all) + `campus-ingress-admin` (22 từ /32) | Không có 0.0.0.0/0 cho 22 | ✔ |
+| 2.5 | SG `campus-hosts` (self all) + `campus-ingress-admin` (22) | Lúc làm: 22 chỉ từ /32. Từ 22/10 đổi theo ADR-07: 22 mở 0.0.0.0/0 tới freeze 06/11, bù bằng chỉ key + fail2ban + user riêng | ✔ (đổi theo ADR-07) |
 
 ## Phần 3 – A, NAT, B (Lab 3) – bắt đầu tốn tiền
 

@@ -125,7 +125,7 @@ shlink:                         # Lab 9.5
   campus_domain: "REPLACE_EIP_DASHED.sslip.io"   # vd EIP 3.91.10.20 -> 3-91-10-20.sslip.io
   short_domain: "s.REPLACE_EIP_DASHED.sslip.io"
   admin_domain: "admin.REPLACE_EIP_DASHED.sslip.io"
-  tls: { issuer: "Let's Encrypt", tool: certbot, challenge: http-01, renew: "certbot.timer" }  # khong commit /etc/letsencrypt
+  tls: { issuer: "Let's Encrypt", tool: certbot, challenge: http-01, webroot: /var/www/acme, renew: "khong can truoc 16/11 (han 90 ngay)" }  # khong commit /etc/letsencrypt
   vip_lab_fip: "REPLACE"        # FIP cua VIP do Heat tao, khong phai LB smoke
   db: { host: 10.20.0.10, name: shlink, engine: "PostgreSQL 16" }
   redis: { endpoint: "10.20.0.10:6379", auth: required }

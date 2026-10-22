@@ -27,13 +27,13 @@ VPC `campus-vpc` = `vpc-0730a24c74eb94b62`. Điền ID thật sau khi tạo. Ch�
 | SG | Gắn vào | Chiều | Cổng | Nguồn | Mục đích |
 |---|---|---|---|---|---|
 | campus-ingress-admin (`sg-0bf8503bfeee5a3c0`) | A | in | TCP 22 | **0.0.0.0/0 trong giai đoạn phát triển** (ADR-07), thu về /32 từng người trước freeze 06/11 | SSH, chỉ key, user riêng mỗi người |
-| campus-ingress-admin | A | in | TCP 443 | 0.0.0.0/0 khi demo (ngoài lúc demo thì /32) | Nginx `s.` + `admin.` (SNI) |
-| campus-ingress-admin | A | in | TCP 80 | 0.0.0.0/0 khi cấp/gia hạn cert và khi demo | Let's Encrypt HTTP-01 + chuyển hướng sang 443 |
+| campus-ingress-admin | A | in | TCP 443 | 0.0.0.0/0 từ G3 | Nginx `s.` + `admin.` (SNI); người dùng, điện thoại, Kaggle |
+| campus-ingress-admin | A | in | TCP 80 | 0.0.0.0/0 **chỉ vài phút khi chạy certbot**, xong xóa rule | Let's Encrypt HTTP-01, file thử thách do Apache DevStack trả (webroot). Để mở lâu là lộ Keystone/Placement trên cổng 80 |
 | campus-hosts (`sg-096f3c77665c4e038`) | A, B | in | all | chính SG campus-hosts | Control plane + Geneve UDP 6081 |
 | campus-hosts (hoặc SG riêng của A) | A | in | TCP 80, 443 | 10.11.11.0/24 | B ra Internet qua NAT A |
 | (mặc định) | A, B | out | all | 0.0.0.0/0 | Cài đặt |
 
-**Không mở ra Internet:** 5000, 6080, 8000, 8004, 8080, 9292, 3306, 5432, 5672, 6379, 6641/6642, 9696.
+**Không mở ra Internet:** 80 (ngoài lúc cấp cert), 5000, 6080, 8000, 8004, 8080, 9292, 3306, 5432, 5672, 6379, 6641/6642, 9696.
 
 Khi thu hẹp SG self (lúc freeze): kiểm thực tế bằng `ss -lntup`, catalog, transport URL. Các cổng thường gặp: UDP 6081, TCP 6641/6642, 5672, 3306, API HTTP, iSCSI 3260 (theo `cinder.conf`).
 

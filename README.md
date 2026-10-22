@@ -27,7 +27,7 @@ CONTRIBUTING.md           # quy trình nhóm
 docs/
   SRS.md                  # yêu cầu có mã FR/NFR (bản Markdown của SRS)
   troubleshooting.md      # lỗi đã gặp → cách sửa (AI tra ở đây trước)
-  references/             # PDF phân công v1.1 (bản nhóm)
+  references/             # PDF phân công v1.2 (bản nhóm, sửa theo SRS)
   checklists/             # g0-checklist.md ... (TV1, TV4 review)
   inventory.yaml          # tài nguyên thật: ID, IP, tên (TV1); không secret
   versions.lock           # phiên bản/SHA/digest đã kiểm

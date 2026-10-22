@@ -34,7 +34,7 @@ Mâu thuẫn giữa các nguồn: báo cho người dùng, không tự chọn.
 - Neutron ML2/**OVN**. Octavia provider **`ovn`**: listener TCP, pool `SOURCE_IP_PORT`, health monitor TCP. **Không Amphora, không L7 policy, không HTTP health monitor, không TLS termination ở Octavia.**
 - Scaling bằng Heat `OS::Heat::AutoScalingGroup` + Aodh + Gnocchi. Không Senlin, Kubernetes, Magnum.
 - Shlink `shlinkio/shlink:5.1.8` khóa bằng digest; không `latest`/`develop`; không sửa schema. Không SQLite khi nhiều replica.
-- App/DB VM **không có floating IP**. Chỉ Nginx trên A ra Internet (80 cho ACME + redirect, 443).
+- App/DB VM **không có floating IP**. Chỉ Nginx trên A:443 ra Internet. Cổng 80 trên A là Apache của DevStack: không cho Nginx nghe 80, chỉ mở SG 80 vài phút khi cấp cert Let's Encrypt.
 - 10.20.0.0/24 (campus-net) và 172.24.4.0/24 (public của OpenStack) là mạng ảo; AWS không route tới. MTU guest 1400 (Geneve).
 - Domain: `CAMPUS_DOMAIN = <EIP-gạch-ngang>.sslip.io`; cert Let's Encrypt. Không dùng `curl -k`/tắt verify để báo PASS.
 - Quota project `campuslink`: 6 instance, 8 vCPU, 12 GiB RAM, 5 volume/30 GiB, 3 FIP. Flavor theo SRS C-06.

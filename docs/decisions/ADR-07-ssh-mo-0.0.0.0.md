@@ -18,5 +18,5 @@ Từ G0 đến trước freeze (06/11), mở TCP 22 trên A cho 0.0.0.0/0, bù l
 ## Hệ quả
 
 - Log sẽ có nhiều lượt dò SSH từ bot; bình thường nếu chỉ thấy "Invalid user"/"Connection closed".
-- Lệch so với SRS FR-INF-05 và checklist G0 mục 2.5 (22 chỉ từ /32). **Trước freeze phải thu về /32** (hoặc tắt hẳn 22 lúc demo) và chụp lại SG làm evidence; ghi lý do trong báo cáo.
+- SRS (FR-INF-05, mục 4.4) và checklist G0 mục 2.5 đã ghi ngoại lệ này. **Trước freeze phải thu về /32** (hoặc tắt hẳn 22 lúc demo) và chụp lại SG làm evidence; ghi lý do trong báo cáo.
 - Lộ private key của một thành viên: xóa key đó khỏi `~tvX/.ssh/authorized_keys` ngay.

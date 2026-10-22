@@ -26,7 +26,7 @@
 **Tài liệu tham chiếu.**
 
 - Đề xuất dự án CampusLink (4 trang) của Nhóm 11.
-- CampusLink – Phân công chi tiết & kế hoạch phối hợp, bản 1.1 - Shlink, 22/10/2026 (`docs/references/`).
+- CampusLink – Phân công chi tiết & kế hoạch phối hợp, bản 1.2 - Shlink, 22/10/2026 (`docs/references/`; bản 1.2 sửa theo SRS này).
 - CampusLink – Lab TV1, bản 1.1, 22/10/2026.
 - OpenAPI và HealthAction của Shlink v5.1.8 (nguồn S28–S29 trong bản phân công).
 
@@ -68,7 +68,7 @@
 - Queue background của RoadRunner nằm trong bộ nhớ; không hứa exactly-once cho visit khi kill/scale-in.
 - "Campaign" được ánh xạ thành tag Shlink (ví dụ `campus-open-day`).
 
-**Domain (chốt 22/10/2026, cập nhật cùng ngày).** Nhóm không mua domain. `CAMPUS_DOMAIN` = `<EIP-gạch-ngang>.sslip.io`, ví dụ EIP 3.91.10.20 → `3-91-10-20.sslip.io`. sslip.io là DNS công khai miễn phí, tự phân giải mọi tên dạng này về đúng IP, không cần đăng ký. Vì vậy `s.CAMPUS_DOMAIN` (link ngắn) và `admin.CAMPUS_DOMAIN` (Web Client) cùng trỏ về EIP của host A, và mọi máy trên Internet, kể cả điện thoại quét QR, phân giải được mà không sửa hosts. Chứng thư TLS lấy từ Let's Encrypt bằng certbot (HTTP-01, SAN chứa cả 2 tên, tự gia hạn). Không dùng `curl -k` hay tắt TLS verification để báo PASS. EIP phải giữ cố định tới hết buổi bảo vệ: đổi EIP là đổi domain và mọi QR đã phát hành mất hiệu lực.
+**Domain (chốt 22/10/2026, cập nhật cùng ngày).** Nhóm không mua domain. `CAMPUS_DOMAIN` = `<EIP-gạch-ngang>.sslip.io`, ví dụ EIP 3.91.10.20 → `3-91-10-20.sslip.io`. sslip.io là DNS công khai miễn phí, tự phân giải mọi tên dạng này về đúng IP, không cần đăng ký. Vì vậy `s.CAMPUS_DOMAIN` (link ngắn) và `admin.CAMPUS_DOMAIN` (Web Client) cùng trỏ về EIP của host A, và mọi máy trên Internet, kể cả điện thoại quét QR, phân giải được mà không sửa hosts. Chứng thư TLS lấy từ Let's Encrypt bằng certbot (HTTP-01, SAN chứa cả 2 tên). Cổng 80 trên EIP là Apache của DevStack (Keystone, Placement…), nên thử thách ACME do Apache trả qua webroot và SG chỉ mở 80 trong vài phút lúc cấp; cert hạn 90 ngày, cấp khoảng 27/10 là đủ tới bảo vệ, không cần gia hạn. Không dùng `curl -k` hay tắt TLS verification để báo PASS. EIP phải giữ cố định tới hết buổi bảo vệ: đổi EIP là đổi domain và mọi QR đã phát hành mất hiệu lực.
 
 **Sơ đồ kiến trúc.** Host A gánh ingress, LB, DB và storage; host B chỉ chạy app.
 
@@ -107,7 +107,7 @@ Có 34 yêu cầu, chia 2 nhóm: chức năng ứng dụng mà người dùng th
 | FR-INF-02 | Nested KVM hoạt động trên cả A và B | P0 | TV1 | `/dev/kvm`, `kvm-ok` trên 2 host |
 | FR-INF-03 | 2 nova-compute up; 2 Nova AZ `campus-az-a`/`campus-az-b` ánh xạ đúng host A/B | P0 | TV1 | `openstack aggregate show`, VM tạo ở đúng host |
 | FR-INF-04 | Mạng tenant `campus-net` 10.20.0.0/24 (MTU 1400) nối guest xuyên host qua Geneve; guest ra Internet qua SNAT router | P0 | TV1 | Ping DF 1372 byte + HTTP A↔B; curl ra ngoài từ guest |
-| FR-INF-05 | App/DB VM không có floating IP; cổng 8080/5432/6379/API quản trị không truy cập được từ Internet | P0 | TV1/TV3 | Quét cổng từ máy ngoài VPC: chỉ 80, 443 (và 22 từ /32 cho phép) mở |
+| FR-INF-05 | App/DB VM không có floating IP; cổng 8080/5432/6379/API quản trị không truy cập được từ Internet | P0 | TV1/TV3 | Quét cổng từ máy ngoài VPC: chỉ 443 mở (22 mở theo ADR-07 tới freeze, sau đó chỉ từ /32; 80 chỉ mở lúc cấp cert) |
 | FR-INF-06 | Ingress: EIP → Nginx A:443 (TLS) → FIP nội bộ của VIP:8080; admin domain phục vụ Web Client tĩnh | P0 | TV1 (+TV3 cert) | `curl https://s.../rest/health` từ Internet → 200 với cert hợp lệ, không `-k` |
 | FR-INF-07 | Octavia provider `ovn`: listener TCP 8080, pool `SOURCE_IP_PORT`, TCP health monitor | P0 | TV2 | Nhiều kết nối mới đi tới cả 2 backend (log/capture từng guest) |
 | FR-INF-08 | Heat giữ 1 app cố định ở AZ-A và ASG-B min 1/max 2 ở AZ-B (tổng 2–3 app) | P0 | TV2 | `templates/root.yaml`; manual policy 1→2→1 ở B |
@@ -202,11 +202,11 @@ TRUSTED_PROXIES=1
 
 | Đường | Nguồn → đích | Cổng | Ghi chú |
 | --- | --- | --- | --- |
-| Người dùng → Nginx | Internet → EIP A | TCP 80, 443 | 2 virtual host theo SNI/Host; cổng 80 chỉ phục vụ ACME HTTP-01 của Let's Encrypt và chuyển hướng sang 443 |
+| Người dùng → Nginx | Internet → EIP A | TCP 443 | 2 virtual host theo SNI/Host. Không có cổng 80 cho người dùng: 80 trên A là Apache của DevStack, chỉ mở SG 80 vài phút khi certbot cấp cert (ACME HTTP-01 qua webroot của Apache) |
 | Nginx → VIP | A → FIP nội bộ 172.24.4.x | TCP 8080 | `Connection close`, `proxy_next_upstream off` (không retry POST), ghi đè `X-Forwarded-For` |
 | VIP → app | OVN LB → guest | TCP 8080 | SG `campus-app-sg` nhận từ 10.20.0.0/24 và 172.24.4.0/24 |
 | App → DB | `campus-app-sg` → `campus-db-sg` | TCP 5432, 6379 | Chỉ từ app SG |
-| Quản trị | IP /32 của thành viên → A | TCP 22 | B qua ProxyJump; guest qua diag jump tạm |
+| Quản trị | Internet → A (ADR-07, tới 06/11), sau đó IP /32 của thành viên | TCP 22 | Chỉ key, fail2ban, user Linux riêng; B qua ProxyJump; guest qua diag jump tạm |
 | Overlay | A ↔ B | UDP 6081 Geneve, TCP 6641/6642 OVN, 5672 Rabbit, 3306 SQL | Chỉ trong SG `campus-hosts` |
 
 ### 4.5 Các mốc bàn giao H0–H6
@@ -276,15 +276,23 @@ Mỗi thành viên "xong" khi mọi mã yêu cầu mình chủ trì có bằng c
 
 | Ngày | Gate | Phải có | Người dẫn |
 | --- | --- | --- | --- |
-| 21–22/10 | G0 | Account/quota/credit, KVM cả 2 host, B ra Internet | TV1 + TV4 |
-| 22–23/10 | G1 | 2 nova-compute; guest A↔B; smoke OVN LB; 1 metric/Heat resource | TV1 + TV2 |
-| 24–25/10 | G2 | Network/role/storage smoke; chạy lại được sau stop/start | TV1 + TV3 + TV4 |
-| 26–28/10 | G3 | App thật 2 replica, backup/restore, TLS, manual scaling | TV2 + TV3 |
+| 21–23/10 | G0 | Account/quota/credit, KVM cả 2 host, B ra Internet | TV1 + TV4 |
+| 23–25/10 | G1 | 2 nova-compute; guest A↔B; smoke OVN LB; 1 metric/Heat resource | TV1 + TV2 |
+| 25–26/10 | G2 | Network/role/storage smoke; chạy lại được sau stop/start | TV1 + TV3 + TV4 |
+| 27–28/10 | G3 | App thật 2 replica, backup/restore, TLS, manual scaling | TV2 + TV3 |
 | 29/10–01/11 | G4 | Tải thật → alarm → VM ready → traffic → scale-in | TV2 + TV4 |
 | 02–05/11 | G5 | Benchmark 3 lượt, fault run, giới hạn, chi phí | TV4 |
 | 06–08/11 | Freeze | Diễn tập, video, kiểm đủ 8 tiêu chí | TV1 chốt |
 | 09/11 | Nộp | Mã nguồn/cấu hình, báo cáo, video | Cả nhóm |
 | 16/11 | Bảo vệ | Không nâng phiên bản phút cuối | Cả nhóm |
+
+**Cập nhật lịch 22/10/2026.** G0 trễ khoảng 1 ngày (chưa bật EC2) nên G0–G3 dời như bảng trên; từ G4 giữ nguyên. Phần trễ bù bằng việc TV2/TV3/TV4 làm trước phần không cần cloud.
+
+- **Mốc quyết định 25/10:** G1 chưa PASS → cả nhóm họp cắt phạm vi.
+- **Mốc quyết định 01/11:** scale-out/in tự động bằng alarm chưa chạy → demo scale bằng tay qua webhook của scaling policy và ghi rõ giới hạn trong báo cáo.
+- **06/11 (freeze):** thu SSH cổng 22 về /32 (ADR-07), chụp lại SG làm bằng chứng.
+- **Việc thêm của TV1 trong G0–G1:** gắn tag `Project=CampusLink` + IAM user chỉ Start/Stop cho TV2–TV4; user Linux riêng không sudo + fail2ban; tự tắt khi rảnh + lịch tắt 02:00 + snapshot EBS hằng ngày (`docs/runbooks/start-stop.md`); chứng thư Let's Encrypt cho tên miền sslip.io (thay CA lab).
+- **Làm sớm (22–26/10):** TV3 chạy Shlink bằng Compose, TV4 đo tải thử vào đó để biết sớm tải có kích được alarm không (O-10). Tải dùng redirect, tạo link, đọc danh sách/visit; Shlink 5 không còn endpoint QR phía server.
 
 ### 6.4 Dùng SRS khi làm việc với AI agent
 
@@ -296,7 +304,7 @@ Các điểm dưới đây chưa được chốt trong tài liệu nhóm; SRS gi
 
 | # | Vấn đề | Ảnh hưởng tới | Người chốt |
 | --- | --- | --- | --- |
-| O-01 | Domain thật cho `CAMPUS_DOMAIN`: đã chốt 22/10 không mua domain, dùng `<EIP-gạch-ngang>.sslip.io` + Let's Encrypt. Còn mở: điền EIP thật vào inventory; nếu Let's Encrypt từ chối do giới hạn tần suất của sslip.io thì chuyển sang DuckDNS (chỉ đổi `CAMPUS_DOMAIN`); có giới hạn IP cho trang admin hay không | FR-APP-01, 09; FR-INF-06; NFR-10; SG mở 80/443 ra Internet khi cấp cert và khi demo | TV1 + TV3 |
+| O-01 | Domain thật cho `CAMPUS_DOMAIN`: đã chốt 22/10 không mua domain, dùng `<EIP-gạch-ngang>.sslip.io` + Let's Encrypt. Còn mở: điền EIP thật vào inventory; nếu Let's Encrypt từ chối do giới hạn tần suất của sslip.io thì chuyển sang DuckDNS (chỉ đổi `CAMPUS_DOMAIN`); có giới hạn IP cho trang admin hay không | FR-APP-01, 09; FR-INF-06; NFR-10; SG mở 443 ra Internet từ G3; 80 chỉ mở lúc cấp cert | TV1 + TV3 |
 | O-02 | Kênh trao đổi secret riêng của nhóm (DB password, Redis URI, API key) | H1, FR-INF-09, NFR-08 | Cả nhóm |
 | O-03 | Cơ chế cấp secret tự động cho VM do ASG tạo (nhập tay chỉ đủ cho instance đầu tiên) | FR-INF-08, 09, 11 | TV2 + TV3 |
 | O-04 | Rubric chính thức của giảng viên; SRS đang hiểu 8 hạng mục theo bảng trong đề xuất. Nếu rubric đòi entity "campaign" riêng thì ghi thiếu tính năng | Mục 6.2, FR-APP-05 | TV1 |
@@ -304,6 +312,6 @@ Các điểm dưới đây chưa được chốt trong tài liệu nhóm; SRS gi
 | O-06 | Gnocchi commit cụ thể (không có nhánh stable/2026.1) | NFR-14, FR-INF-10 | TV2 |
 | O-07 | Thời gian drain visit trước scale-in/backup (queue RoadRunner trong bộ nhớ) | FR-INF-11, 15 | TV3 đo |
 | O-08 | `max_connections` PostgreSQL theo tổng worker của tối đa 3 app + dự phòng quản trị | FR-INF-12 | TV3 |
-| O-09 | Người chịu trách nhiệm tắt cloud mỗi phiên, và lịch phiên cài chung đầu tiên | NFR-16, FR-INF-19 | Cả nhóm |
+| O-09 | Lịch phiên cài chung đầu tiên. (Tắt cloud đã có cơ chế 22/10: tự tắt sau 60 phút rảnh + lịch tắt 02:00; người bật cuối vẫn kiểm và ghi vào issue Nhật ký cloud.) | NFR-16, FR-INF-19 | Cả nhóm |
 | O-10 | Ngưỡng scaling thật sau khi đo (60%/25% chỉ là khởi đầu); nếu Shlink quá nhẹ để kích alarm ở 60 RPS | NFR-05, FR-INF-11 | TV2 + TV4 |
 | O-11 | Thông báo của giảng viên tuần tới có thay đổi yêu cầu/lịch nộp hay không | Toàn bộ SRS | TV1 |
