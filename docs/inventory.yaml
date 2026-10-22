@@ -1,0 +1,149 @@
+# CampusLink inventory - TV1 so huu. Dien dan theo tung phien.
+# Khong ghi password/token/key vao file nay. ID tai nguyen khong phai secret
+# nhung khong can cong khai toan bo (Lab 0.3).
+# Gia tri "plan" lay tu PDF v1.1; "actual" dien sau khi tao that.
+
+meta:
+  doc_version: "1.1-Shlink"
+  updated_utc: "2026-10-22"     # chi ghi ngay; G0 Phan 1
+  owner: "TV1 - Luong Duc Kien"
+  cloud_state: "OFF"            # ON/OFF cuoi moi phien
+  who_turns_off: "REPLACE_NAME"
+
+aws:
+  region: us-east-1
+  account_alias: "REPLACE"
+  account_type: "tai khoan thuong, Paid plan, dang nhap root"   # 22/10/2026
+  caller_arn_redacted: "arn:aws:iam::<ACCOUNT_ID>:root"
+  quota_on_demand_standard_vcpu: "16 (dang dung 0)"   # can >= 12 kha dung; 22/10/2026
+  credit_balance_usd_checked: "131.38 (kiem 22/10/2026, han khoang 1 nam)"
+  budget_alerts_usd: [30, 50, 65]
+  nested_virtualization_supported:
+    m7i.2xlarge: "yes"          # describe-instance-types 22/10/2026
+    m7i.xlarge: "yes"
+  availability_zones:
+    az_a: { name: "us-east-1a", id: "use1-az1" }   # ghi ca AZ ID (vd use1-azX)
+    az_b: { name: "us-east-1b", id: "use1-az2" }
+  vpc:
+    name: campus-vpc
+    cidr: 10.11.0.0/16
+    id: "vpc-0730a24c74eb94b62"
+    igw_id: "igw-0ceda12a7ab10f8da"
+  subnets:
+    public_a:  { cidr: 10.11.0.0/24,  az: az_a, id: "subnet-00c7d6d73205f3cae" }
+    private_a: { cidr: 10.11.10.0/24, az: az_a, id: "subnet-0402e50e0be29f05a" }   # du phong
+    public_b:  { cidr: 10.11.1.0/24,  az: az_b, id: "subnet-0b9c94d9e201710f0" }   # du phong
+    private_b: { cidr: 10.11.11.0/24, az: az_b, id: "subnet-06036244a1d16cab1" }
+  route_tables:
+    campus_public_rt:  { id: "rtb-082ab7fbd85ef92be", default: "igw" }
+    campus_private_rt: { id: "rtb-07baedadc611749be", default: "eni of A" }   # hien chi co local
+  security_groups:
+    campus_hosts:         { id: "sg-096f3c77665c4e038" }
+    campus_ingress_admin: { id: "sg-0bf8503bfeee5a3c0" }
+  ami:
+    name: "Ubuntu Server 24.04 LTS amd64 (Canonical)"
+    id: "REPLACE"
+    owner: "REPLACE"
+  hosts:
+    A:
+      name: campus-a
+      type: m7i.2xlarge
+      instance_id: "REPLACE"
+      eni_id: "REPLACE"
+      private_ip: 10.11.0.10
+      eip: "REPLACE"
+      eip_allocation_id: "REPLACE"
+      source_dest_check: false
+      nested_virtualization: enabled
+      imds: { tokens: required, hop_limit: 1 }
+      iam_instance_profile: CampusLinkBackup      # gan o Lab 10
+      volumes:
+        root:   { size_gib: 60, type: gp3, id: "REPLACE" }
+        cinder: { size_gib: 30, type: gp3, id: "REPLACE", nvme_serial: "REPLACE", delete_on_termination: false }
+    B:
+      name: campus-b
+      type: m7i.xlarge
+      instance_id: "REPLACE"
+      eni_id: "REPLACE"
+      private_ip: 10.11.11.10
+      public_ipv4: none
+      nested_virtualization: enabled
+      imds: { tokens: required, hop_limit: 1 }
+      volumes:
+        root: { size_gib: 60, type: gp3, id: "REPLACE" }
+  ssh:
+    user: ubuntu
+    members_with_key: []        # ten thanh vien da them public key
+    # TODO (22/10/2026): chi co IP TV1 trong SG campus-ingress-admin. Can thu IP /32 + public key
+    # rieng cua tung thanh vien can SSH; khong mo 0.0.0.0/0, khong dung chung .pem.
+
+openstack:
+  release: stable/2026.1
+  devstack_sha: "REPLACE"       # cung SHA tren A va B
+  gnocchi_sha: "REPLACE"        # TV2 chot
+  repo_shas_file: docs/versions.lock
+  keystone_auth_url: "http://10.11.0.10/identity"   # doc lai tu catalog
+  nova:
+    host_a: "REPLACE"           # cot Host cua compute service list
+    host_b: "REPLACE"
+    aggregates:
+      campus-agg-a: { az: campus-az-a, host: host_a }
+      campus-agg-b: { az: campus-az-b, host: host_b }
+  networks:
+    external: { name: public, cidr: 172.24.4.0/24, br_ex_ip: 172.24.4.1, fip_pool: "172.24.4.100-172.24.4.200" }
+    devstack_demo: { cidr: 10.21.0.0/24 }
+    campus_net: { cidr: 10.20.0.0/24, gateway: 10.20.0.1, pool: "10.20.0.100-10.20.0.220", mtu: 1400, id: "REPLACE", subnet_id: "REPLACE" }
+    campus_router: { id: "REPLACE" }
+  security_groups:
+    campus-app-sg:  { id: "REPLACE" }
+    campus-db-sg:   { id: "REPLACE" }    # 5432 + 6379 tu app SG
+    campus-diag-sg: { id: "REPLACE" }    # tam thoi
+  project:
+    name: campuslink
+    id: "REPLACE"
+    users: { campus-tv2: member, campus-tv3: member, campus-tv4: reader }
+    quota: { instances: 6, cores: 8, ram_mib: 12288, volumes: 5, gigabytes: 30, floating_ips: 3 }
+  flavors:
+    campus.app:     { vcpus: 1, ram_mib: 2048, disk_gib: 10 }
+    campus.db:      { vcpus: 1, ram_mib: 2048, disk_gib: 10 }
+    campus.builder: { vcpus: 2, ram_mib: 4096, disk_gib: 20 }
+  images:
+    ubuntu-noble-base: { id: "REPLACE", source_url: "REPLACE", sha256: "REPLACE", date: "REPLACE" }
+  storage:
+    cinder_vg: stack-volumes-lvmdriver-1
+    cinder_target: "REPLACE"    # target_helper/target_protocol doc tu cinder.conf
+    db_port: { ip: 10.20.0.10, id: "REPLACE" }
+    db_volume: { name: campus-db-data, size_gib: 10, id: "REPLACE", type: "REPLACE", az: "REPLACE" }
+    swift:
+      container: campus-backups
+      disk_image: /opt/stack/data/swift/drives/images/swift.img
+      mountpoint: /opt/stack/data/swift/drives/sdb1
+      loopback_size: 5G
+
+shlink:                         # Lab 9.5
+  # 22/10/2026: KHONG mua domain -> <EIP-gach-ngang>.sslip.io + Let's Encrypt (SRS O-01)
+  campus_domain: "REPLACE_EIP_DASHED.sslip.io"   # vd EIP 3.91.10.20 -> 3-91-10-20.sslip.io
+  short_domain: "s.REPLACE_EIP_DASHED.sslip.io"
+  admin_domain: "admin.REPLACE_EIP_DASHED.sslip.io"
+  tls: { issuer: "Let's Encrypt", tool: certbot, challenge: http-01, renew: "certbot.timer" }  # khong commit /etc/letsencrypt
+  vip_lab_fip: "REPLACE"        # FIP cua VIP do Heat tao, khong phai LB smoke
+  db: { host: 10.20.0.10, name: shlink, engine: "PostgreSQL 16" }
+  redis: { endpoint: "10.20.0.10:6379", auth: required }
+  image: { tag: "shlinkio/shlink:5.1.8", repo_digest: "REPLACE" }
+  webclient_dist:
+    file: shlink-web-client_4.8.1_dist.zip
+    sha256: 85c96539fd609ef80ea7d366cced743a1c0af1d9987d9f8d4517e969d519a120
+    root_dir_in_zip: shlink-web-client_4.8.1_dist
+  app_instances:
+    app-a: { uuid: "REPLACE", ip: "REPLACE" }
+    app-b: { uuid: "REPLACE", ip: "REPLACE" }
+
+load_balancer:                  # TV2 dien sau Heat (H4)
+  provider: ovn
+  lb_id: "REPLACE"
+  vip_port_id: "REPLACE"
+  listener: { protocol: TCP, port: 8080 }
+  pool: { algorithm: SOURCE_IP_PORT, id: "REPLACE" }
+  health_monitor: { type: TCP, delay: 5, timeout: 3, max_retries: 3 }
+
+temporary_resources: []         # diag-a/diag-b, LB smoke, FIP tam... ghi de xoa sau

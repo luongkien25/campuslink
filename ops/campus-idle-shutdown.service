@@ -1,0 +1,8 @@
+[Unit]
+Description=CampusLink: tat host khi khong ai dung
+
+[Service]
+Type=oneshot
+# Host B: doi thanh MODE=b
+Environment=MODE=a IDLE_MIN=60
+ExecStart=/usr/local/sbin/idle-shutdown.sh

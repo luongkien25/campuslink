@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# campus-nat - Lab TV1 ban 1.1, muc 3.2. Chay tren A (root qua sudo).
+# Cai: sudo install -m 0750 campus-nat /usr/local/sbin/campus-nat
+# NAT/forward lab cho dung 2 CIDR: private-B (B ra Internet) va external lab (guest qua br-ex).
+# Idempotent (-C truoc -A/-I). Khong flush firewall. Khong them ENI vao br-ex.
+# Chay lai sau khi cai DevStack hoac sua mang; kiem counters: sudo iptables -t nat -L POSTROUTING -n -v
+set -euo pipefail
+WAN_IF=$(ip -4 route show default | awk 'NR==1 {print $5}')
+test -n "$WAN_IF"
+sysctl -w net.ipv4.ip_forward=1 >/dev/null
+for SRC in 10.11.11.0/24 172.24.4.0/24; do
+  iptables -t nat -C POSTROUTING -s "$SRC" -o "$WAN_IF" \
+    -j MASQUERADE 2>/dev/null || \
+  iptables -t nat -A POSTROUTING -s "$SRC" -o "$WAN_IF" \
+    -j MASQUERADE
+  iptables -C FORWARD -s "$SRC" -o "$WAN_IF" \
+    -j ACCEPT 2>/dev/null || \
+  iptables -I FORWARD 1 -s "$SRC" -o "$WAN_IF" -j ACCEPT
+  iptables -C FORWARD -d "$SRC" -i "$WAN_IF" \
+    -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT \
+    2>/dev/null || \
+  iptables -I FORWARD 1 -d "$SRC" -i "$WAN_IF" \
+    -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+done

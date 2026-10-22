@@ -1,0 +1,54 @@
+# --- Secrets & credentials (Lab 0.3, Phan cong 7.2) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+!*.pub
+secrets/
+private-evidence/
+clouds.yaml
+clouds-public.yaml
+*openrc*.sh
+*.token
+token*.txt
+servers.json
+
+# --- DevStack: chi commit ban .example ---
+local.conf
+!*.local.conf.example
+
+# --- Du lieu / backup ---
+*.dump
+*.sql
+*.sql.gz
+*.backup
+*.tar
+*.zip
+
+# --- Log chua che (stack.sh log co the chua mat khau) ---
+*.log
+logs/
+!evidence/**/*.redacted.log
+
+# --- Rac he dieu hanh / editor ---
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+
+# --- Bo sung cho repo nhom ---
+*.env
+!*.env.example
+secure.yaml
+infra/heat/env.yaml
+__pycache__/
+.venv/
+*.pyc
+# Anh evidence CHUA che (account ID, IP nha, billing) de o day
+evidence/**/raw/

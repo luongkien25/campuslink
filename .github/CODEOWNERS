@@ -1,0 +1,12 @@
+# Thay REPLACE_TVx bang username GitHub that. PR cham vao thu muc nao se tu yeu cau review cua chu so huu.
+*                     @REPLACE_TV1
+/docs/inventory.yaml  @REPLACE_TV1
+/infra/aws/           @REPLACE_TV1
+/infra/devstack/      @REPLACE_TV1 @REPLACE_TV2
+/infra/heat/          @REPLACE_TV2
+/app/                 @REPLACE_TV3
+/ops/                 @REPLACE_TV3 @REPLACE_TV1
+/tests/               @REPLACE_TV4
+/evidence/            @REPLACE_TV4
+/docs/acceptance.md   @REPLACE_TV4
+/AGENTS.md            @REPLACE_TV1

@@ -1,0 +1,15 @@
+# /etc/systemd/system/campus-nat.service - Lab TV1 ban 1.1, muc 3.2
+# Sau khi luu: sudo systemctl daemon-reload && sudo systemctl enable --now campus-nat.service
+# Can them: /etc/sysctl.d/90-campus-forward.conf chua "net.ipv4.ip_forward=1"
+[Unit]
+Description=CampusLink lab NAT rules
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/campus-nat
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

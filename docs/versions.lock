@@ -1,0 +1,31 @@
+# CampusLink - khoa phien ban. Chi ghi gia tri DA KIEM THAT; khong dien SHA gia.
+# Cap nhat sau moi smoke thanh cong, kem ngay UTC va nguoi ghi.
+
+ubuntu_host_ami=REPLACE_AMI_ID
+devstack_branch=stable/2026.1
+devstack_sha=REPLACE_SHA
+# Sau lan cai thanh cong: SHA tung repo trong /opt/stack/*/.git
+nova_sha=REPLACE_SHA
+neutron_sha=REPLACE_SHA
+octavia_sha=REPLACE_SHA
+ovn_octavia_provider_sha=REPLACE_SHA
+heat_sha=REPLACE_SHA
+ceilometer_sha=REPLACE_SHA
+aodh_sha=REPLACE_SHA
+gnocchi_commit=REPLACE_SHA          # khong co nhanh stable/2026.1 (SRS O-06)
+cinder_sha=REPLACE_SHA
+swift_sha=REPLACE_SHA
+
+guest_base_image=ubuntu-noble-base
+guest_base_image_sha256=REPLACE_SHA256
+
+shlink_version=5.1.8
+shlink_image_digest=shlinkio/shlink@sha256:REPLACE_REPO_DIGEST
+web_client_version=4.8.1
+web_client_dist=shlink-web-client_4.8.1_dist.zip
+web_client_dist_sha256=85c96539fd609ef80ea7d366cced743a1c0af1d9987d9f8d4517e969d519a120
+postgresql_version=16.REPLACE_PATCH
+redis_version=REPLACE_VERSION
+
+recorded_utc=REPLACE_YYYY-MM-DDTHH:MM:SSZ
+recorded_by=REPLACE_TV

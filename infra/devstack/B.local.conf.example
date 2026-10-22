@@ -1,0 +1,51 @@
+# B.local.conf.example - Lab TV1 ban 1.1, muc 5.3 (compute-only)
+# Dat tai /opt/stack/devstack/local.conf tren B, chmod 600. Chi chay stack.sh khi A API/Rabbit/network da hoat dong.
+# Cung commit DevStack voi A. Cung service passwords voi A.
+# B KHONG chay Keystone/MySQL/Rabbit/Cinder API/storage.
+# q-ovn-agent (khong phai q-ovn-metadata-agent) - da doi chieu stackrc stable/2026.1.
+# CEILOMETER_BACKENDS=none de khong khoi tao lai Gnocchi DB tren B.
+
+[[local|localrc]]
+HOST_IP=10.11.11.10
+HOST_IP_IFACE=REPLACE_WITH_B_ENI_INTERFACE
+SERVICE_HOST=10.11.0.10
+DATABASE_TYPE=mysql
+MYSQL_HOST=10.11.0.10
+RABBIT_HOST=10.11.0.10
+GLANCE_HOSTPORT=10.11.0.10:9292
+ADMIN_PASSWORD=REPLACE_ADMIN_ALNUM_SECRET
+DATABASE_PASSWORD=REPLACE_DB_ALNUM_SECRET
+RABBIT_PASSWORD=REPLACE_RABBIT_ALNUM_SECRET
+SERVICE_PASSWORD=REPLACE_SERVICE_ALNUM_SECRET
+LOGFILE=/opt/stack/logs/stack.sh.log
+LOG_COLOR=False
+LIBVIRT_TYPE=kvm
+ENABLED_SERVICES=n-cpu,placement-client,ovn-controller,ovs-vswitchd,ovsdb-server,q-ovn-agent
+Q_AGENT=ovn
+Q_ML2_PLUGIN_MECHANISM_DRIVERS=ovn,logger
+Q_ML2_PLUGIN_TYPE_DRIVERS=local,flat,vlan,geneve
+Q_ML2_TENANT_NETWORK_TYPE=geneve
+ENABLE_CHASSIS_AS_GW=False
+OVN_L3_CREATE_PUBLIC_NETWORK=False
+OVN_BUILD_FROM_SOURCE=False
+NOVA_VNC_ENABLED=True
+NOVNCPROXY_URL=http://10.11.0.10:6080/vnc_lite.html
+VNCSERVER_LISTEN=10.11.11.10
+VNCSERVER_PROXYCLIENT_ADDRESS=10.11.11.10
+# Compute polling sends notifications to Rabbit on A.
+# No local storage backend initialization on B.
+CEILOMETER_BACKENDS=none
+CEILOMETER_PIPELINE_INTERVAL=60
+enable_plugin ceilometer https://opendev.org/openstack/ceilometer stable/2026.1
+
+disable_service ceilometer-acentral ceilometer-anotification
+disable_service gnocchi-api gnocchi-metricd
+enable_service ceilometer-acompute
+
+[[post-config|$NOVA_CONF]]
+[DEFAULT]
+reserved_host_memory_mb=8192
+reserved_host_cpus=1
+cpu_allocation_ratio=1.0
+ram_allocation_ratio=1.0
+disk_allocation_ratio=1.0

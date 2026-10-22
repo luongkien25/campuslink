@@ -1,0 +1,75 @@
+# A.local.conf.example - Lab TV1 ban 1.1, muc 5.2 (controller + compute + gateway + storage)
+# Dat tai /opt/stack/devstack/local.conf tren A (user stack), chmod 600.
+# TV2 review truoc stack.sh. Truoc khi chay: grep -n 'REPLACE_' local.conf phai rong.
+# Mat khau: ngau nhien, dai, chi chu+so; cung service credentials voi B.
+# VG Cinder "stack-volumes-lvmdriver-1" phai DA TON TAI tren dia EBS raw 30GiB (Lab 4.2).
+# CANH BAO: khong chay lai stack.sh tren cum co du lieu - init se lvremove LV trong VG.
+
+[[local|localrc]]
+HOST_IP=10.11.0.10
+SERVICE_HOST=10.11.0.10
+HOST_IP_IFACE=REPLACE_WITH_A_ENI_INTERFACE
+ADMIN_PASSWORD=REPLACE_ADMIN_ALNUM_SECRET
+DATABASE_PASSWORD=REPLACE_DB_ALNUM_SECRET
+RABBIT_PASSWORD=REPLACE_RABBIT_ALNUM_SECRET
+SERVICE_PASSWORD=REPLACE_SERVICE_ALNUM_SECRET
+LOGFILE=/opt/stack/logs/stack.sh.log
+LOG_COLOR=False
+LOGDAYS=7
+API_WORKERS=2
+LIBVIRT_TYPE=kvm
+IPV4_ADDRS_SAFE_TO_USE=10.21.0.0/24
+FIXED_RANGE=10.21.0.0/24
+FLOATING_RANGE=172.24.4.0/24
+PUBLIC_NETWORK_GATEWAY=172.24.4.1
+Q_FLOATING_ALLOCATION_POOL=start=172.24.4.100,end=172.24.4.200
+Q_AGENT=ovn
+Q_ML2_PLUGIN_MECHANISM_DRIVERS=ovn,logger
+Q_ML2_PLUGIN_TYPE_DRIVERS=local,flat,vlan,geneve
+Q_ML2_TENANT_NETWORK_TYPE=geneve
+ENABLE_CHASSIS_AS_GW=True
+OVN_L3_CREATE_PUBLIC_NETWORK=True
+OVN_BUILD_FROM_SOURCE=False
+# Khong dat PUBLIC_INTERFACE thanh ENI AWS.
+disable_service tempest
+# Cinder backend: VG that must already exist on the raw EBS disk.
+enable_service c-api c-sch c-vol
+CINDER_ENABLED_BACKENDS=lvm:lvmdriver-1
+VOLUME_GROUP_NAME=stack-volumes
+# Swift lab; 1 replica on one host is NOT HA.
+enable_service s-proxy s-object s-container s-account
+SWIFT_REPLICAS=1
+SWIFT_HASH=REPLACE_SWIFT_ALNUM_SECRET
+SWIFT_LOOPBACK_DISK_SIZE=5G
+# Heat / Octavia OVN / telemetry.
+enable_plugin heat https://opendev.org/openstack/heat stable/2026.1
+OCTAVIA_NODE=api
+DISABLE_AMP_IMAGE_BUILD=True
+enable_plugin octavia https://opendev.org/openstack/octavia stable/2026.1
+enable_plugin ovn-octavia-provider https://opendev.org/openstack/ovn-octavia-provider stable/2026.1
+enable_service o-api o-hk o-da
+disable_service o-cw o-hm
+CEILOMETER_BACKENDS=gnocchi
+CEILOMETER_PIPELINE_INTERVAL=60
+LIBS_FROM_GIT=python-octaviaclient,gnocchi
+GNOCCHI_BRANCH=REPLACE_WITH_RECORDED_GNOCCHI_SHA
+enable_plugin aodh https://opendev.org/openstack/aodh stable/2026.1
+enable_plugin ceilometer https://opendev.org/openstack/ceilometer stable/2026.1
+
+[[post-config|$NOVA_CONF]]
+[DEFAULT]
+reserved_host_memory_mb=16384
+reserved_host_cpus=4
+cpu_allocation_ratio=1.0
+ram_allocation_ratio=1.0
+disk_allocation_ratio=1.0
+
+[[post-config|$NEUTRON_CONF]]
+[DEFAULT]
+global_physnet_mtu=1500
+
+[[post-config|/$Q_PLUGIN_CONF_FILE]]
+[ml2]
+path_mtu=1500
+[ml2_type_geneve]
+max_header_size=38

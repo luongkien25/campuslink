@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# campus-keepalive [phut] - giu host A khong tu tat trong N phut (mac dinh 120). Dat o /usr/local/bin.
+m="${1:-120}"
+touch -d "+${m} min" "/var/tmp/campus-keepalive.$(id -un)" && echo "Giu may den $(date -d "+${m} min" '+%H:%M %Z')"

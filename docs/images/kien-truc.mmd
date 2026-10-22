@@ -1,0 +1,15 @@
+flowchart TB
+  U["Người dùng (Internet)"] --> N
+  subgraph VPC["AWS VPC 10.11.0.0/16 · us-east-1"]
+    subgraph A["AZ-A · EC2 A m7i.2xlarge (controller + compute + storage + EIP)"]
+      N["Nginx :443 (EIP)<br/>TLS · Web Client tĩnh"] --> V["Octavia OVN VIP<br/>FIP 172.24.4.x :8080 · TCP"]
+      V --> AA["App A (cố định)<br/>Shlink 5.1.8 :8080"]
+      AA --> D["DB VM 10.20.0.10<br/>PostgreSQL 16 + Redis<br/>dữ liệu trên Cinder"]
+      D --> S["Swift campus-backups<br/>pg_dump -Fc · private"]
+    end
+    subgraph B["AZ-B · EC2 B m7i.xlarge (compute, không public IPv4)"]
+      AB["App B (ASG-B 1–2)<br/>Shlink 5.1.8 :8080"]
+    end
+    V --> AB
+    AB --> D
+  end
