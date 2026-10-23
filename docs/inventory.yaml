@@ -52,25 +52,25 @@ aws:
       eni_id: "eni-0c7e80027e141b982"
       private_ip: 10.11.0.10
       eip: "44.198.215.187"        # gan 23/10/2026; KHONG release (doi EIP = doi domain sslip)
-      eip_allocation_id: "REPLACE"
+      eip_allocation_id: "eipalloc-0b2ac9459e46065d4"   # doc tu anh console (23/10/2026), ten EIP campus-a-eip; doi chieu lai bang cach copy tu console
       source_dest_check: false
       nested_virtualization: enabled
       imds: { tokens: required, hop_limit: 1 }
       iam_instance_profile: CampusLinkBackup      # gan o Lab 10
       volumes:
         root:   { size_gib: 60, type: gp3, id: "vol-0c5a8fc0973e3603e", encrypted: "aws/ebs" }
-        cinder: { size_gib: 30, type: gp3, id: "vol-0875752f0e893ca17", encrypted: "aws/ebs", nvme_serial: "REPLACE", delete_on_termination: false }
+        cinder: { size_gib: 30, type: gp3, id: "vol-0875752f0e893ca17", encrypted: "aws/ebs", nvme_serial: "vol0875752f0e893ca17", delete_on_termination: false }
     B:
       name: campus-b
       type: m7i.xlarge
-      instance_id: "REPLACE"
-      eni_id: "REPLACE"
+      instance_id: "i-0c23cd863cc66d7f4"   # launch 23/10/2026 21:24 (GMT+7), AZ us-east-1b / use1-az2
+      eni_id: "eni-0c332775e72314f41"   # doc tu anh console tab Networking cua campus-b (23/10/2026); doi chieu lai bang cach copy tu console
       private_ip: 10.11.11.10
       public_ipv4: none
       nested_virtualization: enabled
       imds: { tokens: required, hop_limit: 1 }
       volumes:
-        root: { size_gib: 60, type: gp3, id: "REPLACE" }
+        root: { size_gib: 60, type: gp3, id: "vol-0b7596f11ee9655f5" }   # suy ra tu serial NVMe vol0b7596f11ee9655f5 (lsblk tren B, 23/10/2026); doi chieu lai o tab Storage cua console
   tags: { Project: CampusLink }  # gan cho A, B, volume, EIP; IAM start/stop va DLM loc theo tag nay
   shutdown_behavior: stop        # khong de terminate
   keypair_name: "tv1_campuslink" # ten thuc te tren AWS (import 23/10/2026); chi ghi ten keypair, khong ghi duong dan/noi dung private key

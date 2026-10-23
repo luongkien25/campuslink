@@ -1,0 +1,52 @@
+Evidence 4.3 (G0): Amazon Time Sync (169.254.169.123) la nguon chinh tren ca A va B
+Ngay: 2026-10-23 15:49 UTC (22:49 GMT+7). Lay bang SSH chi doc tu may Windows cua TV1 (lenh do Claude Code chay theo yeu cau cua TV1). Khong co secret trong output.
+
+Cau hinh: Ubuntu cloud image da co san /etc/chrony/conf.d/00-cpc.conf voi dong
+  server 169.254.169.123 prefer iburst minpoll 4 maxpoll 4
+/etc/chrony/chrony.conf nap thu muc nay bang "confdir /etc/chrony/conf.d" (dong 5), truoc cac dong "pool". Khong sua chrony.conf.
+
+--- campus-a (ip-10-11-0-10) ---
+$ chronyc sources -v   (chi dong tieu de va dong chon)
+MS Name/IP address         Stratum Poll Reach LastRx Last sample
+^* 169.254.169.123               1   4   377     9    +51us[  +50us] +/-  165us
+$ chronyc tracking
+Reference ID    : A9FEA97B (169.254.169.123)
+Stratum         : 2
+Ref time (UTC)  : Fri Oct 23 15:49:37 2026
+System time     : 0.000001583 seconds slow of NTP time
+Last offset     : -0.000000769 seconds
+RMS offset      : 0.000004595 seconds
+Frequency       : 2.332 ppm fast
+Residual freq   : -0.001 ppm
+Skew            : 0.081 ppm
+Root delay      : 0.000151632 seconds
+Root dispersion : 0.000044429 seconds
+Update interval : 16.3 seconds
+Leap status     : Normal
+$ timedatectl | grep -iE 'synchronized|NTP'
+System clock synchronized: yes
+              NTP service: active
+
+--- campus-b (ip-10-11-11-10) ---
+$ chronyc sources -v   (chi dong tieu de va dong chon)
+MS Name/IP address         Stratum Poll Reach LastRx Last sample
+^* 169.254.169.123               1   4   377    15    +52us[  +52us] +/-  158us
+$ chronyc tracking
+Reference ID    : A9FEA97B (169.254.169.123)
+Stratum         : 2
+Ref time (UTC)  : Fri Oct 23 15:49:38 2026
+System time     : 0.000000227 seconds slow of NTP time
+Last offset     : -0.000000235 seconds
+RMS offset      : 0.000000903 seconds
+Frequency       : 2.046 ppm fast
+Residual freq   : -0.000 ppm
+Skew            : 0.013 ppm
+Root delay      : 0.000149811 seconds
+Root dispersion : 0.000039525 seconds
+Update interval : 32.2 seconds
+Leap status     : Normal
+$ timedatectl | grep -iE 'synchronized|NTP'
+System clock synchronized: yes
+              NTP service: active
+
+Ket luan: PASS 4.3. Dong "^*" la 169.254.169.123 tren ca hai host, Leap status Normal, lech duoi 2 micro giay. Chua kiem lai sau stop/start (lam o buoc 4.2 cuoi buoi).
