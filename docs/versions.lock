@@ -1,7 +1,7 @@
 # CampusLink - khoa phien ban. Chi ghi gia tri DA KIEM THAT; khong dien SHA gia.
 # Cap nhat sau moi smoke thanh cong, kem ngay UTC va nguoi ghi.
 
-ubuntu_host_ami=REPLACE_AMI_ID
+ubuntu_host_ami=ami-02a9cdd4e98bc3c78
 devstack_branch=stable/2026.1
 devstack_sha=REPLACE_SHA
 # Sau lan cai thanh cong: SHA tung repo trong /opt/stack/*/.git

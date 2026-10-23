@@ -4,10 +4,10 @@
 # Gia tri "plan" lay tu PDF v1.1; "actual" dien sau khi tao that.
 
 meta:
-  doc_version: "1.1-Shlink"
-  updated_utc: "2026-10-22"     # chi ghi ngay; G0 Phan 1
+  doc_version: "1.2-Shlink"
+  updated_utc: "2026-10-23"     # chi ghi ngay; Lab 3 xong 3.1-3.5
   owner: "TV1 - Luong Duc Kien"
-  cloud_state: "OFF"            # ON/OFF cuoi moi phien
+  cloud_state: "OFF (A stopped 23/10/2026, B chua tao)"   # ON/OFF cuoi moi phien
   who_turns_off: "REPLACE_NAME"
 
 aws:
@@ -42,24 +42,24 @@ aws:
     campus_ingress_admin: { id: "sg-0bf8503bfeee5a3c0" }
   ami:
     name: "Ubuntu Server 24.04 LTS amd64 (Canonical)"
-    id: "REPLACE"
+    id: "ami-02a9cdd4e98bc3c78"   # quick start console 23/10/2026, khong phai ban Pro
     owner: "REPLACE"
   hosts:
     A:
       name: campus-a
       type: m7i.2xlarge
-      instance_id: "REPLACE"
-      eni_id: "REPLACE"
+      instance_id: "i-0cc001a1d099747c3"   # launch 23/10/2026, Running
+      eni_id: "eni-0c7e80027e141b982"
       private_ip: 10.11.0.10
-      eip: "REPLACE"
+      eip: "44.198.215.187"        # gan 23/10/2026; KHONG release (doi EIP = doi domain sslip)
       eip_allocation_id: "REPLACE"
       source_dest_check: false
       nested_virtualization: enabled
       imds: { tokens: required, hop_limit: 1 }
       iam_instance_profile: CampusLinkBackup      # gan o Lab 10
       volumes:
-        root:   { size_gib: 60, type: gp3, id: "REPLACE" }
-        cinder: { size_gib: 30, type: gp3, id: "REPLACE", nvme_serial: "REPLACE", delete_on_termination: false }
+        root:   { size_gib: 60, type: gp3, id: "vol-0c5a8fc0973e3603e", encrypted: "aws/ebs" }
+        cinder: { size_gib: 30, type: gp3, id: "vol-0875752f0e893ca17", encrypted: "aws/ebs", nvme_serial: "REPLACE", delete_on_termination: false }
     B:
       name: campus-b
       type: m7i.xlarge
@@ -71,11 +71,15 @@ aws:
       imds: { tokens: required, hop_limit: 1 }
       volumes:
         root: { size_gib: 60, type: gp3, id: "REPLACE" }
+  tags: { Project: CampusLink }  # gan cho A, B, volume, EIP; IAM start/stop va DLM loc theo tag nay
+  shutdown_behavior: stop        # khong de terminate
+  keypair_name: "tv1_campuslink" # ten thuc te tren AWS (import 23/10/2026); chi ghi ten keypair, khong ghi duong dan/noi dung private key
   ssh:
     user: ubuntu
     members_with_key: []        # ten thanh vien da them public key
-    # TODO (22/10/2026): chi co IP TV1 trong SG campus-ingress-admin. Can thu IP /32 + public key
-    # rieng cua tung thanh vien can SSH; khong mo 0.0.0.0/0, khong dung chung .pem.
+    # ADR-07 (tu 22/10/2026): SG campus-ingress-admin mo 22 cho 0.0.0.0/0 toi freeze 06/11, bu bang
+    # chi key + fail2ban + user Linux rieng moi nguoi (ops/add-member.sh); khong dung chung .pem.
+    # Truoc 06/11: thu IP /32 cua tung thanh vien can SSH, chup lai SG lam evidence.
 
 openstack:
   release: stable/2026.1
@@ -111,7 +115,7 @@ openstack:
     ubuntu-noble-base: { id: "REPLACE", source_url: "REPLACE", sha256: "REPLACE", date: "REPLACE" }
   storage:
     cinder_vg: stack-volumes-lvmdriver-1
-    cinder_target: "REPLACE"    # target_helper/target_protocol doc tu cinder.conf
+    cinder_target: "REPLACE"    # mac dinh DevStack 2026.1: lioadm + iscsi, cong 3260; xac nhan bang cinder.conf
     db_port: { ip: 10.20.0.10, id: "REPLACE" }
     db_volume: { name: campus-db-data, size_gib: 10, id: "REPLACE", type: "REPLACE", az: "REPLACE" }
     swift:
@@ -122,9 +126,9 @@ openstack:
 
 shlink:                         # Lab 9.5
   # 22/10/2026: KHONG mua domain -> <EIP-gach-ngang>.sslip.io + Let's Encrypt (SRS O-01)
-  campus_domain: "REPLACE_EIP_DASHED.sslip.io"   # vd EIP 3.91.10.20 -> 3-91-10-20.sslip.io
-  short_domain: "s.REPLACE_EIP_DASHED.sslip.io"
-  admin_domain: "admin.REPLACE_EIP_DASHED.sslip.io"
+  campus_domain: "44-198-215-187.sslip.io"   # EIP 44.198.215.187 (23/10/2026)
+  short_domain: "s.44-198-215-187.sslip.io"
+  admin_domain: "admin.44-198-215-187.sslip.io"
   tls: { issuer: "Let's Encrypt", tool: certbot, challenge: http-01, webroot: /var/www/acme, renew: "khong can truoc 16/11 (han 90 ngay)" }  # khong commit /etc/letsencrypt
   vip_lab_fip: "REPLACE"        # FIP cua VIP do Heat tao, khong phai LB smoke
   db: { host: 10.20.0.10, name: shlink, engine: "PostgreSQL 16" }

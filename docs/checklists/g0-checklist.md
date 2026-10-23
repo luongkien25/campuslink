@@ -37,13 +37,16 @@ Ghi giờ **UTC** cho mỗi bước. Lưu output đã che vào `evidence/G0/`. M
 
 | # | Việc | Kiểm | PASS khi | ✔ |
 |---|---|---|---|---|
-| 3.1 | Launch A: m7i.2xlarge, 10.11.0.10, root 60 + data 30, **Nested = Enable**, IMDSv2 hop 1 | console | ACTIVE, đúng AZ | ☐ |
-| 3.2 | EIP gắn A; **tắt source/dest check** trên A | console | – | ☐ |
-| 3.3 | SSH `campus-a` | `hostname; ip -br addr; ip route` | vào đúng máy | ☐ |
-| 3.4 | Cài NAT: sysctl + `ops/campus-nat` + unit | `sudo iptables -t nat -L POSTROUTING -n -v` | Có 2 rule MASQUERADE | ☐ |
-| 3.5 | private RT 0.0.0.0/0 → ENI A; SG A cho 80/443 từ 10.11.11.0/24 | console | – | ☐ |
-| 3.6 | Launch B: m7i.xlarge, 10.11.11.10, **không public IP**, Nested = Enable, AZ khác A | console | – | ☐ |
+| 3.1 | Launch A: m7i.2xlarge, 10.11.0.10, root 60 + data 30 (data `DeleteOnTermination=No`), **Nested = Enable**, IMDSv2 hop 1, Shutdown behavior = Stop, tag `Project=CampusLink` (instance + volume), không gắn IAM role | console | ACTIVE, đúng AZ (ảnh AZ ID, FR-INF-01) | ✔ |
+| 3.2 | EIP gắn A (tag `Project=CampusLink`, **không release**: đổi EIP = đổi domain sslip); **tắt source/dest check** trên A; ghi EIP dạng gạch ngang vào inventory | console | – | ✔ |
+| 3.3 | SSH `campus-a` | `hostname; ip -br addr; ip route` | vào đúng máy | ✔ |
+| 3.3b | Cứng hóa SSH (ADR-07): chỉ key + fail2ban | `sudo sshd -T \| grep -E 'passwordauthentication\|permitrootlogin'`; `sudo fail2ban-client status sshd` | `passwordauthentication no`, `permitrootlogin no`/`without-password`; jail sshd chạy | ✔ |
+| 3.4 | Cài NAT: sysctl + `ops/campus-nat` + unit | `sudo iptables -t nat -L POSTROUTING -n -v` | Có 2 rule MASQUERADE | ✔ |
+| 3.4b | Tự tắt trên A (`start-stop.md` §4) | `systemctl list-timers campus-idle-shutdown.timer` | Timer active | ✔ |
+| 3.5 | private RT 0.0.0.0/0 → ENI A; SG A cho 80/443 từ 10.11.11.0/24 | console | – | ✔ |
+| 3.6 | Launch B: m7i.xlarge, 10.11.11.10, **không public IP**, chỉ SG `campus-hosts`, Nested = Enable, IMDSv2 hop 1, Shutdown behavior = Stop, tag `Project=CampusLink`, AZ khác A | console | Ảnh AZ ID + không có public IPv4 | ☐ |
 | 3.7 | SSH `campus-b` qua ProxyJump | `ssh campus-b hostname` | OK, không chép private key lên A | ☐ |
+| 3.7b | Tự tắt trên B (`MODE=b`) | `systemctl list-timers campus-idle-shutdown.timer` | Timer active | ☐ |
 | 3.8 | B ra Internet | `getent hosts opendev.org; curl -I --connect-timeout 10 https://opendev.org; sudo apt-get update` | DNS ok, HTTP 200/301/302, apt không timeout; counters NAT trên A tăng | ☐ |
 
 Nếu 3.8 fail: DNS → private RT target → source/dest check → `ip_forward` → NAT counters → SG transit → NTP (Lab 3.3). **Không** gán public IP cho B để che lỗi.
@@ -52,13 +55,36 @@ Nếu 3.8 fail: DNS → private RT target → source/dest check → `ip_forward`
 
 | # | Việc | Kiểm | PASS khi | ✔ |
 |---|---|---|---|---|
-| 4.1 | Gói nền (A/B) | `sudo apt-get install -y git curl jq tmux chrony cpu-checker qemu-kvm libvirt-daemon-system libvirt-clients lvm2 python3-venv python3-pip sysstat tcpdump` | thành công | ☐ |
-| 4.2 | Hostname bền | `hostnamectl`; `/etc/cloud/cloud.cfg.d/99-campus-hostname.cfg` có `preserve_hostname: true`; `/etc/hosts` có 2 dòng | campus-a / campus-b | ☐ |
-| 4.3 | Giờ | `chronyc tracking` | đồng bộ | ☐ |
+| 4.1 | Gói nền (A/B) | Trước: `systemctl is-active apt-daily.service apt-daily-upgrade.service` ra 2 dòng `inactive` (máy mới bật thì unattended-upgrades đang giữ khóa dpkg, chờ xong). Rồi `sudo apt-get install -y git curl jq tmux chrony cpu-checker qemu-kvm libvirt-daemon-system libvirt-clients lvm2 python3-venv python3-pip sysstat tcpdump` | thành công | ☐ |
+| 4.1b | Cập nhật tự động không tự restart service lõi (A/B) | Khối lệnh 4.1b dưới bảng | `apt-config dump Unattended-Upgrade::Package-Blacklist` in đủ 6 dòng (openvswitch-, ovn-, mysql-, rabbitmq-server, qemu-, libvirt); file needrestart có `'l'` | ☐ |
+| 4.2 | Hostname bền | `hostnamectl`; `/etc/cloud/cloud.cfg.d/99-campus-hostname.cfg` có `preserve_hostname: true`; `/etc/hosts` có 2 dòng. Làm **trước** `stack.sh`, rồi Stop/Start máy một lần và kiểm lại (node RabbitMQ gắn với hostname: đổi tên sau khi cài là mất user `stackrabbit`) | campus-a / campus-b, giữ nguyên sau stop/start | ☐ |
+| 4.3 | Giờ (Amazon Time Sync) | Thêm `server 169.254.169.123 prefer iburst minpoll 4 maxpoll 4` **trước** các dòng `pool`/`server` trong `/etc/chrony/chrony.conf`, `sudo systemctl restart chrony`; kiểm `chronyc sources -v`, `chronyc tracking` | dòng `^*` là 169.254.169.123; đồng bộ. B dùng được cả khi NAT chưa xong (địa chỉ link-local) | ☐ |
 | 4.4 | **KVM** (A và B) | `ls -l /dev/kvm; sudo kvm-ok; sudo virt-host-validate qemu` | `/dev/kvm` có, kvm-ok "can be used" | ☐ |
 | 4.5 | CpuOptions thật | `aws ec2 describe-instances … --query '…CPU:CpuOptions…'` | nested enabled | ☐ |
-| 4.6 | Đĩa Cinder | `lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS,SERIAL` → so SERIAL với volume ID; `sudo wipefs -n DEVICE` | đúng đĩa 30 GiB trống | ☐ |
-| 4.7 | VG | `sudo pvcreate DEV; sudo vgcreate stack-volumes-lvmdriver-1 DEV; sudo vgs` | VG ~30 GiB, **không** mkfs | ☐ |
+| 4.6 | Đĩa Cinder | `lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS,SERIAL` → so SERIAL với volume ID (`vol0875752f0e893ca17`); `ls -l /dev/disk/by-id/*vol0875752f0e893ca17*`; `sudo wipefs -n /dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_vol0875752f0e893ca17` | đúng đĩa 30 GiB trống; ghi `nvme_serial` vào inventory. Tên `nvmeXn1` có thể đổi sau stop/start, nên DEV dùng đường by-id | ☐ |
+| 4.7 | VG | `DEV=/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_vol0875752f0e893ca17` (link không có đuôi `-part`/`_1`, đúng tên in ra ở 4.6); `sudo pvcreate $DEV; sudo vgcreate stack-volumes-lvmdriver-1 $DEV; sudo vgs` | VG ~30 GiB, **không** mkfs | ☐ |
 | 4.8 | User stack (A/B) | `id stack; sudo visudo -cf /etc/sudoers.d/stack` | OK | ☐ |
+
+**Lệnh cho 4.1b** (A và B, chốt 23/10/2026): needrestart chỉ báo, không tự restart; unattended-upgrades không tự nâng gói lõi của DevStack, các gói khác vẫn tự vá bảo mật. Gói lõi chỉ nâng tay, có kế hoạch, ghi vào nhật ký cloud. Bỏ được bất cứ lúc nào bằng cách xóa `/etc/needrestart/conf.d/50-campuslink.conf` và `/etc/apt/apt.conf.d/51campuslink-unattended`.
+
+```bash
+echo "\$nrconf{restart} = 'l';" | sudo tee /etc/needrestart/conf.d/50-campuslink.conf
+sudo tee /etc/apt/apt.conf.d/51campuslink-unattended >/dev/null <<'EOF'
+// CampusLink: khong tu nang goi loi DevStack (regex khop dau ten goi)
+Unattended-Upgrade::Package-Blacklist {
+    "openvswitch-";
+    "ovn-";
+    "mysql-";
+    "rabbitmq-server";
+    "qemu-";
+    "libvirt";
+};
+EOF
+echo 'DPkg::Lock::Timeout "600";' | sudo tee /etc/apt/apt.conf.d/90campuslink-lock
+# kiem
+cat /etc/needrestart/conf.d/50-campuslink.conf
+apt-config dump Unattended-Upgrade::Package-Blacklist
+apt-config dump DPkg::Lock::Timeout
+```
 
 **PASS G0** = Phần 1 + 4.4 trên cả hai host + 3.8, có bảng chi phí tạm. Sau đó stop B rồi A (Stop, không Terminate). Ghi cloud = OFF.

@@ -18,7 +18,7 @@ VPC `campus-vpc` = `vpc-0730a24c74eb94b62`. Điền ID thật sau khi tạo. Ch�
 | campus-public-rt (`rtb-082ab7fbd85ef92be`) | 10.11.0.0/16 | local | |
 | campus-public-rt | 0.0.0.0/0 | campus-igw (`igw-0ceda12a7ab10f8da`) | |
 | campus-private-rt (`rtb-07baedadc611749be`) | 10.11.0.0/16 | local | |
-| campus-private-rt | 0.0.0.0/0 | **ENI của A** (REPLACE_ENI_A) | Chỉ thêm sau khi A chạy và đã tắt source/dest check. Không trỏ tới IGW |
+| campus-private-rt | 0.0.0.0/0 | **ENI của A** (`eni-0c7e80027e141b982`) | Chỉ thêm sau khi A chạy và đã tắt source/dest check. Không trỏ tới IGW |
 
 **Không** thêm route tới 10.20.0.0/24 hay 172.24.4.0/24 (mạng ảo của OpenStack, AWS không biết đến).
 
@@ -43,7 +43,7 @@ Khi thu hẹp SG self (lúc freeze): kiểm thực tế bằng `ss -lntup`, cata
 |---|---|---|
 | Type | m7i.2xlarge | m7i.xlarge |
 | Subnet / IP | public-A / 10.11.0.10 | private-B / 10.11.11.10 |
-| Public IP | EIP (REPLACE) | **không có** |
+| Public IP | EIP `44.198.215.187` | **không có** |
 | Nested virtualization | Enable | Enable |
 | IMDS | v2 required, hop 1 | v2 required, hop 1 |
 | Source/dest check | **disabled** | giữ mặc định |

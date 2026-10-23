@@ -49,3 +49,5 @@ reserved_host_cpus=1
 cpu_allocation_ratio=1.0
 ram_allocation_ratio=1.0
 disk_allocation_ratio=1.0
+# Bat lai VM sau stop/start EC2 (mac dinh False -> VM SHUTOFF). Sua tay sau stack.sh thi sua /etc/nova/nova-cpu.conf.
+resume_guests_state_on_host_boot=True

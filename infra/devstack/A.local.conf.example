@@ -4,6 +4,13 @@
 # Mat khau: ngau nhien, dai, chi chu+so; cung service credentials voi B.
 # VG Cinder "stack-volumes-lvmdriver-1" phai DA TON TAI tren dia EBS raw 30GiB (Lab 4.2).
 # CANH BAO: khong chay lai stack.sh tren cum co du lieu - init se lvremove LV trong VG.
+# Lam NGAY SAU stack.sh, truoc khi co du lieu (chi tiet: docs/troubleshooting.md, "Da biet truoc"):
+#  - LVM: cuoi stack.sh DevStack ghi global_filter trong /etc/lvm/lvm.conf theo TEN nvme luc cai
+#    (dong co "# from devstack"). Ten nvme co the doi sau stop/start -> doi thanh
+#    global_filter = [ "a|^/dev/nvme[0-9]+n1$|", "r|.*|" ]  # campuslink   roi vgscan; vgs.
+#  - Swift: dong swift.img trong /etc/fstab (DevStack ghi) khong co nofail -> them nofail, kiem findmnt --verify.
+#  - n-cpu dung truoc libvirt-guests khi tat may: drop-in [Unit] After=libvirt-guests.service (A va B).
+#  Ca 3 muc deu chua thu tren cum: thu tren A, ghi ket qua vao evidence G1.
 
 [[local|localrc]]
 HOST_IP=10.11.0.10
@@ -51,6 +58,10 @@ enable_service o-api o-hk o-da
 disable_service o-cw o-hm
 CEILOMETER_BACKENDS=gnocchi
 CEILOMETER_PIPELINE_INTERVAL=60
+# Archive policy gan cho MOI metric Ceilometer. Mac dinh DevStack la ceilometer-low (chi mean, 5 phut)
+# -> alarm granularity 60 khong bao gio co du lieu. ceilometer-high-rate co mean + rate:mean o 1 phut.
+# Phai dat TRUOC stack.sh: Gnocchi khong doi granularity cua metric da tao.
+GNOCCHI_ARCHIVE_POLICY=ceilometer-high-rate
 LIBS_FROM_GIT=python-octaviaclient,gnocchi
 GNOCCHI_BRANCH=REPLACE_WITH_RECORDED_GNOCCHI_SHA
 enable_plugin aodh https://opendev.org/openstack/aodh stable/2026.1
@@ -63,6 +74,8 @@ reserved_host_cpus=4
 cpu_allocation_ratio=1.0
 ram_allocation_ratio=1.0
 disk_allocation_ratio=1.0
+# Bat lai VM sau stop/start EC2 (mac dinh False -> VM SHUTOFF). n-cpu doc nova-cpu.conf (DevStack copy tu nova.conf).
+resume_guests_state_on_host_boot=True
 
 [[post-config|$NEUTRON_CONF]]
 [DEFAULT]
@@ -73,3 +86,9 @@ global_physnet_mtu=1500
 path_mtu=1500
 [ml2_type_geneve]
 max_header_size=38
+
+# Octavia mac dinh provider amphora; lab tat o-cw/o-hm nen LB quen --provider ovn se ket PENDING_CREATE.
+# Kiem sau stack.sh: grep -A4 '^\[api_settings\]' /etc/octavia/octavia.conf
+[[post-config|$OCTAVIA_CONF]]
+[api_settings]
+default_provider_driver=ovn
