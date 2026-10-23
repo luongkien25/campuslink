@@ -112,3 +112,16 @@ Khi máy tắt vẫn tốn (ước tính, ⚠️ chưa kiểm bằng AWS Pricing
 Chạy cả A và B khoảng 0,6 USD/giờ. Đơn giá B (0,2016) suy ra bằng nửa giá A, chưa thấy trực tiếp trong console.
 
 Còn thiếu (điền tay, không suy ra): credit còn lại `REPLACE` (đọc ở Billing → Credits; 22/10 là 131,38 USD); số liệu thực tế từ Cost Explorer sau khoảng 24 giờ để đối chiếu bảng này.
+
+## Phần 5 – Việc thêm của TV1 trong G0–G1 (SRS 6.3, `docs/runbooks/start-stop.md`)
+
+Làm trên console AWS ngày 23–24/10/2026 khi máy đang tắt. Ảnh trong `evidence/G0/` đã che account ID (ảnh có ARN chưa lưu).
+
+| # | Việc | Kiểm | PASS khi | ✔ |
+|---|---|---|---|---|
+| 5.1 | Tag `Project=CampusLink` | Console: EC2 → Instances/Volumes/Elastic IPs, tìm `CampusLink` | A, B, 3 volume, EIP đều có tag | EIP ✔ (`20261023-G0-eip-tags-project.png`); instance và volume mang tag từ lúc launch (ảnh launch), chờ kiểm lại bằng snapshot DLM 5.4 |
+| 5.2 | IAM: group `campuslink-members`, policy `CampusLinkStartStop`, user `tv2`–`tv4` | IAM → Groups/Policies/Users | Policy đúng file `infra/aws/iam-member-startstop.json` (có Condition tag); 3 user thuộc group, bắt đổi mật khẩu lần đầu | ✔ (`20261023-NFR-16-iam-campuslink-startstop-policy.png`, `-iam-users-tv2-tv4.png`). Còn mở: account alias để có URL đăng nhập; bật MFA cho tv2–tv4; `luongkien25` cũng nằm trong group |
+| 5.3 | Lịch tắt 02:00 (EventBridge Scheduler) | Schedule `campuslink-stop-0200`, cron `0 19 * * ? *`, UTC, target EC2 `StopInstances`, role `CampusLinkSchedulerStopEc2Role` (trust `scheduler.amazonaws.com`, policy `CampusLinkSchedulerStopEc2`), retry 1 giờ và 10 lần | Enabled, đúng input 2 instance ID | ✔ cấu hình (`20261023-NFR-16-scheduler-*.png`). **Chạy thật chưa kiểm:** sáng 24/10 vào CloudTrail → Event history, lọc `StopInstances`, phải có sự kiện khoảng 19:00 UTC của role trên, không có `errorCode` |
+| 5.4 | Snapshot hằng ngày (DLM) | Policy `policy-03e03380fa1963144`: target Instance, tag `Project=CampusLink`, mỗi 24 giờ lúc 20:00 UTC, giữ 3 bản, Copy tags | Enabled | ✔ cấu hình (`20261024-G0-dlm-policy-detail.png`, `-dlm-policy-settings.png`). **Chạy thật chưa kiểm:** sau 20:00 UTC phải có 3 snapshot (root A, Cinder A, root B) |
+| 5.5 | User Linux `tv2`–`tv4` + fail2ban | `ops/add-member.sh` trên A, cần public key từng người | `id tv2`..., đăng nhập bằng key, không sudo | ☐ làm ở phiên G1 (cần A đang bật). `fail2ban` trên A đã chạy từ 3.3b |
+| 5.6 | Chứng thư Let's Encrypt cho `44-198-215-187.sslip.io` | sổ tay TV1 v1.2 mục 16.3 | cert hợp lệ, không dùng `curl -k` | ☐ làm ở G3 (khoảng 27/10), cần Nginx/Apache trên A và mở SG 80 vài phút |
