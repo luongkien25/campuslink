@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# campus-check - kiem tra truoc khi tat may (NFR-16): con ai dung host khong.
+# Dat o /usr/local/bin tren A. Chay tu laptop: ssh campus-a campus-check
+# Moi phien SSH vao B deu di qua A (ProxyJump) nen chi can kiem tren A.
+# idle-shutdown.sh tren A cung goi lenh nay.
+# Thoat 0 = tat duoc (B truoc, A sau); 1 = con nguoi dung, KHONG tat.
+set -u
+n=0
+
+# PID cua chinh phien dang chay lenh nay, de khong tu dem minh
+self=" "
+p=$$
+while [ -n "$p" ] && [ "$p" -gt 1 ]; do
+  self="$self$p "
+  p=$(ps -o ppid= -p "$p" | tr -d ' ')
+done
+
+# 1. Phien SSH da dang nhap (ca ProxyJump sang B, scp, ssh 'lenh'): sshd chay duoi uid nguoi dung >= 1000.
+#    Bot do mat khau chua dang nhap chi chay duoi user sshd/root nen khong tinh.
+while read -r pid uid comm; do
+  [ "$uid" -ge 1000 ] && [ "$uid" -lt 60000 ] || continue
+  [ "$comm" = sshd ] || [ "$comm" = sshd-session ] || continue
+  case "$self" in *" $pid "*) continue ;; esac
+  echo "ssh        $(ps -o user=,etime=,args= -p "$pid")"
+  n=$((n + 1))
+done < <(ps -eo pid=,uid=,comm=)
+
+# 2. Giu may bang campus-keepalive con han
+now=$(date +%s)
+for k in /var/tmp/campus-keepalive.*; do
+  [ -f "$k" ] && [ "$(stat -c %Y "$k")" -gt "$now" ] || continue
+  echo "keepalive  ${k##*.} den $(date -r "$k" '+%H:%M %Z')"
+  n=$((n + 1))
+done
+
+# 3. Viec dai dang chay; tmux/screen co the dang chay viec nen sau khi thoat SSH
+while read -r line; do
+  echo "tien trinh $line"
+  n=$((n + 1))
+done < <(pgrep -a -x 'stack\.sh|unstack\.sh|pg_dump|pg_restore|locust|apt-get|dpkg|tmux.*|screen|SCREEN')
+
+if [ "$n" -eq 0 ]; then
+  echo "OK: khong con ai dung. Tat duoc: B truoc, A sau."
+  exit 0
+fi
+echo "KHONG TAT: con $n muc o tren. Hoi tren Zalo truoc."
+echo "Neu la keepalive cua ban: ssh campus-a campus-keepalive 0"
+exit 1

@@ -16,21 +16,33 @@ Thành viên chỉ thấy và bật/tắt được 2 instance có tag đó; khô
 
 ## 2. Bật (người vào làm)
 
-1. Comment vào issue **"Nhật ký cloud"**: tên, giờ UTC, định làm gì.
-2. Console EC2 (us-east-1) → bật **A trước**, chờ `2/2 checks passed`, rồi bật **B** (B ra Internet qua NAT trên A).
-3. `ssh campus-a` → chạy kiểm tra sau khi bật: `docs/runbooks/after-start.md` (TV1 viết ở G2, FR-INF-19). Không chạy lại `stack.sh`.
-4. Việc dài mà không giữ SSH (đo tải từ laptop, demo): `ssh campus-a 'campus-keepalive 180'` (giữ máy 180 phút).
+Nhóm Zalo có bình chọn **"Đang làm trên cloud"** (ghim đầu nhóm, không ẩn người bình chọn). Ai đang làm thì tích; xong thì bỏ tích.
+
+1. **Tích** bình chọn trên Zalo trước khi bật máy hoặc SSH. Đã có người tích thì máy đang chạy: chỉ cần SSH vào làm.
+2. Nếu bạn là người bật: comment vào issue **"Nhật ký cloud"** (tên, giờ UTC, định làm gì).
+3. Console EC2 (us-east-1) → bật **A trước**, chờ `2/2 checks passed`, rồi bật **B** (B ra Internet qua NAT trên A).
+4. `ssh campus-a` → chạy kiểm tra sau khi bật: `docs/runbooks/after-start.md` (TV1 viết ở G2, FR-INF-19). Không chạy lại `stack.sh`.
+5. Việc dài mà không giữ SSH (đo tải từ laptop, demo): `ssh campus-a 'campus-keepalive 180'` (giữ máy 180 phút; `campus-keepalive 0` để hủy).
 
 ## 3. Tắt
 
-- Tắt tay: **B trước, A sau** (Console → Stop). Ghi giờ tắt vào issue.
-- Không tắt tay cũng được: host tự tắt (mục 4). Người bật cuối cùng vẫn chịu trách nhiệm kiểm tra cuối ngày.
+1. Làm xong: thoát SSH rồi **bỏ tích** trên Zalo.
+2. Chỉ tắt tay khi Zalo **không còn ai tích**. Trước khi tắt, chạy:
+
+   ```
+   ssh campus-a campus-check
+   ```
+
+   - `OK` → Console → Stop **B trước, A sau**. Ghi giờ tắt vào issue.
+   - `KHONG TAT` → không tắt, hỏi trên Zalo. Lệnh liệt kê phiên SSH khác (kể cả phiên ProxyJump sang B), keepalive còn hạn, việc dài (`stack.sh`, `apt-get`, `tmux`...).
+   - Không chạy được lệnh (chưa có user SSH) → không tắt tay.
+3. Không tắt tay cũng được: host tự tắt (mục 4). Người bật cuối cùng vẫn chịu trách nhiệm kiểm tra cuối ngày.
 
 ## 4. Tự tắt khi không ai dùng (TV1 cài trên A và B)
 
 Quy tắc trong `ops/idle-shutdown.sh`, kiểm mỗi 5 phút:
 
-- **A** tắt sau **60 phút** không có: phiên SSH, tiến trình dài (`stack.sh`, `pg_dump`, `locust`, `apt-get`...), hoặc `campus-keepalive` còn hạn. 20 phút đầu sau boot không tính.
+- **A** tắt sau **60 phút** không có: phiên SSH (kể cả ProxyJump sang B, `scp`, `ssh 'lệnh'`, nhờ gọi `campus-check`), tiến trình dài (`stack.sh`, `pg_dump`, `locust`, `apt-get`...), hoặc `campus-keepalive` còn hạn. 20 phút đầu sau boot không tính.
 - **B** tắt sau **15 phút** kể từ khi A tắt và không ai SSH vào B.
 
 ```
@@ -38,6 +50,8 @@ Quy tắc trong `ops/idle-shutdown.sh`, kiểm mỗi 5 phút:
 sudo install -m 755 ops/idle-shutdown.sh /usr/local/sbin/
 sudo install -m 755 ops/campus-keepalive /usr/local/bin/
 sudo install -m 644 ops/campus-idle-shutdown.service ops/campus-idle-shutdown.timer /etc/systemd/system/
+# chi tren A: lenh kiem truoc khi tat (idle-shutdown.sh tren A cung goi lenh nay)
+sudo install -m 755 ops/campus-check /usr/local/bin/
 # chi tren B: doi MODE=a thanh MODE=b
 sudo sed -i 's/MODE=a/MODE=b/' /etc/systemd/system/campus-idle-shutdown.service
 sudo systemctl daemon-reload && sudo systemctl enable --now campus-idle-shutdown.timer
@@ -49,7 +63,7 @@ EC2 phải để **Shutdown behavior = Stop** (mặc định), nếu là Termina
 
 ## 5. Chốt chặn cuối: tắt lúc 2 giờ sáng (miễn phí)
 
-EventBridge → Scheduler → Create schedule: `cron(0 19 * * ? *)` (19:00 UTC = 02:00 giờ Việt Nam), target **EC2 StopInstances** với ID của A và B, để console tự tạo execution role. Phòng trường hợp script tự tắt bị lỗi hoặc ai đó để keepalive quá dài.
+EventBridge → Scheduler → Create schedule: `cron(0 19 * * ? *)` (19:00 UTC = 02:00 giờ Việt Nam), target **EC2 StopInstances** với ID của A và B, để console tự tạo execution role. Phòng trường hợp script tự tắt bị lỗi hoặc ai đó để keepalive quá dài. Lịch này tắt cả khi đang có người làm: ai cần làm qua 02:00 thì báo TV1 Disable lịch đêm đó (sáng hôm sau Enable lại), không bắt đầu `stack.sh` sau 23:00 nếu chưa báo.
 
 ## 6. Snapshot EBS tự động (TV1 làm 1 lần, ~5 phút)
 
