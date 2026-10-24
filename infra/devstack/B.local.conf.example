@@ -4,6 +4,11 @@
 # B KHONG chay Keystone/MySQL/Rabbit/Cinder API/storage.
 # q-ovn-agent (khong phai q-ovn-metadata-agent) - da doi chieu stackrc stable/2026.1.
 # CEILOMETER_BACKENDS=none de khong khoi tao lai Gnocchi DB tren B.
+# Co khoi [[post-config|$CEILOMETER_CONF]] o cuoi file: B khong co Redis nen phai tat coordination.
+# Kiem nhanh truoc stack.sh (phai ra 0, 1, 1):
+#   grep -v '^#' local.conf | grep -c REPLACE_
+#   grep -c '^backend_url=$' local.conf
+#   grep -c '^resume_guests_state_on_host_boot=True$' local.conf
 
 [[local|localrc]]
 HOST_IP=10.11.11.10
@@ -51,3 +56,12 @@ ram_allocation_ratio=1.0
 disk_allocation_ratio=1.0
 # Bat lai VM sau stop/start EC2 (mac dinh False -> VM SHUTOFF). Sua tay sau stack.sh thi sua /etc/nova/nova-cpu.conf.
 resume_guests_state_on_host_boot=True
+
+# ceilometer-acompute mac dinh phoi hop nhom qua redis://localhost:6379 (plugin dat
+# CEILOMETER_COORDINATION_URL bang ${...:-...} nen de bien rong khong duoc), nhung B khong cai Redis
+# (ham cai Redis cua plugin kiem nham bien CEILOMETER_COORDINATOR_URL). Agent compute khong can phoi hop.
+# Gia tri rong -> agent khong tao coordinator. Kiem sau stack.sh tren B:
+#   systemctl show devstack@ceilometer-acompute -p ActiveState -p NRestarts   (active, 0)
+[[post-config|$CEILOMETER_CONF]]
+[coordination]
+backend_url=
