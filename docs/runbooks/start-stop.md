@@ -16,7 +16,7 @@ Thành viên chỉ thấy và bật/tắt được 2 instance có tag đó; khô
 
 ## 2. Bật (người vào làm)
 
-Nhóm Zalo có bình chọn **"Đang làm trên cloud"** (ghim đầu nhóm, không ẩn người bình chọn). Ai đang làm thì tích; xong thì bỏ tích.
+Nhóm Zalo có bình chọn **"Đang dùng 2 EC2"** (ghim đầu nhóm, chọn nhiều, hai phương án "Đang dùng" / "Không"). Vào làm thì tích "Đang dùng"; xong thì bỏ tích "Đang dùng" rồi tích "Không".
 
 1. **Tích** bình chọn trên Zalo trước khi bật máy hoặc SSH. Đã có người tích thì máy đang chạy: chỉ cần SSH vào làm.
 2. Nếu bạn là người bật: comment vào issue **"Nhật ký cloud"** (tên, giờ UTC, định làm gì).
