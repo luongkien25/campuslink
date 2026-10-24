@@ -111,7 +111,9 @@ Khi máy tắt vẫn tốn (ước tính, ⚠️ chưa kiểm bằng AWS Pricing
 
 Chạy cả A và B khoảng 0,6 USD/giờ. Đơn giá B (0,2016) suy ra bằng nửa giá A, chưa thấy trực tiếp trong console.
 
-Còn thiếu (điền tay, không suy ra): credit còn lại `REPLACE` (đọc ở Billing → Credits; 22/10 là 131,38 USD); số liệu thực tế từ Cost Explorer sau khoảng 24 giờ để đối chiếu bảng này.
+Credit còn lại: **129,57 USD** (TV1 đọc ở Billing → Credits ngày 24/10/2026; 22/10 là 131,38 USD, giảm 1,81 USD). ⚠️ Billing có thể trễ đến 24 giờ nên số này chưa chắc đã tính đủ các lần chạy máy.
+
+Còn thiếu (điền tay, không suy ra): số liệu thực tế từ Cost Explorer sau khoảng 24 giờ để đối chiếu bảng này.
 
 ## Phần 5 – Việc thêm của TV1 trong G0–G1 (SRS 6.3, `docs/runbooks/start-stop.md`)
 

@@ -16,7 +16,7 @@ aws:
   account_type: "tai khoan thuong, Paid plan, dang nhap root"   # 22/10/2026
   caller_arn_redacted: "arn:aws:iam::<ACCOUNT_ID>:root"
   quota_on_demand_standard_vcpu: "16 (dang dung 0)"   # can >= 12 kha dung; 22/10/2026
-  credit_balance_usd_checked: "131.38 (kiem 22/10/2026, han khoang 1 nam)"
+  credit_balance_usd_checked: "129.57 (kiem 24/10/2026; 22/10/2026 la 131.38; han khoang 1 nam)"
   budget_alerts_usd: [30, 50, 65]
   nested_virtualization_supported:
     m7i.2xlarge: "yes"          # describe-instance-types 22/10/2026
