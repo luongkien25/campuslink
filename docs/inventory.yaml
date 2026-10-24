@@ -83,8 +83,8 @@ aws:
 
 openstack:
   release: stable/2026.1
-  devstack_sha: "REPLACE"       # cung SHA tren A va B
-  gnocchi_sha: "REPLACE"        # TV2 chot
+  devstack_sha: "da2f4d73f5ad74fc8ecfbe15bd7e20f6b0982dbb"   # cung SHA tren A va B (24/10/2026)
+  gnocchi_sha: "4a41c1d05052bcabf19fbe2e5bfb5a036a321d32"    # tag 4.7.1, TAM, cho TV2 chot (O-06)
   repo_shas_file: docs/versions.lock
   keystone_auth_url: "http://10.11.0.10/identity"   # doc lai tu catalog
   nova:
