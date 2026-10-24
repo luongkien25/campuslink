@@ -76,7 +76,7 @@ aws:
   keypair_name: "tv1_campuslink" # ten thuc te tren AWS (import 23/10/2026); chi ghi ten keypair, khong ghi duong dan/noi dung private key
   ssh:
     user: ubuntu
-    members_with_key: []        # ten thanh vien da them public key
+    members_with_key: [tv2, tv3, tv4]        # ten thanh vien da them public key
     # ADR-07 (tu 22/10/2026): SG campus-ingress-admin mo 22 cho 0.0.0.0/0 toi freeze 06/11, bu bang
     # chi key + fail2ban + user Linux rieng moi nguoi (ops/add-member.sh); khong dung chung .pem.
     # Truoc 06/11: thu IP /32 cua tung thanh vien can SSH, chup lai SG lam evidence.
