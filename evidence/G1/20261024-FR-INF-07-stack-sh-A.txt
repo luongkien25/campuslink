@@ -1,0 +1,153 @@
+Evidence FR-INF-07 / FR-INF-10 (G1): stack.sh tren A chay lai thanh cong sau khi them enable_service octavia; chinh sau stack.sh (fstab, LVM global_filter, drop-in n-cpu); kiem nhanh cau hinh
+Ngay: 2026-10-24. Lan 1 loi o pha post-config luc 08:42:59 UTC (thieu enable_service octavia, xem docs/troubleshooting.md). Lan 2 bat dau 13:21 UTC (20:21 GMT+7), xong khoang 13:31 UTC. TV1 tu chay lenh tren terminal (tmux, user stack) va dan output cho Claude Code doi chieu. Mat khau admin va cac mat khau khac khong co trong file nay.
+Ghi chu: dong "stack.sh completed in N seconds" khong co trong /opt/stack/logs/stack.sh.log (co the chi ra console, chua kiem). Xac nhan xong bang: bang "Total runtime", man hinh tong ket Horizon/Keystone, 0 don vi systemd failed, VG van tren dia EBS.
+
+--- campus-a: truoc khi sua (24/10 ~13:15 UTC) ---
+$ hostname
+campus-a
+$ sudo vgs
+  VG                        #PV #LV #SN Attr   VSize   VFree
+  stack-volumes-lvmdriver-1   1   0   0 wz--n- <30.00g <30.00g
+$ sudo grep -n 'o-api' /opt/stack/devstack/local.conf
+57:enable_service o-api o-hk o-da
+
+--- campus-a: sua local.conf va kiem ---
+$ sudo -u stack sed -i 's/^enable_service o-api o-hk o-da$/enable_service octavia o-api o-hk o-da/' /opt/stack/devstack/local.conf
+$ sudo grep -v '^#' /opt/stack/devstack/local.conf | grep -c REPLACE_
+0
+$ sudo grep -n '^enable_service octavia o-api o-hk o-da$' /opt/stack/devstack/local.conf
+57:enable_service octavia o-api o-hk o-da
+$ sudo grep -n '^GNOCCHI_ARCHIVE_POLICY=ceilometer-high-rate$' /opt/stack/devstack/local.conf
+64:GNOCCHI_ARCHIVE_POLICY=ceilometer-high-rate
+$ sudo grep -n '^default_provider_driver=ovn$' /opt/stack/devstack/local.conf
+94:default_provider_driver=ovn
+$ sudo grep -c '^resume_guests_state_on_host_boot=True$' /opt/stack/devstack/local.conf
+1
+
+--- campus-a: sau stack.sh ---
+$ sudo grep -n 'stack.sh completed' /opt/stack/logs/stack.sh.log
+(khong co dong nao)
+$ sudo grep -n 'Total runtime' /opt/stack/logs/stack.sh.log
+28401:Total runtime        593
+$ sudo pvs -o pv_name,vg_name,pv_size
+  PV           VG                        PSize
+  /dev/nvme1n1 stack-volumes-lvmdriver-1 <30.00g
+$ systemctl list-units --type=service --state=failed --no-pager
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+$ grep -n swift.img /etc/fstab
+4:/opt/stack/data/swift/drives/images/swift.img /opt/stack/data/swift/drives/sdb1 xfs loop,noatime,nodiratime,logbufs=8,comment=devstack-pt/stack/data/swift/drives/images/swift.img 0 0
+5:/opt/stack/data/swift/drives/images/swift.img /opt/stack/data/swift/drives/sdb1 xfs loop,noatime,nodiratime,logbufs=8,comment=devstack-pt/stack/data/swift/drives/images/swift.img 0 0
+
+--- campus-a: 09 M.5 "ngay sau stack.sh" ---
+(1) fstab: xoa dong swift.img trung, them nofail
+$ sudo cp /etc/fstab /etc/fstab.bak-20261024
+$ sudo sed -i '5d' /etc/fstab
+$ sudo sed -i '4s/loop,noatime/loop,nofail,noatime/' /etc/fstab
+$ grep -n swift.img /etc/fstab
+4:/opt/stack/data/swift/drives/images/swift.img /opt/stack/data/swift/drives/sdb1 xfs loop,nofail,noatime,nodiratime,logbufs=8,comment=devstack-pt/stack/data/swift/drives/images/swift.img 0 0
+$ sudo systemctl daemon-reload
+$ sudo findmnt --verify
+/opt/stack/data/swift/drives/sdb1
+   [W] non-bind mount source /opt/stack/data/swift/drives/images/swift.img is a directory or regular file
+
+0 parse errors, 0 errors, 1 warning
+$ findmnt /opt/stack/data/swift/drives/sdb1
+TARGET                            SOURCE    FSTYPE OPTIONS
+/opt/stack/data/swift/drives/sdb1 /dev/loop0 xfs    rw,noatime,nodiratime,inode64,logbufs=8,logbsize=32k,n...
+
+(2) LVM global_filter: thay filter theo ten nvme1n1 bang regex
+$ grep -n -E 'global_filter|from devstack' /etc/lvm/lvm.conf     (truoc khi sua)
+193:    # global_filter = [ "a|.*|" ]
+194:        global_filter = [ "a|nvme1n1|", "r|.*|" ]  # from devstack
+$ sudo cp /etc/lvm/lvm.conf /etc/lvm/lvm.conf.bak-20261024
+$ sudo sed -i '194s~.*~        global_filter = [ "a|^/dev/nvme[0-9]+n1$|", "r|.*|" ]  # campuslink~' /etc/lvm/lvm.conf
+$ grep -n 'global_filter = ' /etc/lvm/lvm.conf
+193:    # global_filter = [ "a|.*|" ]
+194:        global_filter = [ "a|^/dev/nvme[0-9]+n1$|", "r|.*|" ]  # campuslink
+$ sudo lvmconfig devices/global_filter
+global_filter=["a|^/dev/nvme[0-9]+n1$|","r|.*|"]
+$ sudo pvs -o pv_name,vg_name,pv_size
+  PV           VG                        PSize
+  /dev/nvme1n1 stack-volumes-lvmdriver-1 <30.00g
+$ sudo vgs stack-volumes-lvmdriver-1
+  VG                        #PV #LV #SN Attr   VSize   VFree
+  stack-volumes-lvmdriver-1   1   1   0 wz--n- <30.00g 1.43g
+(1 LV moi sau stack.sh, VFree 1.43g: chua chay lvs, du doan thin pool cua DevStack)
+$ sudo systemctl restart devstack@c-vol
+(sau do openstack volume service list ben duoi cho thay cinder-volume up)
+
+(3) n-cpu doi libvirt-guests (chi dat thu tu khoi dong, khong restart)
+$ systemctl is-enabled libvirt-guests
+enabled
+$ sudo mkdir -p /etc/systemd/system/devstack@n-cpu.service.d
+$ printf '[Unit]\nAfter=libvirt-guests.service\n' | sudo tee /etc/systemd/system/devstack@n-cpu.service.d/10-campus-order.conf
+[Unit]
+After=libvirt-guests.service
+$ sudo systemctl daemon-reload
+$ systemctl show devstack@n-cpu -p After | tr ' ' '\n' | grep libvirt-guests
+After=libvirt-guests.service
+$ grep resume_guests_state_on_host_boot /etc/nova/nova-cpu.conf
+resume_guests_state_on_host_boot = True
+
+(4) kiem nhanh cau hinh
+$ grep archive_policy /etc/ceilometer/pipeline.yaml
+          - gnocchi://?archive_policy=ceilometer-high-rate&filter_project=service
+$ openstack metric archive-policy show ceilometer-high-rate
+  name                 ceilometer-high-rate
+  back_window          0
+  definition           timespan 1:00:00 granularity 0:00:01 points 3600
+                       timespan 1 day granularity 0:01:00 points 1440
+                       timespan 365 days granularity 1:00:00 points 8760
+  aggregation_methods  mean, rate:mean
+$ openstack loadbalancer provider list
+  amphora  The Octavia Amphora driver.
+  octavia  Deprecated alias of the Octavia Amphora driver.
+  ovn      Octavia OVN driver.
+$ grep -A4 '^\[api_settings\]' /etc/octavia/octavia.conf
+[api_settings]
+default_provider_driver = ovn
+enabled_provider_drivers = amphora:The Octavia Amphora driver.,octavia:Deprecated alias of the Octavia Amphora driver.,ovn:Octavia OVN driver.
+bind_port = 9875
+api_handler = queue_producer
+$ grep -E 'target_(helper|protocol)' /etc/cinder/cinder.conf
+target_helper = lioadm
+target_protocol = iscsi
+target_helper = lioadm
+
+--- campus-a: dich vu OpenStack (24/10 ~13:37 UTC) ---
+$ openstack compute service list -c Binary -c Host -c Status -c State -f value
+nova-scheduler campus-a enabled up
+nova-conductor campus-a enabled up
+nova-conductor campus-a enabled up
+nova-compute campus-a enabled up
+$ openstack network agent list      (rut gon)
+OVN Neutron agent           campus-a  :-)  UP  neutron-ovn-agent
+OVN Controller Gateway agent campus-a :-)  UP  ovn-controller
+$ openstack volume service list     (rut gon)
+cinder-scheduler campus-a              nova enabled up
+cinder-volume    campus-a@lvmdriver-1  nova enabled up
+
+--- campus-b: truoc stack.sh (24/10 ~13:40-13:48 UTC) ---
+$ hostname
+campus-b
+$ sudo grep -c '^resume_guests_state_on_host_boot=True$' /opt/stack/devstack/local.conf
+1
+$ for p in 80 3306 5672 6641 6642; do timeout 3 bash -c "</dev/tcp/10.11.0.10/$p" 2>/dev/null && echo "A:$p mo" || echo "A:$p KHONG"; done
+A:80 mo
+A:3306 mo
+A:5672 mo
+A:6641 mo
+A:6642 mo
+$ sudo grep -n 'CEILOMETER_CONF' /opt/stack/devstack/local.conf    (sau khi them khoi coordination va xoa khoi trung)
+55:[[post-config|$CEILOMETER_CONF]]
+$ sudo wc -l /opt/stack/devstack/local.conf
+57 /opt/stack/devstack/local.conf
+$ sudo tail -n 5 /opt/stack/devstack/local.conf
+resume_guests_state_on_host_boot=True
+
+[[post-config|$CEILOMETER_CONF]]
+[coordination]
+backend_url=
+(lan dau lenh them khoi bi chay 2 lan nen khoi bi trung; da xoa dong 58-61. Ban sao tam /tmp/local.conf.bak-b co mat khau: TV1 xoa bang shred, chua co output xac nhan)
