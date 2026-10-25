@@ -99,8 +99,8 @@ openstack:
     campus_net: { cidr: 10.20.0.0/24, gateway: 10.20.0.1, pool: "10.20.0.100-10.20.0.220", mtu: 1400, id: "18ecc898-663f-4440-9782-bdf1675ba5c9", subnet_id: "59399337-e22b-4237-87dd-bf4ac035bcfa" }
     campus_router: { id: "971a03cd-406c-41ca-a395-a7637cc0f1f2" }
   security_groups:
-    campus-app-sg:  { id: "REPLACE" }
-    campus-db-sg:   { id: "REPLACE" }    # 5432 + 6379 tu app SG
+    campus-app-sg:  { id: "b3eb3225-3e50-4c38-b43f-3823b6022d05" }    # 8080 tu 10.20.0.0/24 va 172.24.4.0/24 (25/10/2026)
+    campus-db-sg:   { id: "15d5d84d-f71a-4595-a5b2-ac75f818c040" }    # 5432 + 6379 chi tu campus-app-sg (25/10/2026)
     campus-diag-sg: { id: "14722bc6-5903-4951-82c0-bdb884877783" }    # tam thoi
   project:
     name: campuslink
@@ -108,17 +108,18 @@ openstack:
     users: { campus-tv2: member, campus-tv3: member, campus-tv4: reader }
     quota: { instances: 6, cores: 8, ram_mib: 12288, volumes: 5, gigabytes: 30, floating_ips: 3 }
   flavors:
-    campus.app:     { vcpus: 1, ram_mib: 2048, disk_gib: 10 }
-    campus.db:      { vcpus: 1, ram_mib: 2048, disk_gib: 10 }
-    campus.builder: { vcpus: 2, ram_mib: 4096, disk_gib: 20 }
+    campus.app:     { id: "a9083cf8-24ab-4a7a-8b5c-6ba44ed1b6de", vcpus: 1, ram_mib: 2048, disk_gib: 10 }
+    campus.db:      { id: "9ae2d463-8202-4575-a4f3-e32c4800d02c", vcpus: 1, ram_mib: 2048, disk_gib: 10 }
+    campus.builder: { id: "ee0a0c60-54c7-4488-896d-5081c1b098cf", vcpus: 2, ram_mib: 4096, disk_gib: 20 }
   images:
-    ubuntu-noble-base: { id: "REPLACE", source_url: "REPLACE", sha256: "REPLACE", date: "REPLACE" }
+    ubuntu-noble-base: { id: "b915f809-b352-4d03-a14a-ec9c294e85d8", source_url: "https://cloud-images.ubuntu.com/releases/noble/release-20261017/ubuntu-24.04-server-cloudimg-amd64.img", sha256: "04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94", date: "2026-10-17" }    # release-20261017, qcow2 3.5 GiB, nap Glance 25/10/2026 (public, owner campuslink); chua kiem chu ky GPG
   storage:
     cinder_vg: stack-volumes-lvmdriver-1
-    cinder_target: "REPLACE"    # mac dinh DevStack 2026.1: lioadm + iscsi, cong 3260; xac nhan bang cinder.conf
-    db_port: { ip: 10.20.0.10, id: "REPLACE" }
-    db_volume: { name: campus-db-data, size_gib: 10, id: "REPLACE", type: "REPLACE", az: "REPLACE" }
+    cinder_target: "lioadm"    # xac nhan 25/10/2026 trong /etc/cinder/cinder.conf: target_helper=lioadm, target_protocol=iscsi, target_port=3260, backend lvmdriver-1
+    db_port: { ip: 10.20.0.10, id: "7df6ea1d-2e8c-46d5-99b9-e121855d81b5", name: campus-db-port, sg: campus-db-sg }    # tao 25/10/2026; TV3 tao DB VM bang --port campus-db-port
+    db_volume: { name: campus-db-data, size_gib: 10, id: "f43fbbd2-b85f-4bb1-b403-ba54a2f84189", type: "lvmdriver-1", az: "nova" }    # tao 25/10/2026 bang credential campus-tv3; chua gan VM nao
     swift:
+      endpoint: "http://10.11.0.10:8080/v1/AUTH_07af3a3dd4c24d1ba028efcb6d28ef84"    # public, khong token tra 401; campus-tv3 (member) tao/ghi/doc duoc (25/10/2026)
       container: campus-backups
       disk_image: /opt/stack/data/swift/drives/images/swift.img
       mountpoint: /opt/stack/data/swift/drives/sdb1

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# campus-br-ex - gan lai 172.24.4.1/24 cho br-ex sau boot (DevStack gan bang ip addr add, khong luu)
+set -euo pipefail
+for _ in $(seq 1 60); do ip link show br-ex >/dev/null 2>&1 && break; sleep 1; done
+ip address replace 172.24.4.1/24 dev br-ex
+ip link set br-ex up

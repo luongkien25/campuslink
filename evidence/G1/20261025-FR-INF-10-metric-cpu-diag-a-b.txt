@@ -1,0 +1,15 @@
+Evidence FR-INF-10 (G1): metric cpu co diem moi cho VM tren A (diag-a) va VM tren B (diag-b)
+Ngay: 2026-10-25 09:09 UTC (16:09 GMT+7). TV1 tu chay lenh tren terminal (shell user stack tren A, da source openrc admin admin) va dan output cho Claude Code doi chieu.
+Gioi han: chi chung minh Ceilometer -> Gnocchi co ghi metric cpu cho 2 VM. Chua kiem archive policy (cot thu hai hien 1.0, mau den moi 60 giay), chua kiem rate:mean / Aodh (xem phan alarm va rate:mean trong docs/09 va docs/troubleshooting.md); Gnocchi dang ghim commit TAM 4a41c1d (SRS O-06, cho TV2 xac nhan).
+
+$ date -u
+Sun Oct 25 09:09:33 UTC 2026
+$ openstack metric measures show -r ca83343b-ca8a-4617-82b2-b382b0422cee cpu | tail -4      (diag-a, host campus-a)
+| 2026-10-25T09:06:50+00:00 |         1.0 |      7570000000.0 |
+| 2026-10-25T09:07:50+00:00 |         1.0 |      7720000000.0 |
+| 2026-10-25T09:08:50+00:00 |         1.0 |      7890000000.0 |
+$ openstack metric measures show -r 386669ae-1b49-41ea-8cc7-170a30cc246b cpu | tail -4      (diag-b, host campus-b)
+| 2026-10-25T09:06:45+00:00 |         1.0 |      7560000000.0 |
+| 2026-10-25T09:07:45+00:00 |         1.0 |      7720000000.0 |
+| 2026-10-25T09:08:45+00:00 |         1.0 |      7890000000.0 |
+KET QUA: PASS cho tieu chi G1 "1 metric cpu co diem moi cho ca VM tren A va VM tren B": diem moi nhat cach "date -u" chua toi 1 phut, moi VM cap nhat moi 60 giay, gia tri la nano giay CPU cong don nen chi tang.

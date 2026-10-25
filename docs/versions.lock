@@ -17,7 +17,7 @@ cinder_sha=REPLACE_SHA
 swift_sha=REPLACE_SHA
 
 guest_base_image=ubuntu-noble-base
-guest_base_image_sha256=REPLACE_SHA256
+guest_base_image_sha256=04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94   # file ubuntu-24.04-server-cloudimg-amd64.img, release-20261017 (25/10/2026); doi chieu voi SHA256SUMS qua HTTPS, chua kiem GPG
 
 shlink_version=5.1.8
 shlink_image_digest=shlinkio/shlink@sha256:REPLACE_REPO_DIGEST

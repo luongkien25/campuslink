@@ -1,0 +1,59 @@
+Evidence FR-INF-07 (G1, smoke): Octavia provider ovn, listener TCP 8080, pool SOURCE_IP_PORT, health monitor TCP; 20 ket noi moi qua VIP FIP toi ca diag-a (host A) va diag-b (host B)
+Ngay: 2026-10-25 khoang 08:57-09:09 UTC (15:57-16:09 GMT+7; suy tu moc tao image 08:56:37Z va "date -u" 09:09:33). TV1 tu chay lenh tren terminal (shell user stack tren A, da source openrc admin admin) va dan output cho Claude Code doi chieu. Khong co mat khau trong file nay.
+Gioi han: day la smoke ha tang voi 2 VM thu Cirros (web 1 dong bang nc), khong phai LB that cua ung dung (FR-INF-07 day du thuoc TV2, member la VM app do Heat tao). Chua kiem log tung guest; phan phoi suy tu noi dung tra ve (hostname). Chua kiem Nginx -> FIP VIP (FR-INF-06).
+
+--- Chuan bi backend (diag-a 10.20.0.148 / FIP 172.24.4.123 o campus-a; diag-b 10.20.0.109 o campus-b) ---
+Ghi chu cac lan thu khong thanh cong (de lan sau khong lap lai):
+ - "openstack server add security group diag-a campus-app-sg" -> "No Server found for diag-a": shell openrc admin admin la project admin, khong tim thay server cua project campuslink theo ten (dung UUID).
+ - Voi UUID: "Security group campus-app-sg is not found for project 94f4fc28..." (Nova tim SG theo project cua nguoi goi, khong phai project cua server). Dung Neutron: port set.
+ - "port set --security-group campus-diag-sg --security-group campus-app-sg" -> 400 "Duplicate items in the list: '14722bc6-...'" (OSC cong don vao danh sach hien co; chi them campus-app-sg).
+$ FIPB=172.24.4.130   (FIP tam cho diag-b, tao bang: openstack floating ip create public --project campuslink -f value -c floating_ip_address)
+$ openstack server add floating ip 386669ae-1b49-41ea-8cc7-170a30cc246b 172.24.4.130
+$ openstack port list --device-id <diag-a> ...   PA=9dbe5c15-141c-49bd-9ebe-f31ada67ab40   PB=f54c6656-0c45-446f-8068-97b7f5d982a0
+$ openstack port set --security-group campus-app-sg $PA ; openstack port set --security-group campus-app-sg $PB
+$ openstack port show $PA -c security_group_ids -f value
+['14722bc6-5903-4951-82c0-bdb884877783', 'b3eb3225-3e50-4c38-b43f-3823b6022d05']
+$ openstack port show $PB -c security_group_ids -f value
+['14722bc6-5903-4951-82c0-bdb884877783', 'b3eb3225-3e50-4c38-b43f-3823b6022d05']
+Web 1 dong tren moi VM (chep vao ~/web.sh qua ssh -i ~/diag-key.pem cirros@<FIP>, chay nohup):
+  while true; do echo -e "HTTP/1.0 200 OK\r\n\r\n$(hostname)" | nc -l -p 8080 >/dev/null 2>&1; done
+$ curl -s --max-time 3 http://172.24.4.123:8080/; curl -s --max-time 3 http://172.24.4.130:8080/
+diag-a
+diag-b
+
+--- Tao LB (provider ovn tuong minh; cho ACTIVE giua cac lenh) ---
+$ openstack loadbalancer create --name smoke-lb --vip-subnet-id 59399337-e22b-4237-87dd-bf4ac035bcfa --provider ovn --project campuslink
+LB=521805c1-6cf4-4796-b699-2eb283a2bc20
+$ openstack loadbalancer listener create --name smoke-listener --protocol TCP --protocol-port 8080 $LB
+LI=e346bddc-8f83-428e-ac6a-170918ca7a34
+$ openstack loadbalancer pool create --name smoke-pool --lb-algorithm SOURCE_IP_PORT --listener $LI --protocol TCP
+PO=49dc7252-e10e-4b73-8c1b-6a8ace9f1738
+$ openstack loadbalancer healthmonitor create --name smoke-hm --delay 5 --timeout 3 --max-retries 2 --type TCP $PO
+c258f83e-0f37-4c68-81bd-013fe2a924f7
+$ openstack loadbalancer member create --name m-a --address 10.20.0.148 --protocol-port 8080 --subnet-id 59399337-e22b-4237-87dd-bf4ac035bcfa $PO
+93f4c932-539d-4f81-abc6-88d4837d6c5b
+$ openstack loadbalancer member create --name m-b --address 10.20.0.109 --protocol-port 8080 --subnet-id 59399337-e22b-4237-87dd-bf4ac035bcfa $PO
+8d6974d3-d2dc-4f19-8649-2f72a5533922
+$ openstack loadbalancer show $LB -c vip_address -c vip_port_id -c provisioning_status -c operating_status -c provider
+| operating_status    | ONLINE                               |
+| provider            | ovn                                  |
+| provisioning_status | ACTIVE                               |
+| vip_address         | 10.20.0.133                          |
+| vip_port_id         | 4dfb6644-fd3e-4891-92e1-d1a736cf0313 |
+
+--- FIP cho VIP va do phan phoi ---
+$ VIPFIP=$(openstack floating ip create public --project campuslink --port 4dfb6644-fd3e-4891-92e1-d1a736cf0313 -f value -c floating_ip_address)
+VIPFIP=172.24.4.196
+$ openstack loadbalancer member list $PO -c name -c address -c provisioning_status -c operating_status
+| m-a | ACTIVE | 10.20.0.148 | ONLINE |
+| m-b | ACTIVE | 10.20.0.109 | ONLINE |
+$ for i in $(seq 1 20); do curl -s --max-time 3 http://$VIPFIP:8080/; sleep 0.3; done | sort | uniq -c
+     11 diag-a
+      9 diag-b
+KET QUA: PASS. Ca 20 ket noi moi duoc tra loi, toi ca hai backend (diag-a tren host A, diag-b tren host B), ca hai member ONLINE.
+
+--- Don dep sau smoke ---
+$ openstack floating ip delete 172.24.4.196
+$ openstack floating ip delete 172.24.4.130
+$ openstack loadbalancer delete --cascade $LB
+(khong bao loi; chua chay lai floating ip list / loadbalancer list de kiem. Giu FIP diag-a 172.24.4.123 va 2 VM diag cho thu detach/attach volume.)

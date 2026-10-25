@@ -1,0 +1,50 @@
+Evidence FR-INF-13 / FR-INF-14 / FR-INF-12 (H3, G1->G2): cau hinh Cinder, test-vol detach/attach giu checksum, volume campus-db-data, port DB 10.20.0.10, Swift campus-backups bang user campus-tv3 (member)
+Ngay: 2026-10-25 khoang 09:10-09:25 UTC (16:10-16:25 GMT+7). TV1 tu chay lenh tren terminal (shell user stack tren A, da source openrc admin admin) va dan output cho Claude Code doi chieu. Khong co mat khau trong file nay.
+Gioi han: chua gan campus-db-data vao DB VM (TV3 lam). Chua thu detach/attach khi VM dang mount va ghi file that (test-vol chi duoc ghi 1 MiB ngau nhien, doc bang dd /dev/vdb). Chua kiem Swift voi object lon va chua kiem retention/lich backup (FR-INF-15 cua TV3).
+
+--- Cau hinh Cinder (de dien docs/inventory.yaml: storage.cinder_target) ---
+$ sudo grep -E '^(target_helper|target_protocol|target_port|volume_backend_name|volume_driver|target_ip_address|iscsi_ip_address)' /etc/cinder/cinder.conf
+target_helper = lioadm
+target_port = 3260
+target_protocol = iscsi
+target_helper = lioadm
+volume_driver = cinder.volume.drivers.lvm.LVMVolumeDriver
+volume_backend_name = lvmdriver-1
+$ openstack availability zone list --volume -c "Zone Name"
+nova
+$ openstack volume type list -c Name      (xem evidence C-06-C-07): lvmdriver-1, __DEFAULT__
+
+--- Port DB 10.20.0.10 ---
+$ openstack port create --network campus-net --fixed-ip subnet=59399337-e22b-4237-87dd-bf4ac035bcfa,ip-address=10.20.0.10 --security-group campus-db-sg --project campuslink campus-db-port -c id -c fixed_ips -c security_group_ids -c project_id
+fixed_ips           ip_address='10.20.0.10', subnet_id='59399337-e22b-4237-87dd-bf4ac035bcfa'
+id                  7df6ea1d-2e8c-46d5-99b9-e121855d81b5
+project_id          07af3a3dd4c24d1ba028efcb6d28ef84
+security_group_ids  15d5d84d-f71a-4595-a5b2-ac75f818c040      (campus-db-sg)
+
+--- Volume campus-db-data (credential campus-tv3 vi "volume create" khong co --project; shell admin se tao sai project) ---
+$ sudo -u tv3 -H env OS_CLOUD=campus-tv3 openstack volume create --size 10 --type lvmdriver-1 --availability-zone nova campus-db-data
+id f43fbbd2-b85f-4bb1-b403-ba54a2f84189, size 10, type lvmdriver-1, availability_zone nova, status creating -> available
+
+--- FR-INF-13: test-vol detach/attach giu du lieu (credential campus-tv2) ---
+(truoc: checksum 1 MiB dau cua /dev/vdb = 94a5784281a479d87c7acf0b917283a9c972487a7825037a99712d73318596ae, ghi 24/10 truoc Stop)
+$ openstack server remove volume diag-a test-vol      -> test-vol: status available, attachments []
+$ openstack server add volume diag-a test-vol         -> status in-use, attachments: server ca83343b-ca8a-4617-82b2-b382b0422cee, device /dev/vdb, attached_at 2026-10-25T09:17:05
+$ ssh -i ~/diag-key.pem cirros@172.24.4.123 'sudo dd if=/dev/vdb bs=1M count=1 2>/dev/null | sha256sum'
+94a5784281a479d87c7acf0b917283a9c972487a7825037a99712d73318596ae  -
+KET QUA FR-INF-13: PASS (checksum khop sau hai lan Stop/Start va mot lan detach/attach).
+
+--- FR-INF-14: Swift, container campus-backups private, upload/download dung checksum, khong token bi tu choi ---
+$ openstack endpoint list --service object-store -c Interface -c URL
+public http://10.11.0.10:8080/v1/AUTH_$(project_id)s   (project_id that = 07af3a3dd4c24d1ba028efcb6d28ef84)
+$ sudo grep -E '^(operator_roles|reseller_admin_role)' /etc/swift/proxy-server.conf
+operator_roles = Member, admin       (role cua campus-tv3 la "member" chu thuong; van dung duoc, xem duoi)
+$ cd /tmp && echo "campuslink swift smoke $(date -u +%FT%TZ)" > swift-smoke.txt && sha256sum swift-smoke.txt
+2175935a8fed4f18270362ef804105890cccffa82d55a41badb5020b75f7a782  swift-smoke.txt
+$ openstack container create campus-backups        (OS_CLOUD=campus-tv3)   account AUTH_07af3a3dd4c24d1ba028efcb6d28ef84
+$ openstack object create campus-backups swift-smoke.txt      etag 90af9c437c3b953afce5962d5a60cd6d
+$ openstack object save --file swift-smoke.dl campus-backups swift-smoke.txt && sha256sum swift-smoke.dl
+2175935a8fed4f18270362ef804105890cccffa82d55a41badb5020b75f7a782  swift-smoke.dl
+$ curl -s -o /dev/null -w 'khong token: HTTP %{http_code}\n' http://10.11.0.10:8080/v1/AUTH_07af3a3dd4c24d1ba028efcb6d28ef84/campus-backups
+khong token: HTTP 401
+$ openstack object delete campus-backups swift-smoke.txt ; sudo rm -f /tmp/swift-smoke.txt /tmp/swift-smoke.dl      (khong bao loi)
+KET QUA FR-INF-14: PASS (checksum khop, request khong token bi tu choi ro rang bang 401, khong timeout). Container campus-backups con lai, trong.

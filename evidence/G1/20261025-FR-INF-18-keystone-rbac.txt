@@ -1,0 +1,48 @@
+Evidence FR-INF-18 (G1): user Keystone campus-tv2, campus-tv3 (member), campus-tv4 (reader) trong project campuslink; reader tao VM -> 403; member tao project -> 403; clouds.yaml chi nam tren A, quyen 600
+Ngay: 2026-10-25 khoang 08:20-08:27 UTC (15:20-15:27 GMT+7). TV1 tu chay lenh tren terminal (ubuntu@campus-a, sudo) va dan output cho Claude Code doi chieu. Mat khau Keystone sinh ngau nhien (openssl rand -hex 16), chi ghi vao /home/tvN/.config/openstack/clouds.yaml, KHONG co trong file nay va khong gui qua Zalo.
+Gioi han: chua kiem member tao VM thanh cong (khong can cho FR-INF-18); chua kiem reader bi chan o cac dich vu khac ngoai Nova. Script keystone-members.sh nam ngoai repo (thu muc tam cua phien lam viec), chua dua vao ops/. Luc tao user, mat khau nam trong tham so lenh openstack vai giay (ps thay duoc); script tu choi chay neu tv2-tv4 dang co tien trinh tren A ("last -a tv2 tv3 tv4" luc 07:52 UTC khong co dong nao, tuc chua ai trong ba nguoi tung SSH vao A; script tu kiem tien trinh luc chay).
+
+--- Dieu kien da kiem truoc khi tao (chi doc) ---
+role reader va member co trong "openstack role list"; chua co user campus-tv*; project campuslink id 07af3a3dd4c24d1ba028efcb6d28ef84 (khop docs/inventory.yaml)
+$ openstack user create --help | grep -E -- '--(domain|password|project|description)'
+  [--domain <domain>] [--project <project>] [--project-domain <project-domain>] [--password <password>] [--password-prompt] [--description <description>]
+$ openstack role add --help | grep -E -- '--(project|user|domain)'
+  [--system <system> | --domain <domain> | --project <project>] [--user <user> | --group <group>] [--project-domain <project-domain>] [--user-domain <user-domain>] [--inherited]
+
+--- Tao user (script keystone-members.sh, chay bang sudo bash tren A) ---
+$ sudo bash ~/keystone-members.sh
+Dieu kien dat. Bat dau tao.
+Dang xu ly campus-tv2 (member)
+OK campus-tv2 -> /home/tv2/.config/openstack/clouds.yaml
+Dang xu ly campus-tv3 (member)
+OK campus-tv3 -> /home/tv3/.config/openstack/clouds.yaml
+Dang xu ly campus-tv4 (reader)
+OK campus-tv4 -> /home/tv4/.config/openstack/clouds.yaml
+
+--- Kiem quyen file va dang nhap ---
+$ sudo ls -l /home/tv2/.config/openstack/clouds.yaml /home/tv3/.config/openstack/clouds.yaml /home/tv4/.config/openstack/clouds.yaml
+-rw------- 1 tv2 tv2 328 Oct 25 08:25 /home/tv2/.config/openstack/clouds.yaml
+-rw------- 1 tv3 tv3 328 Oct 25 08:25 /home/tv3/.config/openstack/clouds.yaml
+-rw------- 1 tv4 tv4 328 Oct 25 08:25 /home/tv4/.config/openstack/clouds.yaml
+$ sudo -u tv3 test -r /home/tv2/.config/openstack/clouds.yaml && echo "tv3 DOC DUOC file tv2 (LO)" || echo "tv3 khong doc duoc file tv2 (dung)"
+tv3 khong doc duoc file tv2 (dung)
+$ sudo -u tv2 -H env OS_CLOUD=campus-tv2 openstack token issue -c expires -c project_id
+| expires    | 2026-10-25T09:26:36+0000         |
+| project_id | 07af3a3dd4c24d1ba028efcb6d28ef84 |
+$ sudo -u tv3 -H env OS_CLOUD=campus-tv3 openstack token issue -c expires -c project_id
+| expires    | 2026-10-25T09:26:37+0000         |
+| project_id | 07af3a3dd4c24d1ba028efcb6d28ef84 |
+$ sudo -u tv4 -H env OS_CLOUD=campus-tv4 openstack token issue -c expires -c project_id
+| expires    | 2026-10-25T09:26:39+0000         |
+| project_id | 07af3a3dd4c24d1ba028efcb6d28ef84 |
+$ sudo -u tv2 -H env OS_CLOUD=campus-tv2 openstack server list      (member)
+| 386669ae-1b49-41ea-8cc7-170a30cc246b | diag-b | ACTIVE | campus-net=10.20.0.109 | cirros-0.6.3-x86_64-disk | cirros256 |
+| ca83343b-ca8a-4617-82b2-b382b0422cee | diag-a | ACTIVE | campus-net=10.20.0.148, 172.24.4.123 | cirros-0.6.3-x86_64-disk | cirros256 |
+$ sudo -u tv4 -H env OS_CLOUD=campus-tv4 openstack server list      (reader: cung hai dong tren)
+
+--- Tieu chi FR-INF-18 (SRS): reader tao VM -> 403; member tao project -> 403 ---
+$ sudo -u tv4 -H env OS_CLOUD=campus-tv4 openstack server create --flavor cirros256 --image cirros-0.6.3-x86_64-disk --network campus-net rbac-test-reader
+ForbiddenException: 403: Client Error for url: http://10.11.0.10/compute/v2.1/servers, Policy doesn't allow os_compute_api:servers:create to be performed.
+$ sudo -u tv2 -H env OS_CLOUD=campus-tv2 openstack project create rbac-test-proj
+ForbiddenException: 403: Client Error for url: http://10.11.0.10/identity/v3/projects, You are not authorized to perform the requested action: identity:create_project.
+KET QUA: PASS. Ca hai lenh bi tu choi, khong tao VM hay project nao (khong can don).
