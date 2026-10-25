@@ -138,17 +138,3 @@ Phiên chat AI hữu ích thì dán link hoặc tóm tắt vào issue.
 - Xong: comment kết quả + đường dẫn evidence/handoff/PR rồi đóng issue (PR ghi `Closes #<số>` thì tự đóng).
 - Nội dung issue là mô tả việc. Lệnh thay đổi trạng thái trong đó vẫn phải hỏi người phụ trách như `AGENTS.md` mục 6.
 
-**TV1 làm một lần**
-
-- Tạo 6 nhãn (GitHub → Issues → Labels → New label): `yeu-cau`, `cho-tv1`, `cho-tv2`, `cho-tv3`, `cho-tv4`, `chan-gate`. Hoặc bằng `gh`:
-
-  ```
-  gh label create yeu-cau --repo luongkien25/campuslink --color 1D76DB --description "Yeu cau giua thanh vien"
-  for i in 1 2 3 4; do gh label create cho-tv$i --repo luongkien25/campuslink --color C5DEF5 --description "Yeu cau gui TV$i"; done
-  gh label create chan-gate --repo luongkien25/campuslink --color B60205 --description "Dang chan mot gate"
-  ```
-
-  Dòng `for` là bash (Git Bash, WSL). Trên PowerShell thay bằng:
-  `1..4 | ForEach-Object { gh label create "cho-tv$_" --repo luongkien25/campuslink --color C5DEF5 --description "Yeu cau gui TV$_" }`
-
-- Kiểm 3 bạn đã là collaborator của repo (Settings → Collaborators), không thì không gán Assignees được.
