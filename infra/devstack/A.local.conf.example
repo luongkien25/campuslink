@@ -3,14 +3,23 @@
 # TV2 review truoc stack.sh. Truoc khi chay: grep -n 'REPLACE_' local.conf phai rong.
 # Mat khau: ngau nhien, dai, chi chu+so; cung service credentials voi B.
 # VG Cinder "stack-volumes-lvmdriver-1" phai DA TON TAI tren dia EBS raw 30GiB (Lab 4.2).
-# CANH BAO: khong chay lai stack.sh tren cum co du lieu - init se lvremove LV trong VG.
+# CANH BAO: khong chay lai stack.sh tren cum co du lieu. Moi lan chay: DROP moi DB OpenStack, xoa DB OVN,
+#   lvremove LV trong VG Cinder, mkfs lai swift.img, xoa image Glance. Chi chay lai khi chua tao tai nguyen.
+#   Khong dung unstack.sh/clean.sh (vgremove VG Cinder tren dia EBS).
 # Lam NGAY SAU stack.sh, truoc khi co du lieu (chi tiet: docs/troubleshooting.md, "Da biet truoc"):
 #  - LVM: cuoi stack.sh DevStack ghi global_filter trong /etc/lvm/lvm.conf theo TEN nvme luc cai
 #    (dong co "# from devstack"). Ten nvme co the doi sau stop/start -> doi thanh
 #    global_filter = [ "a|^/dev/nvme[0-9]+n1$|", "r|.*|" ]  # campuslink   roi vgscan; vgs.
 #  - Swift: dong swift.img trong /etc/fstab (DevStack ghi) khong co nofail -> them nofail, kiem findmnt --verify.
 #  - n-cpu dung truoc libvirt-guests khi tat may: drop-in [Unit] After=libvirt-guests.service (A va B).
+#  - Moi lan chay lai stack.sh: fstab them 1 dong swift.img nua va lvm.conf them 1 dong global_filter nua
+#    (DevStack khong xoa duoc dong cu) -> giu 1 dong moi loai.
 #  Ca 3 muc deu chua thu tren cum: thu tren A, ghi ket qua vao evidence G1.
+# Kiem nhanh truoc stack.sh (phai ra 0, 1, 1, 1):
+#   grep -v '^#' local.conf | grep -c REPLACE_
+#   grep -c '^enable_service octavia o-api o-hk o-da$' local.conf
+#   grep -c '^GNOCCHI_ARCHIVE_POLICY=ceilometer-high-rate$' local.conf
+#   grep -c '^default_provider_driver=ovn$' local.conf
 
 [[local|localrc]]
 HOST_IP=10.11.0.10
@@ -54,7 +63,9 @@ OCTAVIA_NODE=api
 DISABLE_AMP_IMAGE_BUILD=True
 enable_plugin octavia https://opendev.org/openstack/octavia stable/2026.1
 enable_plugin ovn-octavia-provider https://opendev.org/openstack/ovn-octavia-provider stable/2026.1
-enable_service o-api o-hk o-da
+# Plugin octavia chi chay khi bat dich vu ten "octavia" (if is_service_enabled $OCTAVIA). Thieu -> stack.sh loi
+# "tee: /etc/octavia/octavia.conf: No such file or directory" o pha post-config (gap that 24/10/2026).
+enable_service octavia o-api o-hk o-da
 disable_service o-cw o-hm
 CEILOMETER_BACKENDS=gnocchi
 CEILOMETER_PIPELINE_INTERVAL=60

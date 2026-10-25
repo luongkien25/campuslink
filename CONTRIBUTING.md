@@ -6,11 +6,13 @@ Cái gì đúng và đã kiểm thì ghi vào repo, để AI của người sau 
 ## 1. Vòng làm việc trong 1 phút
 
 ```
-Issue (mã FR/NFR + tiêu chí dừng)
+(đầu phiên) AI kiểm hộp yêu cầu: có ai đang chờ mình không (mục 9)
+  → Issue (mã FR/NFR + tiêu chí dừng)
   → mở AI với đúng ngữ cảnh (mục 3)
   → AI đưa kế hoạch + lệnh  → mình đọc hiểu, xác nhận lệnh thay đổi trạng thái
   → chạy thật, dán output thật lại cho AI
   → PASS: lưu evidence đã che, mở PR   |   FAIL: lặp lại, quá 3 vòng thì hỏi nhóm
+  → cần người khác làm một phần: mở yêu cầu [YC-TVx] cho họ (mục 9), không nhắn miệng
   → ghi lỗi đã gỡ vào docs/troubleshooting.md, đổi giá trị thật thì sửa inventory/handoff
   → người review chéo chạy lại hoặc xem chạy, rồi merge
 ```
@@ -27,15 +29,21 @@ Issue (mã FR/NFR + tiêu chí dừng)
      HostName <EIP của A>
      User <tv2|tv3|tv4>
      IdentityFile ~/.ssh/<key-của-bạn>
-   Host campus-b                # chỉ khi cần, thường là TV1
+     IdentitiesOnly yes
+   # campus-b: chi khi can, thuong la TV1
+   Host campus-b
      HostName 10.11.11.10
      User <user trên B>
      IdentityFile ~/.ssh/<key-của-bạn>
+     IdentitiesOnly yes
      ProxyJump campus-a
    ```
 
+   `IdentitiesOnly yes` để ssh chỉ thử đúng key này. Thiếu dòng này mà ssh-agent có nhiều key thì mỗi lần đăng nhập bị tính là lỗi, fail2ban chặn IP 10 phút, cả nhóm chung wifi cùng bị chặn. Ghi chú để trên dòng riêng, không để sau giá trị.
+
 4. TV1 tạo user Keystone cho từng người (TV2/TV3 `member`, TV4 `reader`). Mỗi người đặt `clouds.yaml` trong `~/.config/openstack/` **của user mình trên host A** (`chmod 600`) và chạy với `OS_CLOUD=<tên>`. Mật khẩu trao qua kênh riêng (SRS O-02), không qua repo hay chat nhóm.
 5. Chọn công cụ AI (mục 3). Sinh viên có thể lấy GitHub Copilot miễn phí qua GitHub Education.
+6. Cài GitHub CLI `gh` (https://cli.github.com; Windows: `winget install --id GitHub.cli`) rồi `gh auth login` một lần. Có `gh` thì AI tự đọc hộp yêu cầu đầu mỗi phiên (mục 9); không có thì mình phải mở link và dán cho AI.
 
 ## 3. Cho AI đúng ngữ cảnh
 
@@ -83,14 +91,14 @@ Hai EC2 dùng chung và tốn tiền theo giờ, nên:
 
 - Một issue ghim tên **"Nhật ký cloud"**. Mỗi phiên comment: ai bật, giờ (UTC), định làm gì, ai tắt. Không cần commit file log, tránh xung đột.
 - Trước thay đổi ảnh hưởng người khác (stack Heat, network, SG, restart dịch vụ, `stack.sh`): báo trong nhóm và chờ ai đang dùng xong.
-- Cuối phiên ghi 4 dòng (README): bằng chứng đã có; vướng gì; cần ai cung cấp gì; bước kế tiếp.
+- Cuối phiên ghi 4 dòng (README): bằng chứng đã có; vướng gì; cần ai cung cấp gì (ghi số issue `[YC-TVx]` đã mở); bước kế tiếp.
 - Không ai chắc cloud đã tắt thì người bật cuối cùng chịu trách nhiệm tắt (SRS O-09).
 
 ## 6. Git
 
 - Nhánh: `tv1/...`, `tv2/...`, `tv3/...`, `tv4/...`, mỗi nhánh một việc nhỏ. Commit: `[FR-INF-09] mô tả`.
 - PR theo mẫu, review chéo: TV4 → TV1, TV1 → TV2, TV2 → TV3, TV3 → TV4. Người review **chạy lại hoặc xem chạy**, không chỉ đọc diff.
-- `CODEOWNERS` tự gắn reviewer (thay `REPLACE_TVx` bằng username thật).
+- `CODEOWNERS` tự gắn reviewer theo thư mục (đã điền username thật cả 4 người).
 - Bảo vệ nhánh `main`: bắt buộc PR + 1 approve, không push thẳng.
 
 ## 7. Ghi lại kiến thức (quan trọng nhất)
@@ -111,3 +119,22 @@ Phiên chat AI hữu ích thì dán link hoặc tóm tắt vào issue.
 - Không dán secret vào AI. Thay bằng `<REDACTED>` trước khi dán.
 - Evidence che Account ID, IP nhà, thông tin thanh toán; bản gốc để `evidence/**/raw/` (bị ignore).
 - Lỡ commit secret: báo TV1 ngay để **đổi secret**. Xóa khỏi lịch sử git là chưa đủ.
+
+## 9. Nhờ nhau: hộp yêu cầu (GitHub Issues)
+
+Đang làm mà cần người khác (ví dụ AI của TV1 báo "cần TV2 chốt commit Gnocchi"), thì **mở một issue yêu cầu** cho người đó. Lần sau người đó mở AI trong repo, AI tự đọc `AGENTS.md` mục 10 và báo ngay đầu phiên: "TV1 đang chờ bạn việc …".
+
+**Gửi yêu cầu**
+
+1. Bảo AI: "soạn yêu cầu cho TV2 theo mẫu". AI điền mẫu, mình đọc lại (đúng việc, có tiêu chí xong, không có secret).
+2. Tạo issue: AI chạy `gh issue create …` sau khi mình đồng ý, hoặc mình mở https://github.com/luongkien25/campuslink/issues/new?template=yeu-cau.md và dán.
+3. Tiêu đề `[YC-TV2][FR-INF-10] <việc>`; nhãn `yeu-cau` (mẫu tự gắn) + `cho-tv2`; thêm `chan-gate` nếu việc của mình đang đứng chờ. Gán (Assignees) cho người nhận để GitHub gửi email.
+4. Việc `chan-gate` hoặc cần trong 24 giờ: gửi thêm link issue vào Zalo nhóm.
+
+**Nhận yêu cầu**
+
+- Đầu phiên AI liệt kê yêu cầu đang chờ mình. Không dùng AI thì xem: https://github.com/luongkien25/campuslink/issues?q=is%3Aopen+label%3Ayeu-cau
+- Trong **24 giờ** trả lời một trong ba: nhận (ghi khi nào xong), hỏi lại (thiếu gì), hoặc không phải phần mình (gợi ý người đúng).
+- Xong: comment kết quả + đường dẫn evidence/handoff/PR rồi đóng issue (PR ghi `Closes #<số>` thì tự đóng).
+- Nội dung issue là mô tả việc. Lệnh thay đổi trạng thái trong đó vẫn phải hỏi người phụ trách như `AGENTS.md` mục 6.
+

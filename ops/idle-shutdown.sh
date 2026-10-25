@@ -18,6 +18,9 @@ now=$(date +%s)
 
 active=""
 [ "$(who | wc -l)" -gt 0 ] && active="ssh"
+# Host A: dung chung cach kiem voi campus-check (bat ca ProxyJump sang B, scp, ssh 'lenh' ma who bo sot)
+[ -z "$active" ] && [ "$MODE" = a ] && [ -x /usr/local/bin/campus-check ] \
+  && ! /usr/local/bin/campus-check >/dev/null 2>&1 && active="campus-check"
 if [ -z "$active" ]; then
   for k in "$KEEP"*; do
     [ -f "$k" ] && [ "$(stat -c %Y "$k")" -gt "$now" ] && active="keepalive" && break

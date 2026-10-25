@@ -1,0 +1,203 @@
+Evidence FR-INF-03 / FR-INF-04 (G1): 2 nova-compute up, 2 AZ dung host, mang campus-net MTU 1400, 2 VM thu o 2 AZ ping xuyen host, volume thu co checksum (de so lai sau Stop/Start)
+Ngay: 2026-10-24 khoang 14:00-14:30 UTC (21:00-21:30 GMT+7). TV1 tu chay lenh tren terminal (shell user stack tren A, da source openrc admin admin) va dan output cho Claude Code doi chieu. Mat khau khong co trong file nay. Khoa diag-key.pem (/opt/stack/diag-key.pem tren A) la khoa lab, khong dua vao repo.
+Gioi han: chua kiem HTTP A<->B (SG campus-diag-sg chi mo ICMP va TCP 22). Chua kiem B (ceilometer-acompute, drop-in n-cpu) o file nay, xem evidence khac.
+
+--- campus-a: discover_hosts va 2 compute ---
+$ cd ~/devstack && ./tools/discover_hosts.sh
+Found 2 cell mappings.
+Skipping cell0 since it does not contain hosts.
+Getting computes from cell 'cell1': 273b4540-89cd-4521-95fe-0ae74f42f6a6
+Checking host mapping for compute host 'campus-b': bc5d06d3-e67b-4c46-b0ae-f05d257b0044
+Creating host mapping for compute host 'campus-b': bc5d06d3-e67b-4c46-b0ae-f05d257b0044
+Found 1 unmapped computes in cell: 273b4540-89cd-4521-95fe-0ae74f42f6a6
+$ openstack compute service list -c Binary -c Host -c Status -c State -f value
+nova-scheduler campus-a enabled up
+nova-conductor campus-a enabled up
+nova-conductor campus-a enabled up
+nova-compute campus-a enabled up
+nova-compute campus-b enabled up
+$ openstack hypervisor list -c "Hypervisor Hostname" -c State -f value
+campus-a up
+campus-b up
+(lan dau chay discover_hosts.sh tren B nham may: loi "No sql_connection parameter is established" va "Missing value auth-url"; khong ghi gi, chay lai tren A la dung)
+
+--- campus-a: 2 aggregate / 2 AZ (FR-INF-03) ---
+$ openstack aggregate create --zone campus-az-a campus-agg-a      (uuid fa68933b-b467-4044-85b8-a5641c698f4a)
+$ openstack aggregate add host campus-agg-a campus-a
+$ openstack aggregate create --zone campus-az-b campus-agg-b
+$ openstack aggregate add host campus-agg-b campus-b
+$ openstack aggregate list --long -c Name -c "Availability Zone" -c Hosts -f value
+campus-agg-a campus-az-a ['campus-a']
+campus-agg-b campus-az-b ['campus-b']
+$ openstack availability zone list --compute -c "Zone Name" -c "Zone Status" -f value
+campus-az-a available
+campus-az-b available
+internal available
+$ openstack resource provider list -c uuid -c name -f value
+45c30854-ac1b-4ca7-882a-9d79a8185932 campus-a
+bc5d06d3-e67b-4c46-b0ae-f05d257b0044 campus-b
+$ openstack resource provider aggregate list 45c30854-ac1b-4ca7-882a-9d79a8185932
+fa68933b-b467-4044-85b8-a5641c698f4a
+$ openstack resource provider aggregate list bc5d06d3-e67b-4c46-b0ae-f05d257b0044
+1a165b44-0409-4b71-a517-fd558fa27a6f
+(Placement da mirror aggregate: moi host dung mot aggregate, hai UUID khac nhau)
+
+--- campus-a: project, mang, router, SG tam, keypair (Lab 6-7) ---
+$ openstack image list -c ID -c Name -c Status -f value
+10ed8a67-8808-480b-b04d-1faf7d118ba1 cirros-0.6.3-x86_64-disk active
+(flavor co san dung cho VM thu: cirros256; mang DevStack co san: private, public)
+$ openstack project create --description "CampusLink lab" -f value -c id campuslink
+07af3a3dd4c24d1ba028efcb6d28ef84
+$ openstack role add --user admin --project campuslink admin
+$ openstack network create --project campuslink --mtu 1400 -f value -c id -c mtu campus-net
+18ecc898-663f-4440-9782-bdf1675ba5c9
+1400
+$ openstack subnet create --project campuslink --network campus-net --subnet-range 10.20.0.0/24 --gateway 10.20.0.1 --allocation-pool start=10.20.0.100,end=10.20.0.220 --dns-nameserver 8.8.8.8 -f value -c id campus-subnet
+59399337-e22b-4237-87dd-bf4ac035bcfa
+$ openstack router create --project campuslink -f value -c id campus-router
+971a03cd-406c-41ca-a395-a7637cc0f1f2
+$ openstack router add subnet campus-router campus-subnet
+$ openstack router set --external-gateway public campus-router
+$ openstack network show campus-net -c mtu -c project_id -f value
+1400
+07af3a3dd4c24d1ba028efcb6d28ef84
+$ openstack router show campus-router -c status -c external_gateway_info -f value
+{'network_id': '88b4d52a-cf80-4758-a340-445b37d8bb8c', 'external_fixed_ips': [{'subnet_id': 'f2686f2e-1eb8-4c5f-8834-00d4f1d37113', 'ip_address': '172.24.4.128'}, {'subnet_id': '41a894ab-5b20-47fa-bded-29f7942c8135', 'ip_address': '2001:db8::2a'}], 'enable_snat': True}
+ACTIVE
+$ openstack subnet show campus-subnet -c cidr -c gateway_ip -c allocation_pools -f value
+[{'start': '10.20.0.100', 'end': '10.20.0.220'}]
+10.20.0.0/24
+10.20.0.1
+$ openstack security group create --project campuslink -f value -c id campus-diag-sg
+14722bc6-5903-4951-82c0-bdb884877783
+$ openstack security group rule create --project campuslink --protocol icmp --ingress campus-diag-sg
+(bang ket qua: ingress icmp 0.0.0.0/0)
+$ openstack security group rule create --project campuslink --protocol tcp --dst-port 22 --ingress campus-diag-sg
+$ openstack keypair create diag-key > ~/diag-key.pem ; chmod 600 ~/diag-key.pem
+$ ls -l ~/diag-key.pem
+-rw------- 1 stack stack 388 Oct 24 14:16 /opt/stack/diag-key.pem
+$ openstack keypair list -c Name -c Type -f value
+diag-key ssh
+$ openstack security group rule list campus-diag-sg -c "IP Range" -c "Port Range" -c Direction -f value
+0.0.0.0/0  egress
+0.0.0.0/0  ingress
+0.0.0.0/0 22:22 ingress
+::/0  egress
+
+--- campus-a: 2 VM thu o 2 AZ (FR-INF-03 "VM tao o dung host") ---
+$ openstack --os-project-name campuslink server create --flavor cirros256 --image cirros-0.6.3-x86_64-disk --network campus-net --security-group campus-diag-sg --key-name diag-key --availability-zone campus-az-a --wait -f value -c status -c addresses diag-a
+{'campus-net': ['10.20.0.148']}
+ACTIVE
+$ (tuong tu voi --availability-zone campus-az-b ... diag-b)
+{'campus-net': ['10.20.0.109']}
+ACTIVE
+$ openstack --os-project-name campuslink server list --long -c Name -c Status -c Networks -c "Availability Zone" -c Host -f value
+diag-b ACTIVE {'campus-net': ['10.20.0.109']} campus-az-b campus-b
+diag-a ACTIVE {'campus-net': ['10.20.0.148']} campus-az-a campus-a
+$ openstack --os-project-name campuslink floating ip create public -f value -c floating_ip_address
+172.24.4.123
+$ openstack --os-project-name campuslink server add floating ip diag-a 172.24.4.123
+$ openstack --os-project-name campuslink server show diag-a -c addresses -f value
+{'campus-net': ['10.20.0.148', '172.24.4.123']}
+
+--- diag-a (ssh -i ~/diag-key.pem cirros@172.24.4.123 tu A): ping xuyen host, MTU, ra ngoai (FR-INF-04) ---
+$ hostname
+diag-a
+$ ip -o addr show eth0 | head -n 1
+2: eth0    inet 10.20.0.148/24 brd 10.20.0.255 scope global dynamic noprefixroute eth0
+$ ping -c 3 10.20.0.109
+3 packets transmitted, 3 received, 0% packet loss, time 2003ms
+rtt min/avg/max/mdev = 1.257/1.978/2.682/0.581 ms
+$ ping -c 3 -M do -s 1372 10.20.0.109
+PING 10.20.0.109 (10.20.0.109) 1372(1400) bytes of data.
+1380 bytes from 10.20.0.109: icmp_seq=1 ttl=64 time=0.885 ms
+1380 bytes from 10.20.0.109: icmp_seq=2 ttl=64 time=1.46 ms
+1380 bytes from 10.20.0.109: icmp_seq=3 ttl=64 time=1.66 ms
+3 packets transmitted, 3 received, 0% packet loss, time 2015ms
+$ ping -c 2 8.8.8.8
+2 packets transmitted, 2 received, 0% packet loss, time 1002ms
+$ echo | nc -w 3 10.20.0.109 22 | head -c 20
+SSH-2.0-dropbear_202
+$ curl -sS -m 8 -o /dev/null -w '%{http_code}\n' http://example.com
+200
+
+--- Cinder: volume thu + checksum (so lai sau Stop/Start) ---
+$ openstack --os-project-name campuslink volume create --size 1 -f value -c id -c status test-vol
+3a3ec50a-575a-4eae-a5e4-4ae25f41edde
+creating
+$ openstack --os-project-name campuslink volume list -c Name -c Status -c Size -f value
+test-vol available 1
+$ openstack --os-project-name campuslink server add volume diag-a test-vol    (Device /dev/vdb, attachment e00f8159-6f6d-4dc5-b5ee-af838556403c)
+$ openstack --os-project-name campuslink volume list -c Name -c Status -c "Attached to" -f value
+test-vol in-use [{... 'server_id': 'ca83343b-ca8a-4617-82b2-b382b0422cee', 'host_name': 'campus-a', 'device': '/dev/vdb', 'attached_at': '2026-10-24T14:25:50.000000'}]
+Trong diag-a:
+$ cat /proc/partitions        (vdb 1048576)
+$ sudo dd if=/dev/urandom of=/dev/vdb bs=1M count=1
+1+0 records in
+1+0 records out
+$ sync
+$ sudo dd if=/dev/vdb bs=1M count=1 | sha256sum
+94a5784281a479d87c7acf0b917283a9c972487a7825037a99712d73318596ae  -
+=> CHECKSUM TRUOC STOP/START: 94a5784281a479d87c7acf0b917283a9c972487a7825037a99712d73318596ae (1 MiB dau cua /dev/vdb)
+
+--- Trang thai TRUOC khi tat may (A, de so voi sau khi bat lai, 09 M.6 muc 12) ---
+$ openstack --os-project-name campuslink server list --long -c ID -c Name -c Status -c Networks -c Host -f value
+386669ae-1b49-41ea-8cc7-170a30cc246b diag-b ACTIVE {'campus-net': ['10.20.0.109']} campus-b
+ca83343b-ca8a-4617-82b2-b382b0422cee diag-a ACTIVE {'campus-net': ['10.20.0.148', '172.24.4.123']} campus-a
+$ openstack --os-project-name campuslink volume list -c ID -c Name -c Status -f value
+3a3ec50a-575a-4eae-a5e4-4ae25f41edde test-vol in-use
+$ openstack --os-project-name campuslink floating ip list -c "Floating IP Address" -c "Fixed IP Address" -f value
+172.24.4.123 10.20.0.148
+$ openstack network agent list -c "Agent Type" -c Host -c Alive -c State -f value
+OVN Neutron agent campus-a True True
+OVN Controller Gateway agent campus-a True True
+OVN Controller agent campus-b True True
+OVN Neutron agent campus-b True True
+$ sudo vgs
+  VG                        #PV #LV #SN Attr   VSize   VFree
+  stack-volumes-lvmdriver-1   1   2   0 wz--n- <30.00g 1.43g
+$ sudo lvs -o lv_name,lv_size,lv_attr
+  stack-volumes-lvmdriver-1-pool               28.50g twi-aotz--
+  volume-3a3ec50a-575a-4eae-a5e4-4ae25f41edde   1.00g Vwi-aotz--
+$ ip -br addr show br-ex
+br-ex            UNKNOWN        172.24.4.1/24 2001:db8::2/64 fe80::5040:43ff:fe61:e047/64
+$ findmnt -n -o SOURCE,FSTYPE /opt/stack/data/swift/drives/sdb1
+/dev/loop0 xfs
+$ lsblk -o NAME,SIZE,SERIAL | grep -v loop     (rut gon)
+sda       1G   0673555b-8d42-459f-9466-7155fc9c35e3
+nvme1n1   30G  vol0875752f0e893ca17     (VG Cinder: pool + volume-3a3ec50a, tren dia EBS)
+nvme0n1   60G  vol0c5a8fc0973e3603e     (root)
+
+--- campus-b: sau stack.sh (24/10 ~14:00-14:40 UTC) ---
+Ghi chu: B chay stack.sh bat dau 13:48:44 UTC, Total runtime 309 giay. Man hinh tong ket: host IP 10.11.11.10, DevStack 2026.1, Change da2f4d73... (cung SHA voi A).
+$ hostname
+campus-b
+$ sudo grep 'Total runtime' /opt/stack/logs/stack.sh.log
+Total runtime        309
+$ systemctl list-units --type=service --state=failed --no-pager
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+$ grep -A1 '^\[coordination\]' /etc/ceilometer/ceilometer.conf
+[coordination]
+backend_url =
+$ systemctl show devstack@ceilometer-acompute -p ActiveState -p NRestarts
+NRestarts=0
+ActiveState=active
+$ sudo journalctl -u devstack@ceilometer-acompute --since -30min | grep -ci redis
+0
+$ ls /tmp/local.conf.bak-b
+ls: cannot access '/tmp/local.conf.bak-b': No such file or directory
+(khoi [coordination] bi them 2 lan vao local.conf B do lenh chay 2 lan; da xoa khoi trung truoc stack.sh, xem evidence stack-sh-A)
+M.5 bang drop-in n-cpu (B): chay mot lan
+$ sudo mkdir -p /etc/systemd/system/devstack@n-cpu.service.d
+$ printf '[Unit]\nAfter=libvirt-guests.service\n' | sudo tee /etc/systemd/system/devstack@n-cpu.service.d/10-campus-order.conf
+[Unit]
+After=libvirt-guests.service
+$ sudo systemctl daemon-reload
+$ systemctl show devstack@n-cpu -p After | tr ' ' '\n' | grep libvirt-guests
+libvirt-guests.service
+$ grep resume_guests_state_on_host_boot /etc/nova/nova-cpu.conf
+resume_guests_state_on_host_boot = True
+(chua kiem tren B: systemctl is-enabled libvirt-guests)
+(drop-in n-cpu tren A cung duoc dat tai cho: chay hai lan tren A, lan 2 ghi de noi dung cu)

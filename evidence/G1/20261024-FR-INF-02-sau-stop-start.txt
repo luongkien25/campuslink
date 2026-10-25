@@ -1,0 +1,57 @@
+Evidence 4.2 (G1): sau Stop/Start, hostname, /etc/hosts, dia Cinder (by-id), VG, Time Sync, NAT va timer tu tat van dung tren A va B
+Ngay: 2026-10-24 khoang 07:15-07:25 UTC (14:15-14:25 GMT+7). A va B Start sau lan Stop 2026-10-23 16:05 UTC; ca hai "3/3 checks passed". TV1 tu chay lenh tren terminal va dan output cho Claude Code doi chieu. Khong co secret trong output.
+
+--- campus-a ---
+$ hostname
+campus-a
+$ grep campus /etc/hosts
+10.11.0.10 campus-a
+10.11.11.10 campus-b
+$ ping -c 2 campus-b
+2 packets transmitted, 2 received, 0% packet loss, time 1001ms
+rtt min/avg/max/mdev = 0.987/1.033/1.079/0.046 ms
+$ lsblk -o NAME,SIZE,SERIAL,MOUNTPOINT   (bo cac dong loop)
+nvme1n1        30G vol0875752f0e893ca17
+nvme0n1        60G vol0c5a8fc0973e3603e
+|- nvme0n1p1    59G                      /
+|- nvme0n1p14    4M
+|- nvme0n1p15  106M                      /boot/efi
+`- nvme0n1p16  913M                      /boot
+$ ls -l /dev/disk/by-id/ | grep vol0875
+nvme-Amazon_Elastic_Block_Store_vol0875752f0e893ca17 -> ../../nvme1n1
+nvme-Amazon_Elastic_Block_Store_vol0875752f0e893ca17_1 -> ../../nvme1n1
+$ sudo vgs
+  VG                        #PV #LV #SN Attr   VSize   VFree
+  stack-volumes-lvmdriver-1   1   0   0 wz--n- <30.00g <30.00g
+$ chronyc sources   (chi dong tieu de va dong chon)
+MS Name/IP address         Stratum Poll Reach LastRx Last sample
+^* 169.254.169.123               1   4   377     8  -1303ns[ -433ns] +/-  157us
+$ sysctl net.ipv4.ip_forward
+net.ipv4.ip_forward = 1
+$ systemctl is-active campus-nat.service
+active
+$ sudo iptables -t nat -L POSTROUTING -n -v
+Chain POSTROUTING (policy ACCEPT 233 packets, 17469 bytes)
+ pkts bytes target     prot opt in     out     source               destination
+  328 24621 LIBVIRT_PRT  0    --  *      *       0.0.0.0/0            0.0.0.0/0
+  120  8992 MASQUERADE  0    --  *      enp39s0  10.11.11.0/24        0.0.0.0/0
+    0     0 MASQUERADE  0    --  *      enp39s0  172.24.4.0/24        0.0.0.0/0
+$ systemctl list-timers --no-pager | grep campus
+Sat 2026-10-24 07:26:24 UTC      3min 15s Sat 2026-10-24 07:21:24 UTC 1min 44s ago campus-idle-shutdown.timer     campus-idle-shutdown.service
+
+--- campus-b ---
+$ hostname
+campus-b
+$ grep campus /etc/hosts
+10.11.0.10 campus-a
+10.11.11.10 campus-b
+$ chronyc sources   (chi dong tieu de va dong chon)
+MS Name/IP address         Stratum Poll Reach LastRx Last sample
+^* 169.254.169.123               1   4   377    18   +101us[ +101us] +/-  188us
+$ curl -sI --connect-timeout 10 https://opendev.org | head -1
+HTTP/1.1 200 OK
+$ systemctl list-timers --no-pager | grep campus
+Sat 2026-10-24 07:26:35 UTC  2min 21s Sat 2026-10-24 07:21:35 UTC 2min 38s ago campus-idle-shutdown.timer     campus-idle-shutdown.service
+
+Ket luan: PASS 4.2. Hostname giu campus-a / campus-b, /etc/hosts con 2 dong, ping A->B 2/2. Ten NVMe tren A dao cho lan nua (Cinder nay la nvme1n1, root la nvme0n1) nhung by-id van tro dung serial vol0875752f0e893ca17 va VG stack-volumes-lvmdriver-1 con nguyen (1 PV, 0 LV, <30.00g trong). Time Sync "^*" 169.254.169.123 tren ca hai host. A: ip_forward 1, campus-nat active, MASQUERADE 10.11.11.0/24 da co 120 goi (doc truoc khi chay curl tren B). B ra Internet qua NAT (curl opendev.org 200). Timer campus-idle-shutdown con tren ca hai host.
+Ghi chu: LIBVIRT_PRT o dau chain POSTROUTING do libvirt (cai o 4.4) tu them; hai rule MASQUERADE cua campus-nat khong bi anh huong. Chua doc lai counter sau lenh curl tren B (khong can: curl 200 tu B, khong co public IP, da chung minh duong NAT).

@@ -16,7 +16,7 @@ aws:
   account_type: "tai khoan thuong, Paid plan, dang nhap root"   # 22/10/2026
   caller_arn_redacted: "arn:aws:iam::<ACCOUNT_ID>:root"
   quota_on_demand_standard_vcpu: "16 (dang dung 0)"   # can >= 12 kha dung; 22/10/2026
-  credit_balance_usd_checked: "131.38 (kiem 22/10/2026, han khoang 1 nam)"
+  credit_balance_usd_checked: "129.57 (kiem 24/10/2026; 22/10/2026 la 131.38; han khoang 1 nam)"
   budget_alerts_usd: [30, 50, 65]
   nested_virtualization_supported:
     m7i.2xlarge: "yes"          # describe-instance-types 22/10/2026
@@ -52,59 +52,59 @@ aws:
       eni_id: "eni-0c7e80027e141b982"
       private_ip: 10.11.0.10
       eip: "44.198.215.187"        # gan 23/10/2026; KHONG release (doi EIP = doi domain sslip)
-      eip_allocation_id: "REPLACE"
+      eip_allocation_id: "eipalloc-0b2ac9459e46065d4"   # doc tu anh console (23/10/2026), ten EIP campus-a-eip; doi chieu lai bang cach copy tu console
       source_dest_check: false
       nested_virtualization: enabled
       imds: { tokens: required, hop_limit: 1 }
       iam_instance_profile: CampusLinkBackup      # gan o Lab 10
       volumes:
         root:   { size_gib: 60, type: gp3, id: "vol-0c5a8fc0973e3603e", encrypted: "aws/ebs" }
-        cinder: { size_gib: 30, type: gp3, id: "vol-0875752f0e893ca17", encrypted: "aws/ebs", nvme_serial: "REPLACE", delete_on_termination: false }
+        cinder: { size_gib: 30, type: gp3, id: "vol-0875752f0e893ca17", encrypted: "aws/ebs", nvme_serial: "vol0875752f0e893ca17", delete_on_termination: false }
     B:
       name: campus-b
       type: m7i.xlarge
-      instance_id: "REPLACE"
-      eni_id: "REPLACE"
+      instance_id: "i-0c23cd863cc66d7f4"   # launch 23/10/2026 21:24 (GMT+7), AZ us-east-1b / use1-az2
+      eni_id: "eni-0c332775e72314f41"   # doc tu anh console tab Networking cua campus-b (23/10/2026); doi chieu lai bang cach copy tu console
       private_ip: 10.11.11.10
       public_ipv4: none
       nested_virtualization: enabled
       imds: { tokens: required, hop_limit: 1 }
       volumes:
-        root: { size_gib: 60, type: gp3, id: "REPLACE" }
+        root: { size_gib: 60, type: gp3, id: "vol-0b7596f11ee9655f5" }   # suy ra tu serial NVMe vol0b7596f11ee9655f5 (lsblk tren B, 23/10/2026); doi chieu lai o tab Storage cua console
   tags: { Project: CampusLink }  # gan cho A, B, volume, EIP; IAM start/stop va DLM loc theo tag nay
   shutdown_behavior: stop        # khong de terminate
   keypair_name: "tv1_campuslink" # ten thuc te tren AWS (import 23/10/2026); chi ghi ten keypair, khong ghi duong dan/noi dung private key
   ssh:
     user: ubuntu
-    members_with_key: []        # ten thanh vien da them public key
+    members_with_key: [tv2, tv3, tv4]        # ten thanh vien da them public key
     # ADR-07 (tu 22/10/2026): SG campus-ingress-admin mo 22 cho 0.0.0.0/0 toi freeze 06/11, bu bang
     # chi key + fail2ban + user Linux rieng moi nguoi (ops/add-member.sh); khong dung chung .pem.
     # Truoc 06/11: thu IP /32 cua tung thanh vien can SSH, chup lai SG lam evidence.
 
 openstack:
   release: stable/2026.1
-  devstack_sha: "REPLACE"       # cung SHA tren A va B
-  gnocchi_sha: "REPLACE"        # TV2 chot
+  devstack_sha: "da2f4d73f5ad74fc8ecfbe15bd7e20f6b0982dbb"   # cung SHA tren A va B (24/10/2026)
+  gnocchi_sha: "4a41c1d05052bcabf19fbe2e5bfb5a036a321d32"    # tag 4.7.1, TAM, cho TV2 chot (O-06)
   repo_shas_file: docs/versions.lock
   keystone_auth_url: "http://10.11.0.10/identity"   # doc lai tu catalog
   nova:
-    host_a: "REPLACE"           # cot Host cua compute service list
-    host_b: "REPLACE"
+    host_a: "campus-a"           # cot Host cua compute service list
+    host_b: "campus-b"
     aggregates:
       campus-agg-a: { az: campus-az-a, host: host_a }
       campus-agg-b: { az: campus-az-b, host: host_b }
   networks:
     external: { name: public, cidr: 172.24.4.0/24, br_ex_ip: 172.24.4.1, fip_pool: "172.24.4.100-172.24.4.200" }
     devstack_demo: { cidr: 10.21.0.0/24 }
-    campus_net: { cidr: 10.20.0.0/24, gateway: 10.20.0.1, pool: "10.20.0.100-10.20.0.220", mtu: 1400, id: "REPLACE", subnet_id: "REPLACE" }
-    campus_router: { id: "REPLACE" }
+    campus_net: { cidr: 10.20.0.0/24, gateway: 10.20.0.1, pool: "10.20.0.100-10.20.0.220", mtu: 1400, id: "18ecc898-663f-4440-9782-bdf1675ba5c9", subnet_id: "59399337-e22b-4237-87dd-bf4ac035bcfa" }
+    campus_router: { id: "971a03cd-406c-41ca-a395-a7637cc0f1f2" }
   security_groups:
     campus-app-sg:  { id: "REPLACE" }
     campus-db-sg:   { id: "REPLACE" }    # 5432 + 6379 tu app SG
-    campus-diag-sg: { id: "REPLACE" }    # tam thoi
+    campus-diag-sg: { id: "14722bc6-5903-4951-82c0-bdb884877783" }    # tam thoi
   project:
     name: campuslink
-    id: "REPLACE"
+    id: "07af3a3dd4c24d1ba028efcb6d28ef84"
     users: { campus-tv2: member, campus-tv3: member, campus-tv4: reader }
     quota: { instances: 6, cores: 8, ram_mib: 12288, volumes: 5, gigabytes: 30, floating_ips: 3 }
   flavors:

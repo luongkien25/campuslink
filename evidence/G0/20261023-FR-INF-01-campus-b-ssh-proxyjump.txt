@@ -1,0 +1,18 @@
+Evidence 3.7 (FR-INF-01): SSH toi campus-b qua ProxyJump campus-a, khong chep private key len A
+Ngay: 2026-10-23 21:53 (GMT+7). May: Windows cua TV1. Output da bo dong hoi passphrase.
+
+PS> ssh campus-b hostname
+The authenticity of host '10.11.11.10 (<no hostip for proxy command>)' can't be established.
+ED25519 key fingerprint is SHA256:8kodrQGzoEqnuFbJUC+NZv8fzyNIP2V55HLm5pJlhqg.
+Warning: Permanently added '10.11.11.10' (ED25519) to the list of known hosts.
+ip-10-11-11-10
+
+Cau hinh dung (khoi Host trong ~/.ssh/config, khong chua key):
+Host campus-b
+    HostName 10.11.11.10
+    User ubuntu
+    IdentityFile ~/.ssh/campus-lab
+    IdentitiesOnly yes
+    ProxyJump campus-a
+
+Ket luan: PASS. Hostname tra ve ip-10-11-11-10 (B), duong di qua A bang ProxyJump, key chi nam tren may TV1.

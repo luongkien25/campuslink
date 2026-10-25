@@ -3,7 +3,7 @@
 
 ubuntu_host_ami=ami-02a9cdd4e98bc3c78
 devstack_branch=stable/2026.1
-devstack_sha=REPLACE_SHA
+devstack_sha=da2f4d73f5ad74fc8ecfbe15bd7e20f6b0982dbb   # dau nhanh stable/2026.1 luc clone, 2026-10-24 UTC, TV1; cung SHA tren A va B
 # Sau lan cai thanh cong: SHA tung repo trong /opt/stack/*/.git
 nova_sha=REPLACE_SHA
 neutron_sha=REPLACE_SHA
@@ -12,7 +12,7 @@ ovn_octavia_provider_sha=REPLACE_SHA
 heat_sha=REPLACE_SHA
 ceilometer_sha=REPLACE_SHA
 aodh_sha=REPLACE_SHA
-gnocchi_commit=REPLACE_SHA          # khong co nhanh stable/2026.1 (SRS O-06)
+gnocchi_commit=4a41c1d05052bcabf19fbe2e5bfb5a036a321d32   # tag 4.7.1; khong co nhanh stable/2026.1 (SRS O-06). TAM (2026-10-24, TV1): chua kiem voi 2026.1 + Python 3.12, cho TV2 xac nhan
 cinder_sha=REPLACE_SHA
 swift_sha=REPLACE_SHA
 
