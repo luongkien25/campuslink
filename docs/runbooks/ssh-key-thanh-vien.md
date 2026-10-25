@@ -113,25 +113,7 @@ Nhập đúng passphrase thì in ra một dòng `ssh-ed25519 ...`. Nhập sai th
 
 TV1 sẽ nhắn bạn khi đã thêm key vào máy A. Lúc đó máy có thể đang **tắt** (xem `docs/runbooks/start-stop.md`): TV1 hoặc bạn bật máy theo runbook, và nhớ ghi giờ vào issue "Nhật ký cloud".
 
-Đăng nhập (thay `tv2` bằng user của bạn):
-
-**Windows (PowerShell):**
-
-```powershell
-ssh -i "$env:USERPROFILE\.ssh\campuslink_tv2" tv2@44.198.215.187
-```
-
-**macOS / Linux:**
-
-```bash
-ssh -i ~/.ssh/campuslink_tv2 tv2@44.198.215.187
-```
-
-- Lần đầu máy hỏi `Are you sure you want to continue connecting (yes/no/[fingerprint])?`: nếu TV1 đã gửi dấu vân tay của máy thì đối chiếu, khớp thì gõ `yes`.
-- Sau đó máy hỏi **passphrase** của bạn (không phải mật khẩu máy chủ). Đó là bình thường: mỗi lần SSH đều hỏi.
-- Vào được thì dấu nhắc đổi thành `tv2@campus-a`.
-
-Muốn gõ ngắn hơn, thêm vào file `~/.ssh/config` (Windows: `C:\Users\<tên bạn>\.ssh\config`):
+**Trước khi đăng nhập, tạo cấu hình SSH** (làm một lần). Thêm khối sau vào file `~/.ssh/config` (Windows: `C:\Users\<tên bạn>\.ssh\config`, tên file không có đuôi `.txt`; chưa có file thì tạo mới). Thay `tv2` bằng user của bạn, cả ở `User` lẫn tên file key:
 
 ```
 Host campus-a
@@ -141,7 +123,23 @@ Host campus-a
     IdentitiesOnly yes
 ```
 
-Rồi dùng `ssh campus-a`.
+Dòng `IdentitiesOnly yes` là **bắt buộc**, không phải chỉ để gõ ngắn. Thiếu dòng này mà ssh-agent trên máy bạn có nhiều key, ssh sẽ thử từng key và máy A tính mỗi lần thử sai là một lần đăng nhập lỗi. `fail2ban` chặn IP của bạn 10 phút; nếu cả nhóm ngồi chung wifi thì cả nhóm cùng bị chặn.
+
+Đăng nhập:
+
+```
+ssh campus-a
+```
+
+Không muốn dùng file config thì thêm `-o IdentitiesOnly=yes` vào lệnh: `ssh -i <đường dẫn private key> -o IdentitiesOnly=yes tv2@44.198.215.187`.
+
+- Lần đầu máy hỏi `Are you sure you want to continue connecting (yes/no/[fingerprint])?`: nếu TV1 đã gửi dấu vân tay của máy thì đối chiếu, khớp thì gõ `yes`.
+- Sau đó máy hỏi **passphrase** của bạn (không phải mật khẩu máy chủ). Đó là bình thường: mỗi lần SSH đều hỏi.
+- Vào được thì dấu nhắc đổi thành `tv2@campus-a`.
+
+Dùng OpenStack: sau khi vào A, chạy `export OS_CLOUD=campus-tv2` (tv3: `campus-tv3`, tv4: `campus-tv4`) rồi thử `openstack server list`. Thông tin đăng nhập đã nằm sẵn trong `~/.config/openstack/clouds.yaml` của bạn trên A; không gửi nội dung file này qua chat.
+
+**Không chạy** `stack.sh`, `unstack.sh`, `clean.sh`: chạy lại sẽ xóa toàn bộ dữ liệu OpenStack của cả nhóm. Gặp lỗi lạ thì báo TV1.
 
 Tài khoản `tv2`/`tv3`/`tv4` **không có sudo**: bạn xem được log và dùng OpenStack bằng credential Keystone riêng của mình, không đổi được cấu hình máy. Cần quyền cao hơn thì nhờ TV1.
 
@@ -149,12 +147,12 @@ Tài khoản `tv2`/`tv3`/`tv4` **không có sudo**: bạn xem được log và d
 
 | Hiện tượng | Nguyên nhân thường gặp | Cách xử lý |
 |---|---|---|
-| `Permission denied (publickey)` | Sai user (đang dùng `ubuntu` thay vì `tv2`); dùng sai file key; TV1 chưa thêm key; key bị dán thành nhiều dòng | Kiểm lệnh có `-i <private key>` và `tv2@...`; hỏi TV1 đã thêm key chưa; gửi lại dòng `.pub` nguyên vẹn |
+| `Permission denied (publickey)` | Sai user (đang dùng `ubuntu` thay vì `tv2`); dùng sai file key; TV1 chưa thêm key; key bị dán thành nhiều dòng | Kiểm `User` và `IdentityFile` trong `~/.ssh/config` (hoặc `-i <private key>` và `tv2@...` nếu gõ lệnh trực tiếp); hỏi TV1 đã thêm key chưa; gửi lại dòng `.pub` nguyên vẹn |
 | `Connection timed out` | Máy A đang tắt, hoặc mạng nhà bạn chặn cổng 22 | Xem issue "Nhật ký cloud", bật máy theo runbook; thử mạng khác |
 | `Connection refused` ngay lập tức | Máy A vừa bật chưa xong | Đợi khoảng 2–3 phút (đến khi AWS báo `2/2 checks passed`) |
 | `WARNING: UNPROTECTED PRIVATE KEY FILE!` | File private key bị chia sẻ cho người khác đọc | macOS/Linux: `chmod 600 ~/.ssh/campuslink_tv2`. Windows: chuột phải file → Properties → Security, chỉ để user của bạn |
 | `incorrect passphrase` / hỏi passphrase hoài | Nhập sai passphrase (lưu ý bàn phím gõ tiếng Việt, Caps Lock) | Gõ lại; quên hẳn thì tạo key mới (bước 2 với tên khác) và gửi lại `.pub` |
-| Bị chặn sau nhiều lần sai | `fail2ban` trên A chặn IP của bạn | Nhắn TV1 gỡ chặn, kèm IP công cộng của bạn |
+| `Too many authentication failures`, hoặc bị chặn sau nhiều lần sai | `fail2ban` trên A chặn IP của bạn 10 phút, thường do thiếu `IdentitiesOnly yes` trong `~/.ssh/config` | Chờ 10 phút (tự hết) hoặc đổi sang mạng khác (4G); thêm `IdentitiesOnly yes` rồi thử lại. Vẫn bị chặn sau đó thì nhắn TV1 kèm IP công cộng của bạn |
 
 ## Bảo mật
 
