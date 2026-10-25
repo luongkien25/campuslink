@@ -1,0 +1,87 @@
+Evidence C-06 / C-07 (G1, Lab 6): quota project campuslink, 3 flavor campus.*, 2 security group (campus-app-sg, campus-db-sg), image ubuntu-noble-base
+Ngay: 2026-10-25 khoang 08:50-08:57 UTC (15:50-15:57 GMT+7). TV1 tu chay lenh tren terminal (shell user stack tren A, da source openrc admin admin) va dan output cho Claude Code doi chieu. Khong co mat khau trong file nay.
+Gioi han: image chua kiem chu ky GPG (chi doi chieu SHA256SUMS lay qua HTTPS cung may chu). Keypair khong tao chung: keypair Nova thuoc tung user Keystone, moi nguoi tu import bang OS_CLOUD cua minh. SG app/db chua co rule SSH/ICMP (SRS khong quy dinh).
+
+--- Truoc khi lam (hien trang) ---
+$ openstack quota show campuslink      (rut gon: chi cac dong lien quan; con mac dinh DevStack)
+| cores        |    20 |
+| instances    |    10 |
+| ram          | 51200 |
+| volumes      |    10 |
+| gigabytes    |  1000 |
+| floating-ips |    50 |
+$ openstack flavor list -c Name -c VCPUs -c RAM -c Disk      (khong co flavor campus.*)
+m1.tiny, m1.small, m1.medium, m1.large, m1.xlarge, cirros256, ds512M, ds1G, ds2G, ds4G
+$ openstack image list -c Name -c Status
+| cirros-0.6.3-x86_64-disk | active |
+$ openstack security group list --project campuslink -c Name -c ID
+| 14722bc6-5903-4951-82c0-bdb884877783 | campus-diag-sg |
+| dac9eeec-d02c-4ccc-8297-e510330a39aa | default        |
+$ openstack availability zone list --compute -c "Zone Name"
+campus-az-a, campus-az-b, internal
+$ openstack volume type list -c Name
+lvmdriver-1, __DEFAULT__
+
+--- Quota (C-07) ---
+$ openstack quota set --instances 6 --cores 8 --ram 12288 --volumes 5 --gigabytes 30 --floating-ips 3 campuslink
+$ openstack quota show campuslink | grep -E '^\| (instances|cores|ram|volumes|gigabytes|floating-ips) '
+| cores                 |     8 |
+| instances             |     6 |
+| ram                   | 12288 |
+| volumes               |     5 |
+| gigabytes             |    30 |
+| floating-ips          |     3 |
+
+--- Flavor (C-06) ---
+$ openstack flavor create --vcpus 1 --ram 2048 --disk 10 campus.app       id a9083cf8-24ab-4a7a-8b5c-6ba44ed1b6de
+$ openstack flavor create --vcpus 1 --ram 2048 --disk 10 campus.db        id 9ae2d463-8202-4575-a4f3-e32c4800d02c
+$ openstack flavor create --vcpus 2 --ram 4096 --disk 20 campus.builder   id ee0a0c60-54c7-4488-896d-5081c1b098cf
+$ openstack flavor list -c Name -c VCPUs -c RAM -c Disk | grep campus
+| campus.db      |  2048 |   10 |     1 |
+| campus.app     |  2048 |   10 |     1 |
+| campus.builder |  4096 |   20 |     2 |
+
+--- Security group (SRS muc 4: VIP -> app TCP 8080 tu 10.20.0.0/24 va 172.24.4.0/24; app -> DB TCP 5432, 6379 chi tu app SG) ---
+(openrc admin admin la project admin, nen phai co --project campuslink; project_id cua ca hai SG = 07af3a3dd4c24d1ba028efcb6d28ef84)
+$ openstack security group create --project campuslink --description "CampusLink app VM" campus-app-sg     id b3eb3225-3e50-4c38-b43f-3823b6022d05 (08:53:36Z)
+$ openstack security group create --project campuslink --description "CampusLink DB VM" campus-db-sg      id 15d5d84d-f71a-4595-a5b2-ac75f818c040 (08:53:37Z)
+$ openstack security group rule create --ingress --protocol tcp --dst-port 8080 --remote-ip 10.20.0.0/24 campus-app-sg
+$ openstack security group rule create --ingress --protocol tcp --dst-port 8080 --remote-ip 172.24.4.0/24 campus-app-sg
+$ openstack security group rule create --ingress --protocol tcp --dst-port 5432 --remote-group campus-app-sg campus-db-sg
+$ openstack security group rule create --ingress --protocol tcp --dst-port 6379 --remote-group campus-app-sg campus-db-sg
+$ openstack security group rule list --ingress campus-app-sg -c "IP Protocol" -c "IP Range" -c "Port Range" -c "Remote Security Group"
+| tcp | 10.20.0.0/24  | 8080:8080 | None |
+| tcp | 172.24.4.0/24 | 8080:8080 | None |
+$ openstack security group rule list --ingress campus-db-sg -c "IP Protocol" -c "IP Range" -c "Port Range" -c "Remote Security Group"
+| tcp | 0.0.0.0/0 | 6379:6379 | b3eb3225-3e50-4c38-b43f-3823b6022d05 |
+| tcp | 0.0.0.0/0 | 5432:5432 | b3eb3225-3e50-4c38-b43f-3823b6022d05 |
+(cot IP Range hien 0.0.0.0/0 la cach OSC hien khi prefix trong; rule chi tao voi --remote-group, nguon la campus-app-sg b3eb3225-...; chua soi bang rule show)
+
+--- Image Ubuntu (guest_base_image) ---
+$ curl -fsSL https://cloud-images.ubuntu.com/releases/noble/ | grep -o 'release-[0-9]\{8\}' | sort -u | tail -4
+release-20260826
+release-20260911
+release-20260926
+release-20261017
+(ghim release-20261017)
+$ curl -fSLO https://cloud-images.ubuntu.com/releases/noble/release-20261017/ubuntu-24.04-server-cloudimg-amd64.img      592M, 3 giay
+$ curl -fsSLO https://cloud-images.ubuntu.com/releases/noble/release-20261017/SHA256SUMS
+$ grep -E ' \*?ubuntu-24\.04-server-cloudimg-amd64\.img$' SHA256SUMS | sha256sum -c -
+ubuntu-24.04-server-cloudimg-amd64.img: OK
+$ sha256sum ubuntu-24.04-server-cloudimg-amd64.img
+04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94  ubuntu-24.04-server-cloudimg-amd64.img
+$ qemu-img info ubuntu-24.04-server-cloudimg-amd64.img | grep -E 'file format|virtual size'
+file format: qcow2
+virtual size: 3.5 GiB (3758096384 bytes)
+$ ls -l ubuntu-24.04-server-cloudimg-amd64.img
+-rw-rw-r-- 1 stack stack 621284352 Oct 25 08:55 ubuntu-24.04-server-cloudimg-amd64.img
+$ openstack image create ubuntu-noble-base --file ~/images/ubuntu-24.04-server-cloudimg-amd64.img --disk-format qcow2 --container-format bare --project campuslink --public --property os_distro=ubuntu --property os_version=24.04 --property source_release=release-20261017
+id            b915f809-b352-4d03-a14a-ec9c294e85d8
+status        active
+owner         07af3a3dd4c24d1ba028efcb6d28ef84
+visibility    public
+size          621284352
+virtual_size  3758096384
+created_at    2026-10-25T08:56:37Z
+properties    os_distro=ubuntu, os_version=24.04, source_release=release-20261017, os_hash_algo=sha512
+(file anh con o ~stack/images tren A; doi chieu SHA256 trong docs/versions.lock va docs/inventory.yaml)

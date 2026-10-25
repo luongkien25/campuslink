@@ -1,0 +1,68 @@
+Evidence FR-INF-19 (G1 -> G2): hai lan Stop/Start thu trong ngay 25/10; hai loi sau boot (br-ex mat IP, thu muc /run/octavia mat nen provider ovn bien mat) va cach sua ben; lan Start thu hai tu dung, khong go tay
+Ngay: 2026-10-25. Lan 1: A Start 14:50 GMT+7 (07:50 UTC; campus-nat bat dau 07:50:56 UTC), sau lan Stop 2026-10-24 21:49 GMT+7. Lan 2: A boot khoang 08:39 UTC (campus-nat 08:39:26 UTC, /run/octavia tao 08:39). TV1 tu chay lenh tren terminal va dan output cho Claude Code doi chieu. Khong co mat khau trong file nay.
+Gioi han: chua co dau thoi gian chinh xac cua Stop/Start tu console (nguoi dung bao bang loi). Chua dien tap voi du lieu that (DB VM, backup, slug redirect); chua kiem ingress Nginx -> VIP. "provider list" chi kiem mot lan boot sau khi sua ben: o-api nap driver luc request dau tien, nen race voi o-da hiem nhung chua loai han.
+
+=== LAN 1 (07:52 UTC, ngay sau boot) ===
+--- A, host (09 M.6 buoc 2-4), user ubuntu ---
+hostname campus-a (dung); chronyc: System time 0.000003852 seconds fast of NTP time, Leap status Normal; df -h /: 58G, 48G trong; findmnt /opt/stack/data/swift/drives/sdb1: /dev/loop0 xfs
+$ sudo vgs stack-volumes-lvmdriver-1
+  stack-volumes-lvmdriver-1   1   2   0 wz--n- <30.00g 1.43g        (khop truoc Stop: VFree 1,43 GiB)
+$ lsblk -o NAME,SERIAL      nvme0n1 vol0c5a8fc0973e3603e (root), nvme1n1 vol0875752f0e893ca17 (Cinder): ten NVMe KHONG dao
+$ ip -br addr show br-ex
+br-ex            DOWN                                  <-- LOI 1: khong co 172.24.4.1/24
+campus-nat: active (exited) since 07:50:56 UTC, status=0/SUCCESS; MASQUERADE 10.11.11.0/24 va 172.24.4.0/24 ra enp39s0 co mat; 0 unit failed; rabbitmqctl list_users: stackrabbit; last -a tv2 tv3 tv4: khong co dong nao; fail2ban sshd: 0 banned
+--- Sua tay LOI 1 (09 M.3) ---
+$ sudo ip address replace 172.24.4.1/24 dev br-ex && sudo ip link set br-ex up
+$ ip -br addr show br-ex
+br-ex            UNKNOWN        172.24.4.1/24 fe80::5040:43ff:fe61:e047/64
+(truoc Stop con co 2001:db8::2/64; khong con sau boot, bo qua vi chi dung IPv4)
+--- OpenStack (09 M.6 buoc 5-7), chay tren campus-b voi openrc admin admin ---
+nova-compute campus-a, campus-b: enabled up; 4 agent OVN (Neutron agent B va A, Controller B, Controller Gateway A): True True; cinder-volume campus-a@lvmdriver-1: enabled up
+diag-b ACTIVE Running campus-b; diag-a ACTIVE Running campus-a; test-vol in-use; B: devstack@* failed rong
+--- So voi "trang thai truoc" (evidence 20261024-FR-INF-03-04-...txt) ---
+$ ssh -i ~/diag-key.pem cirros@172.24.4.123 'sudo dd if=/dev/vdb bs=1M count=1 2>/dev/null | sha256sum; ...'
+94a5784281a479d87c7acf0b917283a9c972487a7825037a99712d73318596ae  -      (bang gia tri truoc Stop)
+ping FIP 172.24.4.123 tu A: 2/2; diag-a -> diag-b: 3/3; ping -M do -s 1372: 2/2; ping 8.8.8.8: 2/2
+--- LOI 2: provider ovn bien mat ---
+$ openstack loadbalancer provider list      -> chi amphora, octavia (truoc Stop co them: ovn  Octavia OVN driver.)
+$ grep -A4 '^\[api_settings\]' /etc/octavia/octavia.conf      -> van co default_provider_driver = ovn va ovn:Octavia OVN driver. trong enabled_provider_drivers
+$ sudo journalctl -u devstack@o-api -b | grep -iE 'ovn|provider'
+  ERROR octavia.api.drivers.driver_factory Unable to load provider driver ovn due to: Unable to open the driver agent socket: /var/run/octavia/status.sock: DriverAgentNotFound
+  ERROR octavia.api.app Cannot load driver 'ovn', will remove from service. (07:53:35 UTC)
+$ ls -la /var/run/octavia/        ls: cannot access '/var/run/octavia/': No such file or directory
+$ sudo journalctl -u devstack@o-da -b      -> status_listener/stats_listener/get_listener: FileNotFoundError khi bind socket, tu restart lien tuc (unit van "active (running)" nen "systemctl --failed" khong thay)
+NGUYEN NHAN: /var/run la tmpfs, bi xoa moi lan boot; DevStack chi tao /var/run/octavia luc stack.sh. Gia thuyet ban dau "o-api khoi dong truoc o-da" la sai (o-da len 07:50:55, o-api 07:50:56).
+--- Sua tay LOI 2 ---
+$ sudo install -d -o stack -g stack -m 0755 /var/run/octavia      (systemctl show: o-da va o-api User=stack)
+$ ls -l /var/run/octavia/      srwxr-xr-x stack stack get.sock, stats.sock, status.sock (08:08; listener tu phuc hoi, khong restart o-da)
+$ sudo systemctl restart devstack@o-api ; sleep 8 ; openstack loadbalancer provider list
+| amphora | octavia | ovn  Octavia OVN driver. |
+
+=== SUA BEN (cai tren A, 08:08-08:18 UTC; chua co trong repo tai thoi diem ghi file nay) ===
+1) /etc/tmpfiles.d/octavia.conf  (1 dong)
+   d /run/octavia 0755 stack stack -
+   $ sudo systemd-tmpfiles --create /etc/tmpfiles.d/octavia.conf ; ls -ld /run/octavia   -> drwxr-xr-x 2 stack stack
+2) /usr/local/sbin/campus-br-ex (0750 root:root, 287 byte) + drop-in /etc/systemd/system/campus-nat.service.d/br-ex.conf
+   #!/usr/bin/env bash
+   # campus-br-ex - gan lai 172.24.4.1/24 cho br-ex sau boot (DevStack gan bang ip addr add, khong luu)
+   set -euo pipefail
+   for _ in $(seq 1 60); do ip link show br-ex >/dev/null 2>&1 && break; sleep 1; done
+   ip address replace 172.24.4.1/24 dev br-ex
+   ip link set br-ex up
+   [Service]
+   ExecStartPost=/usr/local/sbin/campus-br-ex
+   Thu khong can reboot: sudo ip address del 172.24.4.1/24 dev br-ex; sudo systemctl restart campus-nat -> br-ex UNKNOWN 172.24.4.1/24, campus-nat active (exited).
+   Su co khi lam: file script lan dau bi ghi sai (dong heredoc bi lap nen dong dau khong phai shebang); phat hien truoc khi restart; ghi lai bang printf. Do dan khoi "thu" chay truoc khi sua file nen campus-nat bao failed va br-ex mat IP vai phut, da khoi phuc bang restart campus-nat.
+
+=== LAN 2 (khoang 08:40 UTC, khong go tay gi sau khi Start) ===
+$ ip -br addr show br-ex
+br-ex            UNKNOWN        172.24.4.1/24 fe80::5040:43ff:fe61:e047/64
+$ ls -ld /run/octavia
+drwxr-xr-x 2 stack stack 100 Oct 25 08:39 /run/octavia
+$ systemctl status campus-nat      Drop-In .../br-ex.conf; Active: active (exited) since Sun 2026-10-25 08:39:26 UTC; ExecStart status=0/SUCCESS
+$ systemctl list-units --type=service --state=failed --no-legend      (rong)
+$ openstack loadbalancer provider list      | amphora | octavia | ovn  Octavia OVN driver. |
+$ openstack server list --all-projects --long -c Name -c Status -c "Power State" -c Host      diag-b ACTIVE Running campus-b; diag-a ACTIVE Running campus-a
+$ openstack volume list --all-projects -c Name -c Status      test-vol in-use
+KET QUA: PASS cho hai sua ben (br-ex co IP, /run/octavia co san, provider ovn co mat) sau mot lan Start that.
+Con lai de G2: kiem them mot lan Start nua truoc khi co du lieu that; ghi 2 loi nay vao docs/troubleshooting.md va docs/runbooks/after-start.md (giu "provider list" la buoc bat buoc sau moi lan Start).
