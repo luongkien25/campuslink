@@ -56,7 +56,8 @@ aws:
       source_dest_check: false
       nested_virtualization: enabled
       imds: { tokens: required, hop_limit: 1 }
-      iam_instance_profile: CampusLinkBackup      # gan o Lab 10
+      iam_instance_profile: CampusLinkBackup      # da gan 26/10/2026 (Lab 10, FR-INF-17), evidence G2/20261026-FR-INF-17-...
+      iam_lab_snapshot: "snap-03f8a6038bec5b942"  # tao 26/10/2026 cho bang chung FR-INF-17 (30 GiB, tag Project=CampusLink); CHUA xoa, role khong xoa duoc: xoa tren console sau khi TV4 ghi ID/size
       volumes:
         root:   { size_gib: 60, type: gp3, id: "vol-0c5a8fc0973e3603e", encrypted: "aws/ebs" }
         cinder: { size_gib: 30, type: gp3, id: "vol-0875752f0e893ca17", encrypted: "aws/ebs", nvme_serial: "vol0875752f0e893ca17", delete_on_termination: false }

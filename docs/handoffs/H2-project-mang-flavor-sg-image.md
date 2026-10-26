@@ -44,11 +44,13 @@ openstack security group list -c Name                     # campus-app-sg, campu
 openstack network show campus-net -c mtu                  # 1400
 openstack loadbalancer provider list                      # có ovn
 ```
-TV2: thử thêm một LB nhỏ bằng quyền `member` của bạn (xem mục 4, chưa kiểm).
+TV1 đã thử bằng quyền `member` (26/10): tạo/xóa floating IP, LB `--provider ovn`, Heat stack nhỏ đều chạy, không 403 (xem mục 4).
 
 ## 4. Đã biết còn thiếu hoặc lỗi
 
-- **Chưa thử bằng quyền `member`:** Octavia (tạo LB), Heat, Gnocchi/Aodh, tạo floating IP. Smoke LB và metric của TV1 chạy bằng quyền admin. Gặp `403` thì báo TV1 (có thể cần gán role hoặc sửa policy), đừng tìm cách vượt quyền.
+- **Đã thử bằng quyền `member` (26/10, `campus-tv2`, evidence `20261026-FR-INF-18-…`):** tạo/xóa floating IP, tạo LB `--provider ovn` (lên `ACTIVE`), Heat stack có một `OS::Neutron::Port` (`CREATE_COMPLETE` rồi `DELETE_COMPLETE`); không bị `403`. **Chưa thử:** listener/pool/health monitor/member của LB, tạo VM, `AutoScalingGroup`, WaitCondition, Gnocchi/Aodh. Smoke LB (25/10) và metric của TV1 chạy bằng quyền admin. Gặp `403` thì báo TV1 (có thể cần gán role hoặc sửa policy), đừng tìm cách vượt quyền.
+- **Quyền đọc cấu hình admin đã được thu hẹp (26/10):** trước đó mọi user Linux trên A đọc được `openrc` và `clouds.yaml` của DevStack, nên lấy được quyền admin. Nay chỉ `stack` đọc được. Giới hạn `member`/`reader` của bạn có hiệu lực; đừng thử `source /opt/stack/devstack/openrc`.
+- Tạo LB mà dán lệnh hai lần sẽ ra hai LB cùng tên; `show`/`delete` theo tên báo `2 loadbalancers found`, phải dùng UUID.
 - **Chưa chốt cách vào VM không có floating IP để gỡ lỗi.** Host A chưa có route tới 10.20.0.0/24 (chưa thử thêm route qua gateway router 172.24.4.128). SG app/db cũng chưa mở SSH hay ICMP (SRS không quy định). Cần thì xin TV1.
 - Gnocchi đang ghim commit **tạm** `4a41c1d…` (SRS O-06), chờ TV2 xác nhận (D1, D2). Metric `cpu` của VM đã có điểm mỗi 60 giây ở cả A và B, nhưng chưa kiểm archive policy, `rate:mean` và alarm Aodh (xem `docs/troubleshooting.md`, mục "insufficient data").
 - Image Ubuntu chỉ đối chiếu SHA256SUMS qua HTTPS, chưa kiểm chữ ký GPG. Chưa cài Docker hay Shlink vào image (FR-INF-22 là việc của TV2).

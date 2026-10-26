@@ -1,0 +1,99 @@
+Evidence FR-INF-18 (G2): user Linux thuong tren A (tv2) lay duoc quyen admin OpenStack qua file DevStack doc duoc; da thu hep quyen file; sau do thu quyen member (floating IP, LB ovn, Heat) khong bi 403
+Ngay: 2026-10-26, cac moc co dau thoi gian: LB tao 01:59:46Z va 02:00:27Z, Heat 02:00:57Z-02:01:08Z (gio chmod khong ghi). TV1 tu chay lenh tren terminal (ubuntu@campus-a, sudo) va dan output cho Claude Code doi chieu. Khong co mat khau trong file nay (khong mo noi dung file cau hinh, chi kiem quyen va ten file).
+Quy uoc: m() { sudo -u tv2 -H env OS_CLOUD=campus-tv2 "$@"; } la ham dinh nghia trong shell ubuntu, chay lenh bang tai khoan Keystone campus-tv2 (member).
+Gioi han: (1) chua kiem tv3, tv4 truc tiep: ba user cung chi thuoc nhom users + systemd-journal va cac file la 644/664 nen suy ra cung ket qua. (2) Chua mo noi dung file nen khong biet chac file nao giu mat khau admin; bang chung la token project admin lay duoc. (3) Chua kiem dich vu tu khoi dong lai sau chmod: kiem o lan Stop/Start ke tiep (09 M.6). Moi tien trinh dich vu chay bang user stack (62 tien trinh) va stack doc duoc het cac file da chmod. (4) tv2-tv4 thuoc nhom systemd-journal nen doc duoc journal dich vu (chua kiem co lo secret trong log). (5) /etc/pcp/* van doc duoc (goi Performance Co-Pilot, khong phai DevStack, chua mo). (6) tv2-tv4 van co shell tren A nen van thay tien trinh va cong cuc bo. (7) Chua kiem tren B (chua biet tv2-tv4 co user tren B khong). (8) Thu member chua bao gom listener/pool/health monitor/member cua LB, tao VM, AutoScalingGroup, WaitCondition, Aodh.
+
+--- Truoc khi sua (chi doc) ---
+$ ls -ld /opt/stack /opt/stack/devstack
+drwxr-xr-x 28 stack stack 4096 Oct 25 09:21 /opt/stack
+drwxrwxr-x 15 stack stack 4096 Oct 24 13:30 /opt/stack/devstack
+$ ls -l /opt/stack/devstack/local.conf /opt/stack/devstack/openrc /opt/stack/devstack/.stackenv /etc/openstack/clouds.yaml
+-rw-r--r-- 1 stack stack 2666 Oct 24 13:22 /etc/openstack/clouds.yaml
+-rw-r--r-- 1 stack stack 1007 Oct 24 13:29 /opt/stack/devstack/.stackenv
+-rw------- 1 stack stack 4139 Oct 24 13:19 /opt/stack/devstack/local.conf
+-rw-rw-r-- 1 stack stack 2442 Oct 24 08:17 /opt/stack/devstack/openrc
+$ for f in local.conf openrc .stackenv /etc/openstack/clouds.yaml; do sudo -u tv2 test -r $f ...; done
+tv2 khong doc /opt/stack/devstack/local.conf
+tv2 DOC DUOC /opt/stack/devstack/openrc (LO)
+tv2 DOC DUOC /opt/stack/devstack/.stackenv (LO)
+tv2 DOC DUOC /etc/openstack/clouds.yaml (LO)
+$ id tv2 tv3 tv4
+uid=1002(tv2) gid=1002(tv2) groups=1002(tv2),100(users),999(systemd-journal)
+uid=1003(tv3) gid=1003(tv3) groups=1003(tv3),100(users),999(systemd-journal)
+uid=1004(tv4) gid=1004(tv4) groups=1004(tv4),100(users),999(systemd-journal)
+$ sudo -u tv2 -H bash -c 'source /opt/stack/devstack/openrc admin admin >/dev/null 2>&1; openstack token issue -c project_id'
+| project_id | 94f4fc282b1040629eb7395341d348e8 |      (project admin, khong phai campuslink 07af3a3d...)
+$ for f in /etc/{keystone/keystone,nova/nova,neutron/neutron,cinder/cinder,heat/heat,octavia/octavia}.conf; do sudo -u tv2 test -r $f ...; done
+tv2 khong doc /etc/keystone/keystone.conf
+tv2 DOC DUOC /etc/nova/nova.conf (LO)
+tv2 DOC DUOC /etc/neutron/neutron.conf (LO)
+tv2 DOC DUOC /etc/cinder/cinder.conf (LO)
+tv2 DOC DUOC /etc/heat/heat.conf (LO)
+tv2 DOC DUOC /etc/octavia/octavia.conf (LO)
+$ ls -la /opt/stack/devstack | grep -E 'localrc|stackenv|accrc'
+-rw-r--r--  1 stack stack  2247 Oct 24 13:20 .localrc.auto
+-rw-r--r--  1 stack stack  1007 Oct 24 13:29 .stackenv
+$ ps -eo user:12,args | grep -E 'nova-|neutron-|cinder-|heat-|octavia-|uwsgi' | grep -v grep | awk '{print $1}' | sort | uniq -c
+     62 stack
+$ sudo find /etc -type f -perm -o+r \( -name '*.conf' -o -name '*.ini' -o -name '*.yaml' \) -exec grep -lEi '^[[:space:]]*(password|connection|transport_url|memcache_secret_key)[[:space:]]*[:=]' {} +
+/etc/heat/heat.conf  /etc/placement/placement.conf  /etc/neutron/neutron.conf  /etc/nova/nova.conf  /etc/nova/nova-cpu.conf  /etc/nova/nova_cell1.conf  /etc/ceilometer/ceilometer.conf  /etc/openstack/clouds.yaml  /etc/glance/glance-api.conf  /etc/octavia/octavia.conf  /etc/cinder/cinder.conf  /etc/gnocchi/gnocchi.conf  /etc/aodh/aodh.conf  /etc/swift/proxy-server.conf  /etc/swift/test.conf  /etc/pcp/postgresql/pmdapostgresql.conf  /etc/pcp/rabbitmq/rabbitmq.conf
+(mot ten file moi dong trong terminal; gop lai cho gon)
+$ ls -l /opt/stack/logs/stack.sh.log*
+-rw-r--r-- 1 stack stack 2220912 Oct 24 08:42 /opt/stack/logs/stack.sh.log.2026-10-24-083237
+-rw-r--r-- 1 stack stack 3138991 Oct 24 13:30 /opt/stack/logs/stack.sh.log.2026-10-24-132054
+(va 2 file .summary.*, 2 symlink; deu 644)
+
+--- Sua (TV1 tu chay) ---
+$ sudo chmod o-rwx /opt/stack/devstack /opt/stack/logs
+$ sudo chmod 600 /etc/openstack/clouds.yaml
+$ sudo chmod o-r /etc/{heat/heat,placement/placement,neutron/neutron,ceilometer/ceilometer,glance/glance-api,octavia/octavia,cinder/cinder,gnocchi/gnocchi,aodh/aodh,swift/proxy-server,swift/test,nova/nova,nova/nova-cpu,nova/nova_cell1}.conf
+Hoan tac neu can: chmod 775 /opt/stack/devstack; chmod o+rx /opt/stack/logs; chmod 644 /etc/openstack/clouds.yaml; chmod o+r <14 file .conf>. Khong chmod ca /opt/stack (ops/ai-snapshot.sh dat client openstack o /opt/stack/data/venv/bin).
+
+--- Sau khi sua ---
+$ sudo -u tv2 -H bash -c 'source /opt/stack/devstack/openrc admin admin >/dev/null 2>&1; openstack token issue -c project_id'
+| project_id | 07af3a3dd4c24d1ba028efcb6d28ef84 |      (campuslink; khong con la admin 94f4fc28...; client roi ve clouds.yaml cua tv2 - doan, chua kiem co che)
+$ sudo -u tv2 -H bash -c 'source /opt/stack/devstack/openrc admin admin' 2>&1 | head -2
+bash: line 1: /opt/stack/devstack/openrc: Permission denied
+$ sudo -u tv2 -H env OS_CLOUD=campus-tv2 openstack token issue -c project_id
+| project_id | 07af3a3dd4c24d1ba028efcb6d28ef84 |
+$ for f in <14 file .conf> /etc/openstack/clouds.yaml; do sudo -u stack test -r $f || echo "stack KHONG doc $f"; done
+(khong in dong nao: user stack van doc duoc het)
+$ sudo find /etc ... (lenh nhu tren)
+/etc/pcp/postgresql/pmdapostgresql.conf
+/etc/pcp/rabbitmq/rabbitmq.conf
+
+--- Kiem sau boot (09 M.6, khong go tay sua gi) ---
+$ ip -br addr show br-ex
+br-ex            UNKNOWN        172.24.4.1/24 fe80::5040:43ff:fe61:e047/64
+$ ls -ld /run/octavia
+drwxr-xr-x 2 stack stack 100 Oct 26 01:50 /run/octavia
+$ systemctl --failed --no-pager
+0 loaded units listed.
+$ m openstack loadbalancer provider list      (member)
+| amphora | The Octavia Amphora driver.                     |
+| octavia | Deprecated alias of the Octavia Amphora driver. |
+| ovn     | Octavia OVN driver.                             |
+
+--- Thu quyen member (campus-tv2), khong 403 ---
+$ FIP=$(m openstack floating ip create public -f value -c floating_ip_address); echo $FIP
+172.24.4.105
+$ m openstack floating ip delete $FIP
+$ m openstack loadbalancer create --name member-lb --vip-subnet-id 59399337-e22b-4237-87dd-bf4ac035bcfa --provider ovn
+id 2c0b4a72-05f2-4d00-bcad-e345a7b1fdb1, provider ovn, provisioning_status PENDING_CREATE luc tao (01:59:46), vip 10.20.0.156
+(lenh create bi dan 2 lan -> LB thu hai 804de256-ae36-41d8-b507-5eef07ce595c luc 02:00:27, vip 10.20.0.144; "show"/"delete" theo ten bao "2 loadbalancers found with name or ID of member-lb", phai xoa theo UUID)
+$ m openstack loadbalancer list -c name -c provisioning_status
+| member-lb | ACTIVE |
+| member-lb | ACTIVE |
+$ m openstack stack create -t /tmp/member-test.yaml member-test --wait      (template: heat_template_version 2021-04-16, mot OS::Neutron::Port tren campus-net)
+2026-10-26 02:00:57Z [member-test]: CREATE_COMPLETE  Stack CREATE completed successfully
+$ m openstack stack delete member-test --yes --wait
+2026-10-26 02:01:08Z [member-test]: DELETE_COMPLETE  Stack DELETE completed successfully
+$ m openstack loadbalancer delete --cascade 2c0b4a72-05f2-4d00-bcad-e345a7b1fdb1
+$ m openstack loadbalancer delete --cascade 804de256-ae36-41d8-b507-5eef07ce595c
+$ m openstack loadbalancer list -c name -c provisioning_status
+(rong)
+$ m openstack floating ip list ; m openstack stack list
+(rong ca hai)
+Ghi chu: danh sach LB chi co hai member-lb, khong con smoke-lb -> lan xoa cascade ngay 25/10 da thanh cong.
+
+KET QUA: (1) Truoc khi sua: FAIL - tv2 lay duoc token project admin chi bang "source openrc admin admin"; 6 file cau hinh dich vu va clouds.yaml doc duoc. (2) Sau khi sua: PASS - openrc Permission denied, chi con /etc/pcp/* doc duoc, user stack van doc duoc het, token cua tv2 la project campuslink. (3) Thu member: PASS - tao/xoa floating IP, tao LB --provider ovn len ACTIVE, Heat stack Port CREATE/DELETE_COMPLETE; da don sach.
