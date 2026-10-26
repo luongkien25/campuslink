@@ -1,0 +1,45 @@
+Evidence FR-INF-17 (G2): IAM role CampusLinkBackup gan vao EC2 A, chi cho CreateSnapshot volume Cinder da duyet kem tag Project=CampusLink; dry-run cho phep/tu choi dung; 1 snapshot that completed
+Ngay: 2026-10-26. Moc: A boot 01:49:42Z (uptime -s); luc lay moc cuoi "date -u" = 02:57:17Z; snapshot tao truoc 02:57:17Z (gio chinh xac xem console EC2 > Snapshots). TV1 tu lam tren console AWS va tren terminal ubuntu@campus-a, dan output cho Claude Code doi chieu. Account ID da che thanh XXXXXXXXXXXX; 4 ky tu cuoi cua key tam che thanh ****; chuoi "Encoded authorization failure message" da cat.
+Gioi han: (1) NFR-09 phan "guest khong lay duoc credential IAM cua host" CHUA kiem (chua co VM guest). (2) Moi user Linux tren A (ke ca tv2-tv4) lay duoc credential cua role qua IMDS tu shell host (hop limit 1 chi chan container/guest), anh huong nho: chi CreateSnapshot mot volume co tag va liet ke snapshot; chap nhan, chua chan bang iptables. (3) Chua doi chieu "Root device volume ID" cua B tren console voi vol-0b7596f11ee9655f5 (inventory ghi "suy ra tu serial NVMe"); ket qua tu choi cua dry-run 2 dung voi ID nay nhung chua chung minh ID la root that cua B. (4) Snapshot snap-03f8a6038bec5b942 CHUA xoa: role khong co DeleteSnapshot, xoa tren console sau khi TV4 ghi ID/size. Day la snapshot crash-consistent cho muc dich bang chung, khong thay pg_dump. (5) Chua kiem policy bang IAM Policy Simulator hay thu CreateSnapshot cho volume khac co tag; chi co 2 dry-run.
+
+--- Role (console, TV1 tu lam) ---
+IAM > Roles > Create role: trusted entity AWS service/EC2, ten CampusLinkBackup, khong gan policy co san, tag Project=CampusLink.
+Trust policy (anh wizard): Effect Allow, Action sts:AssumeRole, Principal Service ec2.amazonaws.com (khong co principal nao khac).
+Inline policy CampusLinkSnapshotOnly (4 statement, khop mau AWS "Create a snapshot with tags", thu hep 1 volume):
+  SnapshotOnlyApprovedVolume: ec2:CreateSnapshot tren arn:aws:ec2:us-east-1:XXXXXXXXXXXX:volume/vol-0875752f0e893ca17 (volume Cinder 30 GiB cua A)
+  RequireProjectTagOnNewSnapshot: ec2:CreateSnapshot tren arn:aws:ec2:us-east-1::snapshot/* voi aws:RequestTag/Project = CampusLink
+  TagOnlyDuringSnapshotCreation: ec2:CreateTags tren arn:aws:ec2:us-east-1::snapshot/* voi ec2:CreateAction = CreateSnapshot
+  ReadSnapshotStatus: ec2:DescribeSnapshots tren *
+Khong co DeleteSnapshot, StopInstances hay quyen nao khac. Trinh soan policy het gach do o dong 8 sau khi thay ACCOUNT_ID (TV1 bao "het loi"; chua co anh cac tab Errors/Warnings).
+Gan vao A: EC2 > campus-a > Actions > Security > Modify IAM role > CampusLinkBackup (o IAM role truoc do trong theo ghi chep truoc; TV1 chua xac nhan lai bang anh).
+
+--- Tren A: AWS CLI trong venv rieng (~/.venvs/campus-aws, khong dung venv DevStack), khong chay "aws configure" ---
+$ aws configure list
+      Name                    Value             Type    Location
+   profile                <not set>             None    None
+access_key     ****************XXXX         iam-role
+secret_key     ****************XXXX         iam-role
+    region                <not set>             None    None
+$ aws sts get-caller-identity
+"UserId": "AROAXA4EWVLN2OIQ7TIHC:i-0cc001a1d099747c3", "Account": "XXXXXXXXXXXX",
+"Arn": "arn:aws:sts::XXXXXXXXXXXX:assumed-role/CampusLinkBackup/i-0cc001a1d099747c3"
+(awscli 1.46.2; credential lay tu IMDSv2 qua instance profile; khong co bien AWS_* vi cot Type la iam-role)
+
+--- Dry-run (cung tag Project=CampusLink o ca hai lenh, de loi chi do volume) ---
+$ VA=vol-0875752f0e893ca17   (volume Cinder cua A)      $ VB=vol-0b7596f11ee9655f5   (root cua B)
+$ aws ec2 create-snapshot --region us-east-1 --volume-id $VA --tag-specifications 'ResourceType=snapshot,Tags=[{Key=Project,Value=CampusLink}]' --dry-run
+An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set.
+$ aws ec2 create-snapshot --region us-east-1 --volume-id $VB --tag-specifications 'ResourceType=snapshot,Tags=[{Key=Project,Value=CampusLink}]' --dry-run
+An error occurred (UnauthorizedOperation) when calling the CreateSnapshot operation: You are not authorized to perform this operation. User: arn:aws:sts::XXXXXXXXXXXX:assumed-role/CampusLinkBackup/i-0cc001a1d099747c3 is not authorized to perform: ec2:CreateSnapshot on resource: arn:aws:ec2:us-east-1:XXXXXXXXXXXX:volume/vol-0b7596f11ee9655f5 because no identity-based policy allows the ec2:CreateSnapshot action. Encoded authorization failure message: [da cat]
+(Luu y: lan chay dau tien bi mat phien SSH ("client_loop: send disconnect: Connection reset"), cac lenh bi dan nham vao PowerShell tren Windows, khong co gi toi AWS; chay lai tren A sau khi ket noi lai.)
+
+--- Snapshot that (1 cai) ---
+$ SNAP=$(aws ec2 create-snapshot --region us-east-1 --volume-id $VA --description 'CampusLink IAM lab snapshot' --tag-specifications 'ResourceType=snapshot,Tags=[{Key=Project,Value=CampusLink}]' --query SnapshotId --output text); echo $SNAP
+snap-03f8a6038bec5b942
+$ aws ec2 describe-snapshots --region us-east-1 --snapshot-ids $SNAP --query 'Snapshots[0].{State:State,GiB:VolumeSize,Tags:Tags}'      (ngay sau khi tao)
+"State": "pending", "GiB": 30, "Tags": [{"Key": "Project", "Value": "CampusLink"}]
+$ aws ec2 wait snapshot-completed --region us-east-1 --snapshot-ids $SNAP
+$ aws ec2 describe-snapshots --region us-east-1 --snapshot-ids $SNAP --query 'Snapshots[0].{State:State,Progress:Progress,GiB:VolumeSize}'
+"State": "completed", "Progress": "100%", "GiB": 30
+
+KET QUA: PASS (FR-INF-17 theo SRS: dry-run volume dung -> DryRunOperation; volume B -> UnauthorizedOperation; 1 snapshot completed). Role ARN: arn:aws:iam::XXXXXXXXXXXX:role/CampusLinkBackup. Con lai: kiem NFR-09 phan guest khi co VM; doi chieu root volume B tren console; xoa snap-03f8a6038bec5b942 tren console sau khi TV4 ghi ID/size.
