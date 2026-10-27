@@ -1,0 +1,20 @@
+Evidence FR-INF-05 (G3, phan quet cong tu ngoai VPC): chi 22 (ADR-07, toi freeze 06/11) va 443 mo tren EIP 44.198.215.187
+Ngay: 2026-10-27, sau khi mo SG 443 va cap cert (xem evidence FR-INF-06-NFR-10). Quet tu may Windows cua TV1 (ngoai VPC, qua Internet) bang PowerShell Test-NetConnection. TV1 tu chay lenh va dan output cho Claude Code doi chieu.
+SG campus-ingress-admin (sg-0bf8503bfeee5a3c0) luc quet: TCP 443 0.0.0.0/0 (sgr-0fa88cb6e164fca2a, "Nginx s. + admin. (G3)") va TCP 22 0.0.0.0/0 (sgr-08ba369199877dc42, ADR-07); khong co rule 80 (xem tren trang Edit inbound rules; anh khong luu vao repo).
+
+PS> Test-NetConnection 44.198.215.187 -Port 443 -InformationLevel Quiet
+True
+PS> Test-NetConnection 44.198.215.187 -Port 80 -InformationLevel Quiet
+False        (WARNING: TCP connect failed)
+PS> Test-NetConnection 44.198.215.187 -Port 8080 -InformationLevel Quiet
+False        (WARNING: TCP connect to (44.198.215.187 : 8080) failed)
+PS> 22,5432,6379,8774,9696 | ForEach-Object { "$_ " + (Test-NetConnection 44.198.215.187 -Port $_ -InformationLevel Quiet -WarningAction SilentlyContinue) }
+22 True
+5432 False
+6379 False
+8774 False
+9696 False
+
+KET QUA: PASS cho cac cong da quet. Tu Internet chi 22 (theo ADR-07) va 443 mo; 80 (Apache DevStack: Keystone, Placement), 8080 (Swift proxy tren A), 5432, 6379, 8774 (Nova), 9696 (Neutron) deu dong.
+Ghi chu: cong 8080 tren A la Swift proxy cua DevStack (0.0.0.0:8080), khong phai app; SG khong mo nen khong ra Internet.
+GIOI HAN: chi quet cac cong tren; chua quet toan dai. App/DB VM khong co floating IP (thiet ke, FR-INF-05), chua co app chay de kiem. Sau freeze 06/11 cong 22 phai thu ve /32 tung nguoi (ADR-07): quet lai khi do.

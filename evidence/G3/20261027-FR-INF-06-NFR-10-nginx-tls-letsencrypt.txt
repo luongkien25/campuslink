@@ -1,0 +1,90 @@
+Evidence FR-INF-06 + NFR-10 (G3, MOT PHAN): Nginx 2 vhost 443 (s., admin.) + cert Let's Encrypt cho ca 2 ten; kiem tu A va tu ngoai (Windows). Chua co app/VIP nen s. moi tra 503.
+Ngay: 2026-10-27. A bat khoang 20:00 gio VN (13:00Z), B tat. TV1 tu chay lenh (ubuntu@campus-a va PowerShell tren Windows) va dan output cho Claude Code doi chieu. Khong co khoa rieng trong file nay (privkey.pem khong duoc in). Output rut gon.
+Domain: CAMPUS_DOMAIN = 44-198-215-187.sslip.io (EIP 44.198.215.187). Hai ten: s.44-198-215-187.sslip.io, admin.44-198-215-187.sslip.io.
+
+--- 1. Truoc khi cai (chi doc) ---
+$ dpkg -l nginx certbot 2>/dev/null | grep '^ii'; which nginx certbot
+(khong in gi: chua cai)
+$ sudo ss -ltnp | grep -E ':(80|443|8080)\b'
+LISTEN 0.0.0.0:8080  swift-proxy-server        (cong 8080 tren A la Swift proxy cua DevStack, khong phai app)
+LISTEN *:80          apache2                    (443 trong)
+$ getent ahostsv4 s.44-198-215-187.sslip.io admin.44-198-215-187.sslip.io | head -4; curl -s https://checkip.amazonaws.com
+44.198.215.187 (ca hai ten); checkip: 44.198.215.187
+
+--- 2. Webroot ACME: Apache DevStack khong phuc vu /var/www/html ---
+$ grep -rh DocumentRoot /etc/apache2/sites-enabled/            (khong in gi)
+$ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1/.well-known/acme-challenge/probe
+404
+$ sudo mkdir -p /var/www/html/.well-known/acme-challenge && echo probe-ok | sudo tee .../probe
+$ curl -s -H 'Host: s.44-198-215-187.sslip.io' http://127.0.0.1/.well-known/acme-challenge/probe
+404 Not Found (Apache/2.4.58 Ubuntu, Port 80)         <- file co that nhung Apache khong phuc vu
+$ sudo rm -r /var/www/html/.well-known
+Sua: /etc/apache2/conf-available/campus-acme.conf (mau: infra/apache/campus-acme.conf.example)
+$ sudo a2enconf campus-acme; sudo apachectl configtest 2>&1 | tail -2
+Enabling conf campus-acme.  ...  Syntax OK
+$ sudo systemctl reload apache2
+$ (tao lai file thu) ; curl -s -H 'Host: s.44-198-215-187.sslip.io' http://127.0.0.1/.well-known/acme-challenge/probe
+probe-ok
+$ sudo rm -r /var/www/html/.well-known
+
+--- 3. Cai Nginx va certbot (Apache dang giu cong 80, chan Nginx tu khoi dong khi cai) ---
+$ printf '#!/bin/sh\nexit 101\n' | sudo tee /usr/sbin/policy-rc.d >/dev/null; sudo chmod +x /usr/sbin/policy-rc.d
+$ sudo apt-get update -q && sudo apt-get install -y -q nginx certbot        (needrestart: khong co service nao can khoi dong lai)
+$ sudo rm -f /usr/sbin/policy-rc.d /etc/nginx/sites-enabled/default; sudo nginx -t 2>&1 | tail -2; systemctl is-active nginx; nginx -v; certbot --version
+nginx: configuration file /etc/nginx/nginx.conf syntax is ok / test is successful
+inactive
+nginx version: nginx/1.24.0 (Ubuntu)
+certbot 2.9.0
+$ sudo ss -ltnp | grep -E ':(80|443)\b'
+LISTEN *:80  apache2        (443 trong)
+
+--- 4. Cap cert (SG 80 mo vai phut) ---
+SG campus-ingress-admin (sg-0bf8503bfeee5a3c0): TCP 80 0.0.0.0/0 mo luc 20:42 gio VN (13:42Z) theo TV1. Gio dong KHONG ghi lai; xac nhan da dong bang quet cong tu ngoai (xem evidence FR-INF-05 quet cong, cong 80 = False).
+$ sudo certbot certonly --webroot -w /var/www/html --cert-name campus -d s.44-198-215-187.sslip.io -d admin.44-198-215-187.sslip.io --dry-run --non-interactive --agree-tos --no-eff-email --register-unsafely-without-email
+Account registered. Simulating a certificate request ... The dry run was successful.
+$ (cung lenh, bo --dry-run)
+Successfully received certificate. Certificate is saved at: /etc/letsencrypt/live/campus/fullchain.pem  This certificate expires on 2027-01-25.
+$ sudo certbot certificates
+Certificate Name: campus | Serial Number: 6a6b3803a04bdbf6a3895782c6d7cec0fd6 | Key Type: ECDSA
+Domains: s.44-198-215-187.sslip.io admin.44-198-215-187.sslip.io
+Expiry Date: 2027-01-25 12:45:26+00:00 (VALID: 89 days)
+(khong dung email de dang ky: --register-unsafely-without-email)
+
+--- 5. Web Client 4.8.1 ---
+$ cd /tmp && curl -fsSLO https://github.com/shlinkio/shlink-web-client/releases/download/v4.8.1/shlink-web-client_4.8.1_dist.zip
+$ echo "85c96539fd609ef80ea7d366cced743a1c0af1d9987d9f8d4517e969d519a120  shlink-web-client_4.8.1_dist.zip" | sha256sum -c
+shlink-web-client_4.8.1_dist.zip: OK          (khop web_client_dist_sha256 trong docs/versions.lock)
+$ sudo mkdir -p /var/www/campus-admin && sudo unzip -q -o ... -d /var/www/campus-admin; ls /var/www/campus-admin
+shlink-web-client_4.8.1_dist          <- zip tao thu muc con; index.html nam trong do
+$ ls /var/www/campus-admin/shlink-web-client_4.8.1_dist | head
+assets favicon.gif favicon.ico favicon.png favicon.svg icons index.html manifest.json service-worker.js
+
+--- 6. Cau hinh Nginx (mau: infra/nginx/campus.conf.example) va khoi dong ---
+/etc/nginx/conf.d/campus.conf: chi listen 443 ssl; server default_server tra 444; admin. root /var/www/campus-admin/shlink-web-client_4.8.1_dist voi try_files ... /index.html; s. tam tra 503.
+$ sudo sed -i 's#root /var/www/campus-admin;#root /var/www/campus-admin/shlink-web-client_4.8.1_dist;#' /etc/nginx/conf.d/campus.conf && sudo nginx -t 2>&1 | tail -1 && sudo systemctl reload nginx
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+$ sudo nginx -t && sudo systemctl start nginx; systemctl is-active nginx; sudo ss -ltnp | grep -E ':(80|443)\b'
+test is successful | active
+LISTEN 0.0.0.0:443  nginx        LISTEN *:80  apache2
+
+--- 7. Kiem TLS tu chinh A (khong -k; --resolve ep ten ve 127.0.0.1 de SNI/Host dung) ---
+$ curl -sS --resolve admin.44-198-215-187.sslip.io:443:127.0.0.1 https://admin.44-198-215-187.sslip.io/ -o /dev/null -w '%{http_code} verify=%{ssl_verify_result}\n'
+200 verify=0
+$ curl ... https://admin.44-198-215-187.sslip.io/server/1/overview -o /dev/null -w '%{http_code}\n'
+200                                     (route con tra index.html: F5 khong 404, FR-APP-09)
+$ curl -sS --resolve s.44-198-215-187.sslip.io:443:127.0.0.1 https://s.44-198-215-187.sslip.io/ -w ' %{http_code} verify=%{ssl_verify_result}\n'
+app chua san sang
+ 503 verify=0
+
+--- 8. Kiem tu ngoai VPC (may Windows cua TV1; SG sau khi mo 443: rule sgr-0fa88cb6e164fca2a TCP 443 0.0.0.0/0, rule 22 sgr-08ba369199877dc42, khong co rule 80) ---
+PS> curl.exe --ssl-revoke-best-effort -sS -w " %{http_code}\n" https://s.44-198-215-187.sslip.io/
+app chua san sang
+ 503
+PS> curl.exe --ssl-revoke-best-effort -sS -o NUL -w "%{http_code}\n" https://admin.44-198-215-187.sslip.io/
+200            (dong lenh trong anh dan bi cat, ma 200 chi co duoc khi URL dung)
+(--ssl-revoke-best-effort chi noi viec kiem thu hoi cert tren Windows/schannel; chuoi cert va ten van duoc kiem, khong phai -k.)
+
+KET QUA:
+- NFR-10 PASS: cert Let's Encrypt hop le cho ca 2 ten (s., admin.), con han den 2027-01-25, kiem tu ngoai khong dung -k.
+- FR-INF-06 MOT PHAN: admin. phuc vu Web Client 4.8.1 (sha256 khop), route con 200; s. toi VIP chua chay (503 tam).
+CHUA KIEM: (1) s. -> VIP:8080 voi Connection close, proxy_next_upstream off, ghi de X-Forwarded-For: moi o dang chu thich trong cau hinh; curl https://s.../rest/health ra 200 doi app va VIP (FIP cua VIP REPLACE). (2) Nginx tu len sau Stop/Start: chua kiem "systemctl is-enabled nginx". (3) Gia han cert: SG 80 dong nen certbot.timer se loi; han 2027-01-25 qua han du an. (4) Gio dong SG 80 khong ghi lai.

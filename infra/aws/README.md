@@ -27,8 +27,8 @@ VPC `campus-vpc` = `vpc-0730a24c74eb94b62`. Điền ID thật sau khi tạo. Ch�
 | SG | Gắn vào | Chiều | Cổng | Nguồn | Mục đích |
 |---|---|---|---|---|---|
 | campus-ingress-admin (`sg-0bf8503bfeee5a3c0`) | A | in | TCP 22 | **0.0.0.0/0 trong giai đoạn phát triển** (ADR-07), thu về /32 từng người trước freeze 06/11 | SSH, chỉ key, user riêng mỗi người |
-| campus-ingress-admin | A | in | TCP 443 | 0.0.0.0/0 từ G3 | Nginx `s.` + `admin.` (SNI); người dùng, điện thoại, Kaggle |
-| campus-ingress-admin | A | in | TCP 80 | 0.0.0.0/0 **chỉ vài phút khi chạy certbot**, xong xóa rule | Let's Encrypt HTTP-01, file thử thách do Apache DevStack trả (webroot). Để mở lâu là lộ Keystone/Placement trên cổng 80 |
+| campus-ingress-admin | A | in | TCP 443 | 0.0.0.0/0, đã mở 27/10/2026 (`sgr-0fa88cb6e164fca2a`) | Nginx `s.` + `admin.` (SNI); người dùng, điện thoại, Kaggle |
+| campus-ingress-admin | A | in | TCP 80 | 0.0.0.0/0 **chỉ vài phút khi chạy certbot**, xong xóa rule | Let's Encrypt HTTP-01, file thử thách do Apache DevStack trả (webroot). Để mở lâu là lộ Keystone/Placement trên cổng 80. Đã dùng 27/10 (mở 20:42 giờ VN, cấp cert `campus` xong, đã đóng; quét từ ngoài cổng 80 = đóng). Apache cần `Alias` acme-challenge: `infra/apache/campus-acme.conf.example` |
 | campus-hosts (`sg-096f3c77665c4e038`) | A, B | in | all | chính SG campus-hosts | Control plane + Geneve UDP 6081 |
 | campus-hosts (hoặc SG riêng của A) | A | in | TCP 80, 443 | 10.11.11.0/24 | B ra Internet qua NAT A |
 | (mặc định) | A, B | out | all | 0.0.0.0/0 | Cài đặt |

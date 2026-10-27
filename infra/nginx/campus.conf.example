@@ -1,0 +1,36 @@
+# CampusLink ingress (SRS 4.4): Nginx chi nghe 443. Cong 80 tren A la Apache cua DevStack, KHONG nghe 80.
+# Chep thanh /etc/nginx/conf.d/campus.conf tren A. Thay REPLACE_CAMPUS_DOMAIN bang domain that
+# (vd 44-198-215-187.sslip.io, xem docs/inventory.yaml) va REPLACE_VIP_FIP khi co VIP cua LB.
+# Cert: certbot --cert-name campus (webroot, xem infra/apache/campus-acme.conf.example va docs/troubleshooting.md).
+# Cai nginx tren A khi Apache giu cong 80: chan tu khoi dong bang /usr/sbin/policy-rc.d (exit 101),
+# bo /etc/nginx/sites-enabled/default, chi bat Nginx sau khi file nay da co.
+ssl_certificate     /etc/letsencrypt/live/campus/fullchain.pem;
+ssl_certificate_key /etc/letsencrypt/live/campus/privkey.pem;
+ssl_protocols       TLSv1.2 TLSv1.3;
+
+# Host la hoac truy cap bang IP: khong phuc vu
+server {
+    listen 443 ssl default_server;
+    server_name _;
+    return 444;
+}
+
+# admin.: Web Client 4.8.1 tinh (docs/versions.lock), F5 o route con khong 404 (FR-APP-09).
+# Dist giai nen vao thu muc con theo ten file zip.
+server {
+    listen 443 ssl;
+    server_name admin.REPLACE_CAMPUS_DOMAIN;
+    root /var/www/campus-admin/shlink-web-client_4.8.1_dist;
+    index index.html;
+    location / { try_files $uri $uri/ /index.html; }
+}
+
+# s.: chua co app/VIP nen tam tra 503. Khi co VIP doi sang proxy_pass (SRS 4.4):
+#   proxy_pass http://REPLACE_VIP_FIP:8080;  proxy_http_version 1.1;
+#   proxy_set_header Connection close;  proxy_set_header Host $host;
+#   proxy_set_header X-Forwarded-For $remote_addr;  proxy_next_upstream off;
+server {
+    listen 443 ssl;
+    server_name s.REPLACE_CAMPUS_DOMAIN;
+    location / { return 503 "app chua san sang\n"; }
+}
