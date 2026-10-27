@@ -1,0 +1,2 @@
+# Phu thuoc cho kiem thu cau truc HOT offline.
+PyYAML==6.0.3

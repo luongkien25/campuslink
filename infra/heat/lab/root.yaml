@@ -1,0 +1,107 @@
+heat_template_version: '2021-04-16'
+description: >-
+  Lab LB voi hai HTTP stub tren hai Nova AZ. Khong trien khai Shlink,
+  readiness ung dung, alarm hoac autoscaling.
+
+parameters:
+  app_image:
+    type: string
+    default: ubuntu-noble-base
+  app_flavor:
+    type: string
+    default: campus.app
+  key_name:
+    type: string
+    description: Keypair Nova cua user tao stack, da import public key rieng.
+  app_network:
+    type: string
+    default: campus-net
+  app_subnet:
+    type: string
+    default: campus-subnet
+  app_security_group:
+    type: string
+    default: campus-app-sg
+  external_network:
+    type: string
+    default: public
+  az_a:
+    type: string
+    default: campus-az-a
+  az_b:
+    type: string
+    default: campus-az-b
+
+resources:
+  lb:
+    type: OS::Octavia::LoadBalancer
+    properties:
+      provider: ovn
+      vip_subnet: {get_param: app_subnet}
+  vip_fip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: {get_param: external_network}
+      port_id: {get_attr: [lb, vip_port_id]}
+  listener:
+    type: OS::Octavia::Listener
+    properties:
+      loadbalancer: {get_resource: lb}
+      protocol: TCP
+      protocol_port: 8080
+  pool:
+    type: OS::Octavia::Pool
+    properties:
+      listener: {get_resource: listener}
+      protocol: TCP
+      lb_algorithm: SOURCE_IP_PORT
+  monitor:
+    type: OS::Octavia::HealthMonitor
+    properties:
+      pool: {get_resource: pool}
+      type: TCP
+      delay: 5
+      timeout: 3
+      max_retries: 3
+  app_a:
+    type: stub-unit.yaml
+    depends_on: monitor
+    properties:
+      image: {get_param: app_image}
+      flavor: {get_param: app_flavor}
+      key_name: {get_param: key_name}
+      network: {get_param: app_network}
+      subnet: {get_param: app_subnet}
+      security_group: {get_param: app_security_group}
+      availability_zone: {get_param: az_a}
+      backend: app-a
+      pool: {get_resource: pool}
+  app_b:
+    type: stub-unit.yaml
+    # Tuan tu hoa thay doi member de tranh Octavia tra 409 khi LB dang pending.
+    depends_on: app_a
+    properties:
+      image: {get_param: app_image}
+      flavor: {get_param: app_flavor}
+      key_name: {get_param: key_name}
+      network: {get_param: app_network}
+      subnet: {get_param: app_subnet}
+      security_group: {get_param: app_security_group}
+      availability_zone: {get_param: az_b}
+      backend: app-b
+      pool: {get_resource: pool}
+
+outputs:
+  lb_id:
+    value: {get_resource: lb}
+  pool_id:
+    value: {get_resource: pool}
+  vip_address:
+    value: {get_attr: [lb, vip_address]}
+  vip_fip:
+    description: FIP noi bo OpenStack; truy cap tu A, khong phai IP public AWS.
+    value: {get_attr: [vip_fip, floating_ip_address]}
+  app_a_id:
+    value: {get_attr: [app_a, server_id]}
+  app_b_id:
+    value: {get_attr: [app_b, server_id]}
