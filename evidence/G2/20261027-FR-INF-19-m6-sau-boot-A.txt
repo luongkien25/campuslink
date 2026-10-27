@@ -1,0 +1,67 @@
+Evidence FR-INF-19 (G2, MOT PHAN): kiem sau boot theo 09 M.6 tren host A khi B TAT. Chua du dieu kien PASS FR-INF-19: chua co app, slug, Swift checksum de lap bang truoc/sau; chua kiem B.
+Ngay: 2026-10-27. A bat khoang 20:00 gio VN (13:00Z) theo TV1; dich vu bao cap nhat luc 13:21Z-13:23Z. Day la lan boot thu hai sau khi thu hep quyen file (chmod 26/10). TV1 tu chay lenh tren terminal (ubuntu@campus-a) va dan output cho Claude Code doi chieu. Output rut gon.
+Quy uoc: a() { sudo -u stack -H bash -c "source /opt/stack/devstack/openrc admin admin >/dev/null 2>&1; $*"; } la ham trong shell ubuntu, chay lenh OpenStack bang quyen admin qua user stack (openrc chi stack doc duoc).
+
+--- M.6 muc 2: host ---
+$ hostnamectl --static
+campus-a
+$ chronyc tracking | grep -E 'Reference|System time|Leap'
+Reference ID    : A9FEA97B (169.254.169.123)
+System time     : 0.000002034 seconds fast of NTP time
+Leap status     : Normal
+$ df -h / | tail -1
+/dev/root        58G   14G   44G  24% /
+$ findmnt /opt/stack/data/swift/drives/sdb1
+TARGET /opt/stack/data/swift/drives/sdb1   SOURCE /dev/loop0   FSTYPE xfs   (rw,noatime,nodiratime,inode64,logbufs=8,logbsize=32k,...)
+$ sudo vgs stack-volumes-lvmdriver-1
+  stack-volumes-lvmdriver-1   1 PV   2 LV   0 SN   wz--n-   <30.00g VSize   1.43g VFree
+$ lsblk -o NAME,SERIAL,SIZE   (rut gon)
+nvme0n1   vol0c5a8fc0973e3603e   60G    (root A)
+nvme1n1   vol0875752f0e893ca17   30G    (Cinder: pool thin 28.5G + volume-f43fbbd2-b85f-4bb1-b403-ba54a2f84189 10G)
+
+--- M.6 muc 3: mang ---
+$ ip -br addr show br-ex
+br-ex  UNKNOWN  172.24.4.1/24 fe80::5040:43ff:fe61:e047/64
+$ systemctl is-active campus-nat
+active
+$ sudo iptables -t nat -L POSTROUTING -n -v
+Chain POSTROUTING (policy ACCEPT 2861 packets, 176K bytes)
+ 2857 175K LIBVIRT_PRT  all  *  *  0.0.0.0/0  0.0.0.0/0
+    0    0 MASQUERADE  all  *  enp39s0  10.11.11.0/24  0.0.0.0/0      (B tat nen 0 goi)
+    8  572 MASQUERADE  all  *  enp39s0  172.24.4.0/24  0.0.0.0/0
+
+--- M.6 muc 4: dich vu ---
+$ systemctl list-units --type=service --state=failed --no-pager
+0 loaded units listed.
+$ sudo rabbitmqctl list_users
+stackrabbit     []
+
+--- M.6 muc 5: OpenStack (quyen admin) ---
+$ a openstack compute service list      (rut gon: Binary / Host / Zone / Status / State / Updated At)
+nova-scheduler  campus-a  internal     enabled  up    2026-10-27T13:21:55Z
+nova-conductor  campus-a  internal     enabled  up    2026-10-27T13:21:57Z   (va mot dong nua 13:23:07Z)
+nova-compute    campus-a  campus-az-a  enabled  up    2026-10-27T13:22:10Z
+nova-compute    campus-b  campus-az-b  enabled  DOWN  2026-10-27T07:49:30Z   (B tat; lan cuoi bao cao 07:49:30Z)
+$ a openstack network agent list
+OVN Neutron agent           campus-a  Alive :-)  UP  neutron-ovn-agent
+OVN Controller Gateway agent campus-a  Alive :-)  UP  ovn-controller
+(chi 2 dong cua A; B vang khi B tat. Du kien 4 dong khi ca hai may bat (HANDOFF muc 19); chua co output nao ghi nhan duoc con so nay.)
+$ a openstack volume service list
+cinder-scheduler  campus-a              nova  enabled  up
+cinder-volume     campus-a@lvmdriver-1  nova  enabled  up
+$ a openstack loadbalancer provider list
+amphora | The Octavia Amphora driver.
+octavia | Deprecated alias of the Octavia Amphora driver.
+ovn     | Octavia OVN driver.
+
+--- M.6 muc 7: VM va volume ---
+$ a openstack server list --all-projects --long -c Name -c Status
+(rong: khong co VM nao)
+$ a openstack volume list --all-projects
+f43fbbd2-b85f-4bb1-b403-ba54a2f84189  campus-db-data  available  10 GiB  (khong gan VM)
+
+GHI CHU:
+1. Ten NVMe DAO CHO lan nua: lan nay root la nvme0n1, Cinder la nvme1n1 (23/10 thi nguoc lai). VG van len binh thuong, nen global_filter LVM khong bi ten thiet bi lam hong. Luon dung /dev/disk/by-id.
+2. Heartbeat cuoi cua nova-compute B la 07:49:30Z 27/10: B da chay trong ngay va tat luc khoang 07:49Z. Can ghi gio do vao issue #4 (Nhat ky cloud) neu chua co.
+3. network agent list chi con 2 dong cua A khi B tat. Chua kiem vi sao dong cua B bien mat han thay vi bao chet. Khi bat B, ghi lai so dong that (du kien 4) vao evidence kem theo.
+KET QUA: PASS cho cac muc kiem duoc (2, 3, 4, 5 phan A, 7). CHUA KIEM: muc 1 (AWS 2/2), 6 (B), 8 (DB VM), 9 (LB), 10 (ingress), 11 (telemetry), bang truoc/sau FR-INF-19.

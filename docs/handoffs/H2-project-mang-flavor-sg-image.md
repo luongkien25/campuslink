@@ -99,7 +99,9 @@ openstack security group delete ssh-from-jump-tv2
 
 Đã kiểm 27/10: `member` tạo SG, keypair, VM, gắn FIP; SSH hai chặng qua Dropbear chạy; `port set` cộng dồn (`campus-app-sg` vẫn còn), `port unset` gỡ được; chưa gắn SG tạm thì cổng 22 của VM đích bị chặn. `sshd` trên A cho `tv2` chuyển tiếp TCP (`allowtcpforwarding yes`).
 
-⚠️ Chưa kiểm: VM đích ở host B (đường A-B qua Geneve đã PASS ở G1); chạy từ máy cá nhân bằng `ssh -J` thay vì từ A; VM đích Ubuntu (mới thử đích Cirros); người thứ hai thêm khóa công khai của mình vào `~/.ssh/authorized_keys` của user `cirros` trên VM nhảy; Cirros có mật khẩu mặc định, chưa kiểm `sshd` của nó có nhận đăng nhập bằng mật khẩu không (nếu có, ai có shell trên A vào được VM nhảy), nên tạo VM nhảy khi cần và xóa ngay khi xong, hoặc dùng `ubuntu-noble-base` (tốn thêm 2 GiB RAM quota).
+⚠️ Chưa kiểm: VM đích ở host B (đường A-B qua Geneve đã PASS ở G1); chạy từ máy cá nhân bằng `ssh -J` thay vì từ A; VM đích Ubuntu (mới thử đích Cirros); người thứ hai thêm khóa công khai của mình vào `~/.ssh/authorized_keys` của user `cirros` trên VM nhảy.
+
+**Rủi ro đã biết và chấp nhận (kiểm 27/10, evidence `20261027-NFR-09-guest-khong-lay-duoc-credential-iam.txt`):** `sshd` của Cirros nhận cả `publickey` và `password`, mà mật khẩu mặc định của Cirros là công khai. Chấp nhận vì VM nhảy chỉ tồn tại khi cần, SG chỉ mở 22 từ `172.24.4.0/24` (tức từ A), và từ VM nhảy chỉ chạm được cổng 8080 của app (DB chỉ nhận từ `campus-app-sg`). Xóa VM nhảy ngay khi xong. Cần chặt hơn thì dùng `ubuntu-noble-base` làm VM nhảy (⚠️ chưa kiểm `sshd` mặc định chỉ nhận khóa; tốn thêm 2 GiB RAM quota nên chỉ làm được sau khi xóa builder).
 
 ## 5. Lỗi đã gặp khi làm (đã thêm vào `docs/troubleshooting.md`? chưa, sẽ thêm cùng PR này)
 
