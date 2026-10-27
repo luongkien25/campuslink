@@ -1,0 +1,1040 @@
+Evidence giai doan 1 TV2 - FR-INF-18 / H2
+Ngay UTC: 2026-10-27
+Moi truong: EC2 A campus-a, user Linux tv2, OS_CLOUD=campus-tv2.
+Pham vi: doc H2/quota/schema; import keypair rieng campus-tv2 da duoc nguoi dung dong y.
+Khong tao VM/LB/stack, khong sua route/SG/dich vu.
+
+KET LUAN:
+- PASS: fingerprint host A khop nguon nguoi dung cung cap; SSH dung tv2@campus-a.
+- PASS: scope campus-tv2 / project campuslink dung H2; user ID trong output duoi.
+- PASS: provider ovn sau boot; systemctl --failed khong co unit failed.
+- PASS: hai Nova AZ available trong lan kiem tra cuoi sau khi nguoi dung bat B.
+- PASS: network/subnet/router/SG/flavor/image/quotas da doc; 6 instance, 8 vCPU, 12288 MiB RAM; FIP 3; Cinder 5 volume/30 GiB.
+- PASS: 14 resource schema doc duoc; khong thieu thuoc tinh da doi chieu.
+- PASS: keypair campus-tv2 duoc import va public key khop file .pub local.
+- GIOI HAN: identity:list_role_assignments tra 403. Role member theo H2; khong tu cap quyen, khong coi da tu liet ke duoc role.
+- GIOI HAN: openstack metric list bi trung lenh python-observabilityclient; Gnocchi resource list va archive-policy list/show van doc duoc.
+- GIOI HAN: VM private chua co phuong thuc chan doan/quan tri duoc chot; A khong co route tenant. Nguoi dung se trao doi TV1, chua tao issue.
+- Giai doan 1 CHUA PASS toan bo do muc phuong thuc chan doan VM private con cho.
+- Khong co phep thu tao VM, placement guest, LB traffic, readiness hay autoscaling trong evidence nay.
+
+TRICH OUTPUT SSH DA QUAN SAT:
+tv2
+campus-a
+2026-10-27T07:33:30Z
+2026-10-27 07:27:38
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+openstack 9.0.0
+
+Ghi chu: uptime -s duoc chay voi TZ=UTC. A boot 07:27:38 UTC.
+B chi xac nhan campus-az-b available, khong ghi gio boot B khi chua doc truc tiep.
+
+CAC OUTPUT DUOC CHON LOC TU API CHI DOC (giu ca loi):
+
+$ openstack token issue -f json -c project_id -c user_id -c expires
+exit=0
+{
+  "expires": "2026-10-27T08:36:01+0000",
+  "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+  "user_id": "af9b4a94567b4adf9450ae0119efc10b"
+}
+
+$ openstack role assignment list --auth-user --auth-project --names -f json
+exit=1
+ForbiddenException: 403: Client Error for url: http://10.11.0.10/identity/v3/role_assignments?scope.project.id=07af3a3dd4c24d1ba028efcb6d28ef84&user.id=af9b4a94567b4adf9450ae0119efc10b&include_names=True, You are not authorized to perform the requested action: identity:list_role_assignments.
+
+$ openstack user show af9b4a94567b4adf9450ae0119efc10b -c id -c name -f json
+exit=0
+{
+  "id": "af9b4a94567b4adf9450ae0119efc10b",
+  "name": "campus-tv2"
+}
+
+$ openstack loadbalancer provider list -f json
+exit=0
+[
+  {
+    "name": "amphora",
+    "description": "The Octavia Amphora driver."
+  },
+  {
+    "name": "octavia",
+    "description": "Deprecated alias of the Octavia Amphora driver."
+  },
+  {
+    "name": "ovn",
+    "description": "Octavia OVN driver."
+  }
+]
+
+$ openstack availability zone list --compute -f json
+exit=0
+[
+  {
+    "Zone Name": "campus-az-a",
+    "Zone Status": "available"
+  },
+  {
+    "Zone Name": "campus-az-b",
+    "Zone Status": "not available"
+  }
+]
+
+$ openstack flavor list -c ID -c Name -c RAM -c VCPUs -c Disk -f json
+exit=0
+[
+  {
+    "ID": "1",
+    "Name": "m1.tiny",
+    "RAM": 512,
+    "Disk": 1,
+    "VCPUs": 1
+  },
+  {
+    "ID": "2",
+    "Name": "m1.small",
+    "RAM": 2048,
+    "Disk": 20,
+    "VCPUs": 1
+  },
+  {
+    "ID": "3",
+    "Name": "m1.medium",
+    "RAM": 4096,
+    "Disk": 40,
+    "VCPUs": 2
+  },
+  {
+    "ID": "4",
+    "Name": "m1.large",
+    "RAM": 8192,
+    "Disk": 80,
+    "VCPUs": 4
+  },
+  {
+    "ID": "5",
+    "Name": "m1.xlarge",
+    "RAM": 16384,
+    "Disk": 160,
+    "VCPUs": 8
+  },
+  {
+    "ID": "9ae2d463-8202-4575-a4f3-e32c4800d02c",
+    "Name": "campus.db",
+    "RAM": 2048,
+    "Disk": 10,
+    "VCPUs": 1
+  },
+  {
+    "ID": "a9083cf8-24ab-4a7a-8b5c-6ba44ed1b6de",
+    "Name": "campus.app",
+    "RAM": 2048,
+    "Disk": 10,
+    "VCPUs": 1
+  },
+  {
+    "ID": "c1",
+    "Name": "cirros256",
+    "RAM": 256,
+    "Disk": 1,
+    "VCPUs": 1
+  },
+  {
+    "ID": "d1",
+    "Name": "ds512M",
+    "RAM": 512,
+    "Disk": 5,
+    "VCPUs": 1
+  },
+  {
+    "ID": "d2",
+    "Name": "ds1G",
+    "RAM": 1024,
+    "Disk": 10,
+    "VCPUs": 1
+  },
+  {
+    "ID": "d3",
+    "Name": "ds2G",
+    "RAM": 2048,
+    "Disk": 10,
+    "VCPUs": 2
+  },
+  {
+    "ID": "d4",
+    "Name": "ds4G",
+    "RAM": 4096,
+    "Disk": 20,
+    "VCPUs": 4
+  },
+  {
+    "ID": "ee0a0c60-54c7-4488-896d-5081c1b098cf",
+    "Name": "campus.builder",
+    "RAM": 4096,
+    "Disk": 20,
+    "VCPUs": 2
+  }
+]
+
+$ openstack network show campus-net -c id -c mtu -c subnets -f json
+exit=0
+{
+  "id": "18ecc898-663f-4440-9782-bdf1675ba5c9",
+  "mtu": 1400,
+  "subnets": [
+    "59399337-e22b-4237-87dd-bf4ac035bcfa"
+  ]
+}
+
+$ openstack subnet show campus-subnet -c id -c cidr -c gateway_ip -c allocation_pools -f json
+exit=0
+{
+  "allocation_pools": [
+    {
+      "start": "10.20.0.100",
+      "end": "10.20.0.220"
+    }
+  ],
+  "cidr": "10.20.0.0/24",
+  "gateway_ip": "10.20.0.1",
+  "id": "59399337-e22b-4237-87dd-bf4ac035bcfa"
+}
+
+$ openstack router show campus-router -c id -c status -c external_gateway_info -f json
+exit=0
+{
+  "external_gateway_info": {
+    "network_id": "88b4d52a-cf80-4758-a340-445b37d8bb8c",
+    "external_fixed_ips": [
+      {
+        "subnet_id": "f2686f2e-1eb8-4c5f-8834-00d4f1d37113",
+        "ip_address": "172.24.4.128"
+      },
+      {
+        "subnet_id": "41a894ab-5b20-47fa-bded-29f7942c8135",
+        "ip_address": "2001:db8::2a"
+      }
+    ],
+    "enable_snat": true
+  },
+  "id": "971a03cd-406c-41ca-a395-a7637cc0f1f2",
+  "status": "ACTIVE"
+}
+
+$ openstack network show public -c id -c router:external -f json
+exit=0
+{
+  "id": "88b4d52a-cf80-4758-a340-445b37d8bb8c",
+  "router:external": true
+}
+
+$ openstack image show ubuntu-noble-base -c id -c status -c visibility -c size -c disk_format -f json
+exit=0
+{
+  "disk_format": "qcow2",
+  "id": "b915f809-b352-4d03-a14a-ec9c294e85d8",
+  "size": 621284352,
+  "status": "active",
+  "visibility": "public"
+}
+
+$ openstack quota show --usage --compute -f json
+exit=0
+[
+  {
+    "Resource": "cores",
+    "Limit": 8,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "instances",
+    "Limit": 6,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "ram",
+    "Limit": 12288,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "fixed_ips",
+    "Limit": 0,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "floating_ips",
+    "Limit": 0,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "networks",
+    "Limit": 0,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "security_group_rules",
+    "Limit": 0,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "security_groups",
+    "Limit": 0,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "injected-file-size",
+    "Limit": 10240,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "injected-path-size",
+    "Limit": 255,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "injected-files",
+    "Limit": 5,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "key-pairs",
+    "Limit": 100,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "properties",
+    "Limit": 128,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "server-group-members",
+    "Limit": 10,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "server-groups",
+    "Limit": 10,
+    "In Use": 0,
+    "Reserved": 0
+  }
+]
+
+$ openstack quota show --usage --network -f json
+exit=0
+[
+  {
+    "Resource": "networks",
+    "Limit": 100,
+    "In Use": 1,
+    "Reserved": 0
+  },
+  {
+    "Resource": "ports",
+    "Limit": 500,
+    "In Use": 3,
+    "Reserved": 0
+  },
+  {
+    "Resource": "rbac_policies",
+    "Limit": 10,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "routers",
+    "Limit": 10,
+    "In Use": 1,
+    "Reserved": 0
+  },
+  {
+    "Resource": "subnets",
+    "Limit": 100,
+    "In Use": 1,
+    "Reserved": 0
+  },
+  {
+    "Resource": "subnet_pools",
+    "Limit": -1,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "floating-ips",
+    "Limit": 3,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "secgroup-rules",
+    "Limit": 100,
+    "In Use": 8,
+    "Reserved": 0
+  },
+  {
+    "Resource": "secgroups",
+    "Limit": 10,
+    "In Use": 3,
+    "Reserved": 0
+  }
+]
+
+$ openstack quota show --usage --volume -f json
+exit=0
+[
+  {
+    "Resource": "volumes",
+    "Limit": 5,
+    "In Use": 1,
+    "Reserved": 0
+  },
+  {
+    "Resource": "snapshots",
+    "Limit": 10,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "gigabytes",
+    "Limit": 30,
+    "In Use": 10,
+    "Reserved": 0
+  },
+  {
+    "Resource": "backups",
+    "Limit": 10,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "volumes_lvmdriver-1",
+    "Limit": -1,
+    "In Use": 1,
+    "Reserved": 0
+  },
+  {
+    "Resource": "gigabytes_lvmdriver-1",
+    "Limit": -1,
+    "In Use": 10,
+    "Reserved": 0
+  },
+  {
+    "Resource": "snapshots_lvmdriver-1",
+    "Limit": -1,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "volumes___DEFAULT__",
+    "Limit": -1,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "gigabytes___DEFAULT__",
+    "Limit": -1,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "snapshots___DEFAULT__",
+    "Limit": -1,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "groups",
+    "Limit": 10,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "backup-gigabytes",
+    "Limit": 1000,
+    "In Use": 0,
+    "Reserved": 0
+  },
+  {
+    "Resource": "per-volume-gigabytes",
+    "Limit": -1,
+    "In Use": 0,
+    "Reserved": 0
+  }
+]
+
+$ openstack loadbalancer quota show 07af3a3dd4c24d1ba028efcb6d28ef84 -f json
+exit=0
+{
+  "load_balancer": -1,
+  "listener": -1,
+  "pool": -1,
+  "health_monitor": -1,
+  "member": -1,
+  "l7policy": -1,
+  "l7rule": -1
+}
+
+$ openstack security group list -c ID -c Name -f json
+exit=0
+[
+  {
+    "ID": "15d5d84d-f71a-4595-a5b2-ac75f818c040",
+    "Name": "campus-db-sg"
+  },
+  {
+    "ID": "b3eb3225-3e50-4c38-b43f-3823b6022d05",
+    "Name": "campus-app-sg"
+  },
+  {
+    "ID": "dac9eeec-d02c-4ccc-8297-e510330a39aa",
+    "Name": "default"
+  }
+]
+
+$ openstack security group rule list --ingress campus-app-sg -f json
+exit=0
+[
+  {
+    "ID": "6e5bfdc9-0409-4521-8367-008c4e12bd1a",
+    "IP Protocol": "tcp",
+    "Ethertype": "IPv4",
+    "IP Range": "10.20.0.0/24",
+    "Port Range": "8080:8080",
+    "Direction": "ingress",
+    "Remote Security Group": null,
+    "Remote Address Group": null
+  },
+  {
+    "ID": "a78cdf96-73b8-476d-9e43-9a32f9ce9c6b",
+    "IP Protocol": "tcp",
+    "Ethertype": "IPv4",
+    "IP Range": "172.24.4.0/24",
+    "Port Range": "8080:8080",
+    "Direction": "ingress",
+    "Remote Security Group": null,
+    "Remote Address Group": null
+  }
+]
+
+$ openstack security group rule list --ingress campus-db-sg -f json
+exit=0
+[
+  {
+    "ID": "2794d003-747e-4f55-99d4-a6cb9228cfed",
+    "IP Protocol": "tcp",
+    "Ethertype": "IPv4",
+    "IP Range": "0.0.0.0/0",
+    "Port Range": "6379:6379",
+    "Direction": "ingress",
+    "Remote Security Group": "b3eb3225-3e50-4c38-b43f-3823b6022d05",
+    "Remote Address Group": null
+  },
+  {
+    "ID": "e2c15ad6-ac87-49d3-a90c-bdb0546df3b0",
+    "IP Protocol": "tcp",
+    "Ethertype": "IPv4",
+    "IP Range": "0.0.0.0/0",
+    "Port Range": "5432:5432",
+    "Direction": "ingress",
+    "Remote Security Group": "b3eb3225-3e50-4c38-b43f-3823b6022d05",
+    "Remote Address Group": null
+  }
+]
+
+$ openstack server list -c ID -c Name -c Status -c Networks -f json
+exit=0
+[]
+
+$ openstack keypair list -f json
+exit=0
+[]
+
+$ openstack floating ip list -f json
+exit=0
+[]
+
+$ openstack loadbalancer list -f json
+exit=0
+[]
+
+$ openstack stack list -f json
+exit=0
+[]
+
+$ openstack volume list -c ID -c Name -c Status -c Size -f json
+exit=0
+[
+  {
+    "ID": "f43fbbd2-b85f-4bb1-b403-ba54a2f84189",
+    "Name": "campus-db-data",
+    "Status": "available",
+    "Size": 10
+  }
+]
+
+$ openstack metric list -c id -c name -c archive_policy/name -c resource_id -f json
+exit=1
+Failed to configure Prometheus client. Aetos discovery from keystone failed: 'public endpoint for metric-storage service in RegionOne region not found'. Prometheus configuration from config file and environment variables failed: 'Can't find prometheus host and port configuration in config file or environment variables.'
+
+$ openstack metric archive-policy list -f json
+exit=0
+[
+  {
+    "name": "bool",
+    "back_window": 3600,
+    "definition": [
+      {
+        "timespan": "365 days, 0:00:00",
+        "granularity": "0:00:01",
+        "points": 31536000
+      }
+    ],
+    "aggregation_methods": [
+      "last"
+    ]
+  },
+  {
+    "name": "ceilometer-high",
+    "back_window": 0,
+    "definition": [
+      {
+        "timespan": "1:00:00",
+        "granularity": "0:00:01",
+        "points": 3600
+      },
+      {
+        "timespan": "1 day, 0:00:00",
+        "granularity": "0:01:00",
+        "points": 1440
+      },
+      {
+        "timespan": "365 days, 0:00:00",
+        "granularity": "1:00:00",
+        "points": 8760
+      }
+    ],
+    "aggregation_methods": [
+      "mean"
+    ]
+  },
+  {
+    "name": "ceilometer-high-rate",
+    "back_window": 0,
+    "definition": [
+      {
+        "timespan": "1:00:00",
+        "granularity": "0:00:01",
+        "points": 3600
+      },
+      {
+        "timespan": "1 day, 0:00:00",
+        "granularity": "0:01:00",
+        "points": 1440
+      },
+      {
+        "timespan": "365 days, 0:00:00",
+        "granularity": "1:00:00",
+        "points": 8760
+      }
+    ],
+    "aggregation_methods": [
+      "rate:mean",
+      "mean"
+    ]
+  },
+  {
+    "name": "ceilometer-low",
+    "back_window": 0,
+    "definition": [
+      {
+        "timespan": "30 days, 0:00:00",
+        "granularity": "0:05:00",
+        "points": 8640
+      }
+    ],
+    "aggregation_methods": [
+      "mean"
+    ]
+  },
+  {
+    "name": "ceilometer-low-rate",
+    "back_window": 0,
+    "definition": [
+      {
+        "timespan": "30 days, 0:00:00",
+        "granularity": "0:05:00",
+        "points": 8640
+      }
+    ],
+    "aggregation_methods": [
+      "rate:mean",
+      "mean"
+    ]
+  },
+  {
+    "name": "high",
+    "back_window": 0,
+    "definition": [
+      {
+        "timespan": "1:00:00",
+        "granularity": "0:00:01",
+        "points": 3600
+      },
+      {
+        "timespan": "7 days, 0:00:00",
+        "granularity": "0:01:00",
+        "points": 10080
+      },
+      {
+        "timespan": "365 days, 0:00:00",
+        "granularity": "1:00:00",
+        "points": 8760
+      }
+    ],
+    "aggregation_methods": [
+      "min",
+      "max",
+      "mean",
+      "sum",
+      "count",
+      "std"
+    ]
+  },
+  {
+    "name": "low",
+    "back_window": 0,
+    "definition": [
+      {
+        "timespan": "30 days, 0:00:00",
+        "granularity": "0:05:00",
+        "points": 8640
+      }
+    ],
+    "aggregation_methods": [
+      "min",
+      "max",
+      "mean",
+      "sum",
+      "count",
+      "std"
+    ]
+  },
+  {
+    "name": "medium",
+    "back_window": 0,
+    "definition": [
+      {
+        "timespan": "7 days, 0:00:00",
+        "granularity": "0:01:00",
+        "points": 10080
+      },
+      {
+        "timespan": "365 days, 0:00:00",
+        "granularity": "1:00:00",
+        "points": 8760
+      }
+    ],
+    "aggregation_methods": [
+      "min",
+      "max",
+      "mean",
+      "sum",
+      "count",
+      "std"
+    ]
+  }
+]
+
+$ openstack alarm list -f json
+exit=0
+[]
+
+$ openstack orchestration resource type show OS::Octavia::LoadBalancer -f json
+exit=0
+{
+  "resource_type": "OS::Octavia::LoadBalancer",
+  "properties": {
+    "description": {
+      "type": "string",
+      "description": "Description of this Load Balancer.",
+      "default": "",
+      "required": false,
+      "update_allowed": true,
+      "immutable": false
+    },
+    "name": {
+      "type": "string",
+      "description": "Name of this Load Balancer.",
+      "required": false,
+      "update_allowed": true,
+      "immutable": false
+    },
+    "provider": {
+      "type": "string",
+      "description": "Provider for this Load Balancer.",
+      "required": false,
+      "update_allowed": false,
+      "immutable": false
+    },
+    "vip_address": {
+      "type": "string",
+      "description": "IP address for the VIP.",
+      "required": false,
+      "constraints": [
+        {
+          "custom_constraint": "ip_addr"
+        }
+      ],
+      "update_allowed": false,
+      "immutable": false
+    },
+    "vip_subnet": {
+      "type": "string",
+      "description": "The name or ID of the subnet on which to allocate the VIP address.",
+      "required": true,
+      "constraints": [
+        {
+          "custom_constraint": "neutron.subnet"
+        }
+      ],
+      "update_allowed": false,
+      "immutable": false
+    },
+    "admin_state_up": {
+      "type": "boolean",
+      "description": "The administrative state of this Load Balancer.",
+      "default": true,
+      "required": false,
+      "update_allowed": true,
+      "immutable": false
+    },
+    "tenant_id": {
+      "type": "string",
+      "description": "The ID of the tenant who owns the Load Balancer. Only administrative users can specify a tenant ID other than their own.",
+      "required": false,
+      "constraints": [
+        {
+          "custom_constraint": "keystone.project"
+        }
+      ],
+      "update_allowed": false,
+      "immutable": false
+    },
+    "flavor": {
+      "type": "string",
+      "description": "The name or ID of the flavor of the Load Balancer.",
+      "required": false,
+      "constraints": [
+        {
+          "custom_constraint": "octavia.flavor"
+        }
+      ],
+      "update_allowed": false,
+      "immutable": false
+    },
+    "availability_zone": {
+      "type": "string",
+      "description": "The availability zone of the Load Balancer.",
+      "required": false,
+      "constraints": [
+        {
+          "custom_constraint": "octavia.availabilityzone"
+        }
+      ],
+      "update_allowed": false,
+      "immutable": false
+    }
+  },
+  "attributes": {
+    "vip_address": {
+      "description": "The VIP address of the LoadBalancer.",
+      "type": "string"
+    },
+    "vip_port_id": {
+      "description": "The VIP port of the LoadBalancer.",
+      "type": "string"
+    },
+    "vip_subnet_id": {
+      "description": "The VIP subnet of the LoadBalancer.",
+      "type": "string"
+    },
+    "pools": {
+      "description": "Pools this LoadBalancer is associated with.",
+      "type": "list"
+    },
+    "flavor_id": {
+      "description": "The flavor ID of the LoadBalancer.",
+      "type": "string"
+    },
+    "show": {
+      "description": "Detailed information about resource.",
+      "type": "map"
+    }
+  },
+  "support_status": {
+    "status": "SUPPORTED",
+    "message": null,
+    "version": "10.0.0",
+    "previous_status": null
+  }
+}
+
+
+DOI CHIEU SCHEMA HEAT (tom tat tu output thuc):
+{"resource_type":"OS::Octavia::LoadBalancer","exit":0,"missing_used_properties":[],"verified_properties":["provider","vip_subnet"],"attributes":["flavor_id","pools","show","vip_address","vip_port_id","vip_subnet_id"]}
+{"resource_type":"OS::Octavia::Listener","exit":0,"missing_used_properties":[],"verified_properties":["loadbalancer","protocol","protocol_port"],"attributes":["default_pool_id","loadbalancers","show"]}
+{"resource_type":"OS::Octavia::Pool","exit":0,"missing_used_properties":[],"verified_properties":["listener","protocol","lb_algorithm"],"attributes":["healthmonitor_id","listeners","members","show"]}
+{"resource_type":"OS::Octavia::HealthMonitor","exit":0,"missing_used_properties":[],"verified_properties":["pool","type","delay","timeout","max_retries"],"attributes":["pools","show"]}
+{"resource_type":"OS::Octavia::PoolMember","exit":0,"missing_used_properties":[],"verified_properties":["pool","address","subnet","protocol_port"],"attributes":["show"]}
+{"resource_type":"OS::Neutron::Port","exit":0,"missing_used_properties":[],"verified_properties":["network","fixed_ips","security_groups"],"attributes":["admin_state_up","allowed_address_pairs","device_id","device_owner","dns_assignment","fixed_ips","mac_address","name","network","network_id","port_security_enabled","propagate_uplink_status","qos_policy_id","security_groups","show","status","subnets","tenant_id"]}
+{"resource_type":"OS::Neutron::FloatingIP","exit":0,"missing_used_properties":[],"verified_properties":["floating_network","port_id"],"attributes":["fixed_ip_address","floating_ip_address","floating_network_id","port_id","router_id","show","tenant_id"]}
+{"resource_type":"OS::Nova::Server","exit":0,"missing_used_properties":[],"verified_properties":["image","flavor","key_name","availability_zone","networks","metadata","user_data_format","user_data"],"attributes":["accessIPv4","accessIPv6","addresses","console_urls","instance_name","name","networks","os_collect_config","show","tags"]}
+{"resource_type":"OS::Heat::CloudConfig","exit":0,"missing_used_properties":[],"verified_properties":["cloud_config"],"attributes":["config","show"]}
+{"resource_type":"OS::Heat::AutoScalingGroup","exit":0,"missing_used_properties":[],"verified_properties":["min_size","max_size","resource","desired_capacity","cooldown"],"attributes":["current_size","outputs","outputs_list","refs","refs_map","show"]}
+{"resource_type":"OS::Heat::ScalingPolicy","exit":0,"missing_used_properties":[],"verified_properties":["auto_scaling_group_id","adjustment_type","scaling_adjustment","cooldown"],"attributes":["alarm_url","show","signal_url"]}
+{"resource_type":"OS::Heat::WaitCondition","exit":0,"missing_used_properties":[],"verified_properties":["handle","timeout","count"],"attributes":["data","show"]}
+{"resource_type":"OS::Heat::WaitConditionHandle","exit":0,"missing_used_properties":[],"verified_properties":["signal_transport"],"attributes":["curl_cli","endpoint","show","signal","token"]}
+{"resource_type":"OS::Aodh::GnocchiAggregationByResourcesAlarm","exit":0,"missing_used_properties":[],"verified_properties":["metric","aggregation_method","resource_type","query","granularity","threshold","evaluation_periods","comparison_operator","alarm_actions","enabled"],"attributes":["show"]}
+
+KIEM TRA BO SUNG (metadata plugin, port, resource metric, AZ, boot/time):
+METRIC_LIST_ENTRY openstack.metric.v1 gnocchiclient.v1.metric_cli:CliMetricList
+METRIC_LIST_ENTRY openstack.observabilityclient.v1 observabilityclient.v1.cli:List
+OBSERVABILITY_CLIENT_VERSION 1.3.0
+usage: openstack keypair create [-h] [-f {json,shell,table,value,yaml}]
+                                [-c COLUMN] [--noindent] [--prefix PREFIX]
+                                [--max-width <integer>] [--fit-width]
+                                [--print-empty]
+                                [--public-key <file> | --private-key <file>]
+                                [--type <type>] [--user <user>]
+                                [--user-domain <user-domain>]
+                                <name>
+
+Create new public or private key for server ssh access
+
+positional arguments:
+  <name>                New public or private key name
+
+options:
+  -h, --help            show this help message and exit
+  --public-key <file>   Filename for public key to add. If not used, generates
+                        a private key in ssh-ed25519 format. To generate keys
+                        in other formats, including the legacy ssh-rsa format,
+                        you must use an external tool such as ssh-keygen and
+                        specify this argument.
+  --private-key <file>  Filename for private key to save. If not used, print
+                        private key in console.
+  --type <type>         Keypair type (supported by --os-compute-api-version
+                        2.2 or above)
+  --user <user>         The owner of the keypair (admin only) (name or ID)
+                        (supported by --os-compute-api-version 2.10 or above)
+  --user-domain <user-domain>
+                        Domain the user belongs to (name or ID). This can be
+                        used in case collisions between user names exist.
+
+output formatters:
+  output formatter options
+
+  -f {json,shell,table,value,yaml}, --format {json,shell,table,value,yaml}
+                        the output format, defaults to table
+  -c COLUMN, --column COLUMN
+                        specify the column(s) to include, can be repeated to
+                        show multiple columns
+
+json formatter:
+  --noindent            whether to disable indenting the JSON
+
+shell formatter:
+  a format a UNIX shell can parse (variable="value")
+
+  --prefix PREFIX       add a prefix to all variable names
+
+table formatter:
+  --max-width <integer>
+                        Maximum display width, <1 to disable. You can also use
+                        the CLIFF_MAX_TERM_WIDTH environment variable, but the
+                        parameter takes precedence.
+  --fit-width           Fit the table to the display width. Implied if --max-
+                        width greater than 0. Set the environment variable
+                        CLIFF_FIT_WIDTH=1 to always enable
+  --print-empty         Print empty table if there is no data to show.
+[
+  {
+    "ID": "1512368b-5d13-445e-80b1-d64efbcd8665",
+    "Name": "",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+        "ip_address": "10.20.0.1"
+      }
+    ],
+    "Status": "ACTIVE"
+  },
+  {
+    "ID": "7df6ea1d-2e8c-46d5-99b9-e121855d81b5",
+    "Name": "campus-db-port",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+        "ip_address": "10.20.0.10"
+      }
+    ],
+    "Status": "DOWN"
+  },
+  {
+    "ID": "88a7dafa-88b5-42a8-80bd-62a5c6216ab9",
+    "Name": "",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+        "ip_address": "10.20.0.100"
+      }
+    ],
+    "Status": "DOWN"
+  }
+]
+[
+  {
+    "id": "386669ae-1b49-41ea-8cc7-170a30cc246b",
+    "server_group": null
+  },
+  {
+    "id": "ca83343b-ca8a-4617-82b2-b382b0422cee",
+    "server_group": null
+  }
+]
+[
+  {
+    "Zone Name": "campus-az-a",
+    "Zone Status": "available"
+  },
+  {
+    "Zone Name": "campus-az-b",
+    "Zone Status": "available"
+  }
+]
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+2026-10-27 07:27:38
+2026-10-27T07:42:01Z
+
+XAC MINH KEYPAIR SAU IMPORT:
+{"keypair": "campus-tv2", "public_key_matches_local": true, "sha256_fingerprint": "SHA256:b1QgAwnfTKskYM4mgSSOtelU342Fy8fJNR6dkLo9PIQ"}
+
+Kiem tra public key chi so sanh key .pub, khong doc/in private key. Command keypair show --public-key da xac minh bang --help.
+
