@@ -39,7 +39,7 @@ aws:
     campus_private_rt: { id: "rtb-07baedadc611749be", default: "eni of A" }   # hien chi co local
   security_groups:
     campus_hosts:         { id: "sg-096f3c77665c4e038" }
-    campus_ingress_admin: { id: "sg-0bf8503bfeee5a3c0" }
+    campus_ingress_admin: { id: "sg-0bf8503bfeee5a3c0", rules: { ssh_22: "sgr-08ba369199877dc42", https_443: "sgr-0fa88cb6e164fca2a" } }   # 443 mo 27/10/2026; 80 chi mo vai phut khi certbot, khong con rule
   ami:
     name: "Ubuntu Server 24.04 LTS amd64 (Canonical)"
     id: "ami-02a9cdd4e98bc3c78"   # quick start console 23/10/2026, khong phai ban Pro
@@ -131,7 +131,10 @@ shlink:                         # Lab 9.5
   campus_domain: "44-198-215-187.sslip.io"   # EIP 44.198.215.187 (23/10/2026)
   short_domain: "s.44-198-215-187.sslip.io"
   admin_domain: "admin.44-198-215-187.sslip.io"
-  tls: { issuer: "Let's Encrypt", tool: certbot, challenge: http-01, webroot: /var/www/acme, renew: "khong can truoc 16/11 (han 90 ngay)" }  # khong commit /etc/letsencrypt
+  tls: { issuer: "Let's Encrypt", tool: certbot, challenge: http-01, webroot: /var/www/html, cert_name: campus, key_type: ECDSA, issued: "2026-10-27", expires: "2027-01-25", renew: "khong can truoc khi het du an (certbot.timer se loi vi SG 80 dong)" }  # khong commit /etc/letsencrypt
+  ingress:                      # 27/10/2026, mau cau hinh: infra/nginx/campus.conf.example, infra/apache/campus-acme.conf.example
+    nginx: { version: "1.24.0", listen: 443, conf: /etc/nginx/conf.d/campus.conf, admin_root: /var/www/campus-admin/shlink-web-client_4.8.1_dist }
+    apache_acme_alias: /etc/apache2/conf-available/campus-acme.conf   # Alias /.well-known/acme-challenge/ -> /var/www/html
   vip_lab_fip: "REPLACE"        # FIP cua VIP do Heat tao, khong phai LB smoke
   db: { host: 10.20.0.10, name: shlink, engine: "PostgreSQL 16" }
   redis: { endpoint: "10.20.0.10:6379", auth: required }

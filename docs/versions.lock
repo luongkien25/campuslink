@@ -23,7 +23,9 @@ shlink_version=5.1.8
 shlink_image_digest=shlinkio/shlink@sha256:REPLACE_REPO_DIGEST
 web_client_version=4.8.1
 web_client_dist=shlink-web-client_4.8.1_dist.zip
-web_client_dist_sha256=85c96539fd609ef80ea7d366cced743a1c0af1d9987d9f8d4517e969d519a120
+web_client_dist_sha256=85c96539fd609ef80ea7d366cced743a1c0af1d9987d9f8d4517e969d519a120   # da doi chieu tren A 27/10/2026 (sha256sum -c OK), TV1
+nginx_version=1.24.0   # apt Ubuntu 24.04 (noble), cai tren A 27/10/2026, TV1
+certbot_version=2.9.0   # apt Ubuntu 24.04 (noble), cai tren A 27/10/2026, TV1
 postgresql_version=16.REPLACE_PATCH
 redis_version=REPLACE_VERSION
 

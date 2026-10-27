@@ -1,0 +1,12 @@
+# Cap cert Let's Encrypt qua webroot (SRS 4.4): Apache cua DevStack chi proxy cac duong API va khong dat
+# DocumentRoot, nen khong phuc vu /var/www/html. Alias nay chi mo dung duong acme-challenge.
+# Cai tren A: chep thanh /etc/apache2/conf-available/campus-acme.conf, roi
+#   sudo a2enconf campus-acme; sudo apachectl configtest; sudo systemctl reload apache2
+# Kiem: tao file thu trong /var/www/html/.well-known/acme-challenge/ roi
+#   curl -H 'Host: s.<domain>' http://127.0.0.1/.well-known/acme-challenge/<file>   (phai ra noi dung file, khong 404)
+# Cap cert: SG 80 chi mo vai phut (lo Keystone/Placement neu de lau), certbot --webroot -w /var/www/html, roi dong SG 80.
+# Hoan tac: sudo a2disconf campus-acme && sudo systemctl reload apache2
+Alias /.well-known/acme-challenge/ /var/www/html/.well-known/acme-challenge/
+<Directory /var/www/html/.well-known/acme-challenge/>
+    Require all granted
+</Directory>
