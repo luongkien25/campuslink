@@ -1,0 +1,18 @@
+Evidence NFR-13 (G2): Placement reserved va allocation ratio dung SRS: A du tru 16 GiB / 4 vCPU, B du tru 8 GiB / 1 vCPU, ratio 1.0
+Ngay: 2026-10-27, A bat (B tat; resource provider cua B van con trong Placement). TV1 tu chay lenh tren terminal (ubuntu@campus-a) va dan output cho Claude Code doi chieu.
+Quy uoc: a() { sudo -u stack -H bash -c "source /opt/stack/devstack/openrc admin admin >/dev/null 2>&1; $*"; } chay lenh OpenStack bang quyen admin qua user stack.
+
+$ a openstack resource provider list -c uuid -c name
+45c30854-ac1b-4ca7-882a-9d79a8185932  campus-a
+bc5d06d3-e67b-4c46-b0ae-f05d257b0044  campus-b
+$ a openstack resource provider inventory list 45c30854-ac1b-4ca7-882a-9d79a8185932 -c resource_class -c total -c reserved -c allocation_ratio     (campus-a)
+VCPU       allocation_ratio 1.0   reserved 4       total 8
+MEMORY_MB  allocation_ratio 1.0   reserved 16384   total 31552
+DISK_GB    allocation_ratio 1.0   reserved 0       total 57
+$ a openstack resource provider inventory list bc5d06d3-e67b-4c46-b0ae-f05d257b0044 -c resource_class -c total -c reserved -c allocation_ratio     (campus-b)
+VCPU       allocation_ratio 1.0   reserved 1       total 4
+MEMORY_MB  allocation_ratio 1.0   reserved 8192    total 15701
+DISK_GB    allocation_ratio 1.0   reserved 0       total 57
+
+KET QUA: PASS. A: VCPU reserved 4, MEMORY_MB reserved 16384; B: VCPU reserved 1, MEMORY_MB reserved 8192; allocation_ratio 1.0 o ca hai (khop SRS NFR-13).
+Ghi chu: sau khi tru du tru, VM chay duoc toi da 7 vCPU (A 4 + B 3) va 22677 MiB (A 15168 + B 7509); quota project cho 8 vCPU / 12288 MiB nen vCPU quota khong bao gio dung het. Voi ke hoach 3 app + DB + builder = 6 vCPU van du.

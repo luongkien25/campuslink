@@ -133,7 +133,13 @@ ssh campus-a
 
 Không muốn dùng file config thì thêm `-o IdentitiesOnly=yes` vào lệnh: `ssh -i <đường dẫn private key> -o IdentitiesOnly=yes tv2@44.198.215.187`.
 
-- Lần đầu máy hỏi `Are you sure you want to continue connecting (yes/no/[fingerprint])?`: nếu TV1 đã gửi dấu vân tay của máy thì đối chiếu, khớp thì gõ `yes`.
+- Lần đầu máy hỏi `Are you sure you want to continue connecting (yes/no/[fingerprint])?`: đối chiếu dòng `ED25519 key fingerprint is SHA256:...` với dấu vân tay host A bên dưới, khớp từng ký tự thì gõ `yes`, không khớp thì dừng và báo TV1.
+
+  ```
+  SHA256:gW49fIVoerNVuAjMh+jjss2w49V0mAVJwCo4BHxT2hM   (ED25519, 44.198.215.187)
+  ```
+
+  Dấu vân tay chỉ đổi nếu TV1 dựng lại EC2 A (stop/start thì không đổi); khi đó TV1 sẽ báo trong Zalo và cập nhật dòng này.
 - Sau đó máy hỏi **passphrase** của bạn (không phải mật khẩu máy chủ). Đó là bình thường: mỗi lần SSH đều hỏi.
 - Vào được thì dấu nhắc đổi thành `tv2@campus-a`.
 

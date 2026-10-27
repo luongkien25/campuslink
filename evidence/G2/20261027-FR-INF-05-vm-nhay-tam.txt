@@ -1,0 +1,77 @@
+Evidence FR-INF-05 (G2): vao VM khong co floating IP bang VM nhay tam (diag jump, SRS muc 4) voi quyen member (campus-tv2); campus-app-sg van dong cong 22
+Ngay: 2026-10-27, cac moc: jump-sg tao 13:09:13Z, target-ssh-sg tao 13:11:49Z (UTC). TV1 tu chay lenh tren terminal (ubuntu@campus-a) va dan output cho Claude Code doi chieu. Output rut gon (bo cac dong bang khong lien quan, bo phan nhi phan KEXINIT). Khong co mat khau hay khoa rieng trong file nay (khoa thu jump-test da xoa sau khi thu).
+Quy uoc: m() { sudo -u tv2 -H env OS_CLOUD=campus-tv2 "$@"; } la ham trong shell ubuntu, chay lenh bang tai khoan Keystone campus-tv2 (member). Project campuslink 07af3a3dd4c24d1ba028efcb6d28ef84. Host B tat trong luc thu; moi VM o campus-az-a.
+
+--- 1. Kiem truoc khi tao (chi doc) ---
+$ systemctl --failed --no-pager
+0 loaded units listed.
+$ m openstack flavor list -c Name -c VCPUs -c RAM        (member thay: m1.*, ds*, campus.db, campus.app, campus.builder, cirros256)
+| cirros256      |   256 |     1 |
+$ m openstack image list -c Name -c Status
+| cirros-0.6.3-x86_64-disk | active |
+| ubuntu-noble-base        | active |
+$ m openstack floating ip list ; m openstack server list
+(khong in gi: rong)
+
+--- 2. SG, keypair, VM nhay (member) ---
+$ m openstack security group create jump-sg --description "vm nhay tam TV1 thu"
+id 4211ac8a-4cd4-44be-a10f-a7196111c202, project_id 07af3a3d..., rules mac dinh: 2 egress
+$ m openstack security group rule create --protocol tcp --dst-port 22 --remote-ip 172.24.4.0/24 --ingress jump-sg
+id 57d3f50c-28a1-4770-b28d-a90224552ad2, direction ingress, tcp 22-22, remote_ip_prefix 172.24.4.0/24
+$ m openstack keypair create jump-test > ~/jump-test.pem; chmod 600 ~/jump-test.pem; ls -l ~/jump-test.pem
+-rw------- 1 ubuntu ubuntu 388 Oct 27 13:09 /home/ubuntu/jump-test.pem
+$ m openstack server create --flavor cirros256 --image cirros-0.6.3-x86_64-disk --network campus-net --security-group jump-sg --key-name jump-test --availability-zone campus-az-a --wait -f value -c status -c addresses jump-test
+{'campus-net': ['10.20.0.201']}
+ACTIVE
+
+--- 3. FIP va SSH tu A vao VM nhay ---
+$ FIP=$(m openstack floating ip create public -f value -c floating_ip_address); echo $FIP
+172.24.4.198
+$ m openstack server add floating ip jump-test $FIP
+$ ssh -i ~/jump-test.pem -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new cirros@$FIP hostname
+jump-test
+
+--- 4. VM dich dung campus-app-sg (chi mo 8080), SG tam mo 22 tu SG cua VM nhay ---
+$ m openstack security group create target-ssh-sg --description "ssh tu vm nhay, tam"
+id f10571e6-d59b-44b6-9d60-cba7fb6223d3
+$ m openstack security group rule create --protocol tcp --dst-port 22 --remote-group jump-sg --ingress target-ssh-sg
+id cd6dcdff-b341-459e-ad7a-19b3b899f481, tcp 22-22, remote_group_id 4211ac8a-4cd4-44be-a10f-a7196111c202, remote_ip_prefix None
+$ m openstack server create ... --security-group campus-app-sg --key-name jump-test --availability-zone campus-az-a --wait ... target-test
+{'campus-net': ['10.20.0.149']}
+ACTIVE
+$ T=10.20.0.149
+4b (chua gan SG tam): $ ssh -i ~/jump-test.pem cirros@$FIP "echo | nc -w 3 $T 22"
+(khong in gi)      Luu y: chung cu yeu vi VM moi tao, sshd co the chua len; doi chung lai o 4e.
+4c: $ PORT=$(m openstack port list --device-id $(m openstack server show target-test -f value -c id) -f value -c ID)
+7562325e-fb98-49b1-8fa9-8cdcadcc55ed
+$ m openstack port set --security-group target-ssh-sg $PORT
+$ ssh -i ~/jump-test.pem cirros@$FIP "echo | nc -w 3 $T 22"
+SSH-2.0-dropbear_2020.81        (sau do la goi KEXINIT nhi phan, da cat)
+4d (hai chang, khoa rieng chi nam o A):
+$ ssh -i ~/jump-test.pem -o StrictHostKeyChecking=accept-new -o ProxyCommand="ssh -i ~/jump-test.pem -W %h:%p cirros@$FIP" cirros@$T hostname
+Warning: Permanently added '10.20.0.149' (ED25519) to the list of known hosts.
+target-test
+4e (cong don va go SG tam):
+$ m openstack port show $PORT -c security_group_ids -f value
+['b3eb3225-3e50-4c38-b43f-3823b6022d05', 'f10571e6-d59b-44b6-9d60-cba7fb6223d3']        (campus-app-sg + target-ssh-sg: port set cong don)
+$ m openstack port unset --security-group target-ssh-sg $PORT
+$ ssh -i ~/jump-test.pem cirros@$FIP "echo | nc -w 3 $T 22" | head -c 30
+(khong in gi)      Doi chung: 4d vua chung minh sshd cua VM dich dang chay, nen cong 22 bi SG chan.
+
+--- 5. sshd tren A co cho tv2 chuyen tiep TCP khong (chi doc) ---
+$ sudo sshd -T -C user=tv2,host=h,addr=1.2.3.4 | grep -i allowtcpforwarding
+allowtcpforwarding yes
+
+--- 6. Don ---
+$ m openstack server delete --wait target-test jump-test
+$ m openstack floating ip delete $FIP
+$ m openstack security group delete target-ssh-sg jump-sg
+$ m openstack keypair delete jump-test; rm -f ~/jump-test.pem; ssh-keygen -R $FIP; ssh-keygen -R $T
+$ m openstack server list; m openstack floating ip list; m openstack security group list -c Name
+(server list va floating ip list rong)
+| campus-db-sg  |
+| campus-app-sg |
+| default       |
+
+KET QUA: PASS. Member tao SG, keypair, VM (cirros256), gan FIP; SSH A -> VM nhay -> VM dich qua ProxyCommand (ssh -W) chay duoc qua Dropbear, khoa rieng chi nam o A; port set --security-group cong don, port unset go duoc; campus-app-sg khong mo 22. Khong bi 403 o buoc nao.
+CHUA KIEM: (1) VM dich o host B (B tat; duong L2 A-B qua Geneve da PASS o G1). (2) Chay tu may ca nhan qua A bang -J (moi chung minh sshd cho tv2 chuyen tiep TCP). (3) VM dich Ubuntu (ubuntu-noble-base, user ubuntu): thu voi dich Cirros. (4) Nguoi thu hai them khoa cong khai vao authorized_keys cua VM nhay.

@@ -1,0 +1,45 @@
+Nghiem thu nhan nen H2 cho TV2 - FR-INF-18
+Ngay: 2026-10-27 (UTC).
+
+NGUON DOI CHIEU
+1. evidence/G2/20261027-FR-INF-18-tv2-h2-preflight.txt
+   Commit a6b82f4: output kiem tra thuc te cua tai khoan campus-tv2 tren A.
+2. docs/handoffs/H2-project-mang-flavor-sg-image.md, muc 4.1
+   Nhan tu origin/main 1014bd1; phuong thuc VM nhay duoc bo sung qua PR #5/#6.
+3. evidence/G2/20261027-FR-INF-05-vm-nhay-tam.txt
+   Phuong thuc duoc kiem bang quyen campus-tv2 tren Cirros o AZ-A;
+   nguon evidence do TV1 thuc hien. Khong coi la phep thu moi cua TV2.
+
+DOI CHIEU TIEU CHI NHAN NEN
+- PASS: host key A duoc doi chieu, SSH bang user tv2 vao campus-a thanh cong.
+- PASS: scope Keystone dung user campus-tv2 va project campuslink theo H2.
+- PASS: network, subnet, router, SG, flavor, image va quota da duoc doc va doi chieu.
+- PASS: hai Nova AZ available tai thoi diem kiem tra trong preflight; provider ovn co sau boot A.
+- PASS: 14 resource schema Heat doc duoc; khong thieu thuoc tinh da doi chieu.
+- PASS: keypair Nova campus-tv2 da import, public key khop file .pub local.
+- PASS: da nhan phuong thuc chan doan VM private trong H2 4.1 va evidence kem theo.
+
+PHUONG THUC DA NHAN
+- Dung chung toi da mot VM nhay campus-jump trong campus-net; VM nhay duoc cap FIP.
+- App/DB khong co FIP; khong them route tren A, khong sua SG nen app/DB.
+- Gan SG SSH tam rieng vao port dich de nhan SSH tu SG VM nhay, sau do go va xoa SG tam.
+- Co the doc cloud-init console log qua Nova API ma khong can SSH guest.
+- Kiem tra VM nhay da ton tai truoc khi tao; khong tao nhieu VM nhay trong project.
+- Don VM nhay/FIP truoc khi do scaling theo H2; moi thay doi cloud van can duoc duyet.
+
+GIOI HAN CUA KET LUAN
+- PASS chi ap dung cho nhan nen va dau vao cua giai doan 1 trong ke hoach TV2.
+- Phuong thuc VM nhay da duoc ban giao; chua thu lai tu may ca nhan bang ProxyJump,
+  chua thu dich Ubuntu hoac dich o host B trong pham vi TV2. Cac phep thu nay thuoc giai doan 2.
+- H2 co vi du khoa rieng tren A. Phuong an ket noi tu may ca nhan phai duoc xac minh rieng;
+  khong tu sao chep private key trong luot nghiem thu nay.
+- Khong tu liet ke duoc role assignment (403); role member theo H2. Khong tu cap them quyen.
+- Loi trung lenh openstack metric list van duoc giu trong preflight; doc Gnocchi resource
+  va archive policy da thanh cong. Chua chung minh metric CPU app moi hoac alarm/scaling.
+- H1 va hop dong secret/drain chua co; day la dau vao cac giai doan tich hop ung dung sau.
+- Khong tao VM/LB/Heat stack, khong SSH hoac sua cloud trong luot dong bo tai lieu nay.
+- Preflight la anh chup tai thoi diem kiem tra, khong dai dien trang thai cloud hien tai.
+
+KET LUAN: PASS giai doan 1 - nhan nen H2 va xac minh dau vao TV2.
+Giai doan 2 chua nghiem thu cloud; can kiem quota/trang thai moi truoc trien khai.
+Giu nguyen preflight cu de bao toan lich su muc con cho truoc khi H2 duoc cap nhat.
