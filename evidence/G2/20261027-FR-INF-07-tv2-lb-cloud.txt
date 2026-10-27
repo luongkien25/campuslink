@@ -1,0 +1,787 @@
+# FR-INF-07 — Kiểm chứng lab OVN LB trên cloud
+
+Ngày: 2026-10-27. Tài khoản Linux tv2; OS_CLOUD=campus-tv2; project campuslink.
+Template đã validate thành công qua Heat API với key_name=campus-tv2 trước khi tạo.
+SHA-256 đã đối chiếu local/remote: root.yaml 60cd63ce5ae5938b9919f8914548a3ec8ff583e113c271b3344c1ea95bb9b316; stub-unit.yaml 4bb679367ea9c16641cd6d2819beca91e1782719d5f539c9129f004401d28955; stub.py af9048bbd6a6e449350c808577487f50ee148d47c5827468c3118d3b4368b8ab; sample_lb.py c77e6dedf7ca86d2e592468ac942d191d6c10c9d7a2786e09d88c83de10f68da.
+
+## Tạo stack
+Lệnh trên A: OS_CLOUD=campus-tv2 openstack stack create --template root.yaml --parameter key_name=campus-tv2 --timeout 20 -f json tv2-lb-lab
+Kiểm kê ngay trước tạo: stack list và server list đều rỗng.
+
+Tue Oct 27 14:56:41 UTC 2026
+[]
+[]
+{
+  "id": "88dabbc1-f487-4f26-9554-ced5c1fdb69b",
+  "stack_name": "tv2-lb-lab",
+  "description": "Lab LB voi hai HTTP stub tren hai Nova AZ. Khong trien khai Shlink, readiness ung dung, alarm hoac autoscaling.",
+  "creation_time": "2026-10-27T14:56:46Z",
+  "updated_time": null,
+  "stack_status": "CREATE_IN_PROGRESS",
+  "stack_status_reason": "Stack CREATE started"
+}
+
+## Trạng thái ban đầu (chưa nghiệm thu)
+{
+  "stack_status": "CREATE_IN_PROGRESS",
+  "stack_status_reason": "Stack CREATE started",
+  "outputs": [
+    {
+      "output_key": "lb_id",
+      "description": "No description given",
+      "output_value": "74721d83-07c8-4df2-b753-2f5f9b806cfa"
+    },
+    {
+      "output_key": "app_a_id",
+      "description": "No description given",
+      "output_value": "336d209b-6f5d-4bb7-a3c9-184e2037b7fb"
+    },
+    {
+      "output_key": "app_b_id",
+      "description": "No description given",
+      "output_value": null
+    },
+    {
+      "output_key": "pool_id",
+      "description": "No description given",
+      "output_value": "a9681cb9-b7a1-421e-86ee-059b7c35f854"
+    },
+    {
+      "output_key": "vip_fip",
+      "description": "FIP noi bo OpenStack; truy cap tu A, khong phai IP public AWS.",
+      "output_value": "172.24.4.199"
+    },
+    {
+      "output_key": "vip_address",
+      "description": "No description given",
+      "output_value": "10.20.0.119"
+    }
+  ]
+}
+[
+  {
+    "resource_name": "vip_fip",
+    "physical_resource_id": "eeb089ae-e3a7-47c6-999c-b9e41088f520",
+    "resource_type": "OS::Neutron::FloatingIP",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "app_b",
+    "physical_resource_id": "",
+    "resource_type": "file:///home/tv2/campuslink-tv2-lab/stub-unit.yaml",
+    "resource_status": "INIT_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "app_a",
+    "physical_resource_id": "c40648a5-c078-4fe9-baa8-d223f693e460",
+    "resource_type": "file:///home/tv2/campuslink-tv2-lab/stub-unit.yaml",
+    "resource_status": "CREATE_IN_PROGRESS",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "monitor",
+    "physical_resource_id": "a3c8c316-3b19-4a51-99c2-ee3ff8feb7d6",
+    "resource_type": "OS::Octavia::HealthMonitor",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "pool",
+    "physical_resource_id": "a9681cb9-b7a1-421e-86ee-059b7c35f854",
+    "resource_type": "OS::Octavia::Pool",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "listener",
+    "physical_resource_id": "a1376af3-a690-4241-8bc4-0bf47036733d",
+    "resource_type": "OS::Octavia::Listener",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "lb",
+    "physical_resource_id": "74721d83-07c8-4df2-b753-2f5f9b806cfa",
+    "resource_type": "OS::Octavia::LoadBalancer",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "member",
+    "physical_resource_id": "",
+    "resource_type": "OS::Octavia::PoolMember",
+    "resource_status": "INIT_COMPLETE",
+    "updated_time": "2026-10-27T14:56:53Z",
+    "stack_name": "tv2-lb-lab-app_a-tfokn5iedzca"
+  },
+  {
+    "resource_name": "server",
+    "physical_resource_id": "336d209b-6f5d-4bb7-a3c9-184e2037b7fb",
+    "resource_type": "OS::Nova::Server",
+    "resource_status": "CREATE_IN_PROGRESS",
+    "updated_time": "2026-10-27T14:56:53Z",
+    "stack_name": "tv2-lb-lab-app_a-tfokn5iedzca"
+  },
+  {
+    "resource_name": "config",
+    "physical_resource_id": "6da2b80c-3629-4b02-a66c-c875be8d0b93",
+    "resource_type": "OS::Heat::CloudConfig",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:53Z",
+    "stack_name": "tv2-lb-lab-app_a-tfokn5iedzca"
+  },
+  {
+    "resource_name": "port",
+    "physical_resource_id": "aec9eaff-87ed-4198-96ed-4958fdef03c6",
+    "resource_type": "OS::Neutron::Port",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:53Z",
+    "stack_name": "tv2-lb-lab-app_a-tfokn5iedzca"
+  }
+]
+
+
+
+## Theo dõi tạo stack
+2026-10-27T14:58:06.250281+00:00 CREATE_IN_PROGRESS Stack CREATE started
+2026-10-27T14:58:29.048988+00:00 CREATE_IN_PROGRESS Stack CREATE started
+2026-10-27T14:58:51.783863+00:00 CREATE_IN_PROGRESS Stack CREATE started
+2026-10-27T14:59:14.485067+00:00 CREATE_IN_PROGRESS Stack CREATE started
+2026-10-27T14:59:37.212158+00:00 CREATE_COMPLETE Stack CREATE completed successfully
+{
+  "stack_status": "CREATE_COMPLETE",
+  "stack_status_reason": "Stack CREATE completed successfully",
+  "outputs": [
+    {
+      "output_key": "lb_id",
+      "description": "No description given",
+      "output_value": "74721d83-07c8-4df2-b753-2f5f9b806cfa"
+    },
+    {
+      "output_key": "app_a_id",
+      "description": "No description given",
+      "output_value": "336d209b-6f5d-4bb7-a3c9-184e2037b7fb"
+    },
+    {
+      "output_key": "app_b_id",
+      "description": "No description given",
+      "output_value": "613a2f4c-7c1c-45d4-9456-038fd9beb290"
+    },
+    {
+      "output_key": "pool_id",
+      "description": "No description given",
+      "output_value": "a9681cb9-b7a1-421e-86ee-059b7c35f854"
+    },
+    {
+      "output_key": "vip_fip",
+      "description": "FIP noi bo OpenStack; truy cap tu A, khong phai IP public AWS.",
+      "output_value": "172.24.4.199"
+    },
+    {
+      "output_key": "vip_address",
+      "description": "No description given",
+      "output_value": "10.20.0.119"
+    }
+  ]
+}
+
+## Cấu hình LB thực tế
+Lệnh: openstack loadbalancer show; listener show; pool show; healthmonitor show (UUID trong output).
+{
+  "OS-EXT-AZ:availability_zone": "campus-az-a",
+  "OS-EXT-STS:task_state": null,
+  "addresses": {
+    "campus-net": [
+      "10.20.0.138"
+    ]
+  },
+  "id": "336d209b-6f5d-4bb7-a3c9-184e2037b7fb",
+  "properties": {
+    "campuslink.purpose": "lb-stub"
+  },
+  "status": "ACTIVE"
+}
+{
+  "admin_state_up": true,
+  "availability_zone": null,
+  "created_at": "2026-10-27T14:56:47",
+  "description": "",
+  "flavor_id": null,
+  "id": "74721d83-07c8-4df2-b753-2f5f9b806cfa",
+  "listeners": [
+    {
+      "id": "a1376af3-a690-4241-8bc4-0bf47036733d"
+    }
+  ],
+  "name": "tv2-lb-lab-lb-ckxehrby42gd",
+  "operating_status": "ONLINE",
+  "pools": [
+    {
+      "id": "a9681cb9-b7a1-421e-86ee-059b7c35f854"
+    }
+  ],
+  "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+  "provider": "ovn",
+  "provisioning_status": "ACTIVE",
+  "updated_at": "2026-10-27T14:58:44",
+  "vip_address": "10.20.0.119",
+  "vip_network_id": "18ecc898-663f-4440-9782-bdf1675ba5c9",
+  "vip_port_id": "d5ba48d9-cc83-4444-9489-e47b969b0f53",
+  "vip_qos_policy_id": null,
+  "vip_subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+  "vip_vnic_type": "normal",
+  "vip_sg_ids": [],
+  "tags": [],
+  "additional_vips": []
+}
+{
+  "admin_state_up": true,
+  "connection_limit": -1,
+  "created_at": "2026-10-27T14:56:49",
+  "default_pool_id": "a9681cb9-b7a1-421e-86ee-059b7c35f854",
+  "default_tls_container_ref": null,
+  "description": "",
+  "id": "a1376af3-a690-4241-8bc4-0bf47036733d",
+  "insert_headers": {},
+  "l7policies": [],
+  "loadbalancers": [
+    {
+      "id": "74721d83-07c8-4df2-b753-2f5f9b806cfa"
+    }
+  ],
+  "name": "tv2-lb-lab-listener-vb2ylhdjnyz5",
+  "operating_status": "ONLINE",
+  "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+  "protocol": "TCP",
+  "protocol_port": 8080,
+  "provisioning_status": "ACTIVE",
+  "sni_container_refs": [],
+  "timeout_client_data": 50000,
+  "timeout_member_connect": 5000,
+  "timeout_member_data": 50000,
+  "timeout_tcp_inspect": 0,
+  "updated_at": "2026-10-27T14:58:44",
+  "client_ca_tls_container_ref": null,
+  "client_authentication": "NONE",
+  "client_crl_container_ref": null,
+  "allowed_cidrs": null,
+  "tls_ciphers": null,
+  "tls_versions": null,
+  "alpn_protocols": null,
+  "tags": [],
+  "hsts_max_age": null,
+  "hsts_include_subdomains": false,
+  "hsts_preload": false
+}
+{
+  "admin_state_up": true,
+  "created_at": "2026-10-27T14:56:50",
+  "description": "",
+  "healthmonitor_id": "a3c8c316-3b19-4a51-99c2-ee3ff8feb7d6",
+  "id": "a9681cb9-b7a1-421e-86ee-059b7c35f854",
+  "lb_algorithm": "SOURCE_IP_PORT",
+  "listeners": [
+    {
+      "id": "a1376af3-a690-4241-8bc4-0bf47036733d"
+    }
+  ],
+  "loadbalancers": [
+    {
+      "id": "74721d83-07c8-4df2-b753-2f5f9b806cfa"
+    }
+  ],
+  "members": [
+    {
+      "id": "689156de-78b6-498c-ab70-427c212bff2e"
+    }
+  ],
+  "name": "tv2-lb-lab-pool-6un3zj7jk7jn",
+  "operating_status": "ONLINE",
+  "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+  "protocol": "TCP",
+  "provisioning_status": "ACTIVE",
+  "session_persistence": null,
+  "updated_at": "2026-10-27T14:58:44",
+  "tls_container_ref": null,
+  "ca_tls_container_ref": null,
+  "crl_container_ref": null,
+  "tls_enabled": false,
+  "tls_ciphers": null,
+  "tls_versions": null,
+  "tags": [],
+  "alpn_protocols": null
+}
+{
+  "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+  "name": "",
+  "admin_state_up": true,
+  "pools": [
+    {
+      "id": "a9681cb9-b7a1-421e-86ee-059b7c35f854"
+    }
+  ],
+  "created_at": "2026-10-27T14:56:51",
+  "provisioning_status": "ACTIVE",
+  "updated_at": "2026-10-27T14:56:52",
+  "delay": 5,
+  "expected_codes": null,
+  "max_retries": 3,
+  "http_method": null,
+  "timeout": 3,
+  "max_retries_down": 3,
+  "url_path": null,
+  "type": "TCP",
+  "id": "a3c8c316-3b19-4a51-99c2-ee3ff8feb7d6",
+  "operating_status": "ONLINE",
+  "http_version": null,
+  "domain_name": null,
+  "tags": []
+}
+
+## Hoàn tất tạo stack
+Tue Oct 27 14:59:40 UTC 2026
+[
+  {
+    "ID": "613a2f4c-7c1c-45d4-9456-038fd9beb290",
+    "Name": "tv2-lb-lab-app_b-qco7av4x2wpj-server-f2ijjns5ra2j",
+    "Status": "ACTIVE",
+    "Networks": {
+      "campus-net": [
+        "10.20.0.170"
+      ]
+    },
+    "Image": "ubuntu-noble-base",
+    "Flavor": "campus.app"
+  },
+  {
+    "ID": "336d209b-6f5d-4bb7-a3c9-184e2037b7fb",
+    "Name": "tv2-lb-lab-app_a-tfokn5iedzca-server-tddf3f2g2xo5",
+    "Status": "ACTIVE",
+    "Networks": {
+      "campus-net": [
+        "10.20.0.138"
+      ]
+    },
+    "Image": "ubuntu-noble-base",
+    "Flavor": "campus.app"
+  }
+]
+[
+  {
+    "id": "689156de-78b6-498c-ab70-427c212bff2e",
+    "name": "",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "provisioning_status": "ACTIVE",
+    "address": "10.20.0.138",
+    "protocol_port": 8080,
+    "operating_status": "ONLINE",
+    "weight": 1
+  },
+  {
+    "id": "69f51cc9-c68a-4087-8ed7-b5aaade7c82b",
+    "name": "",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "provisioning_status": "ACTIVE",
+    "address": "10.20.0.170",
+    "protocol_port": 8080,
+    "operating_status": "ERROR",
+    "weight": 1
+  }
+]
+{
+  "stack_status": "CREATE_COMPLETE",
+  "outputs": [
+    {
+      "output_key": "lb_id",
+      "description": "No description given",
+      "output_value": "74721d83-07c8-4df2-b753-2f5f9b806cfa"
+    },
+    {
+      "output_key": "app_a_id",
+      "description": "No description given",
+      "output_value": "336d209b-6f5d-4bb7-a3c9-184e2037b7fb"
+    },
+    {
+      "output_key": "app_b_id",
+      "description": "No description given",
+      "output_value": "613a2f4c-7c1c-45d4-9456-038fd9beb290"
+    },
+    {
+      "output_key": "pool_id",
+      "description": "No description given",
+      "output_value": "a9681cb9-b7a1-421e-86ee-059b7c35f854"
+    },
+    {
+      "output_key": "vip_fip",
+      "description": "FIP noi bo OpenStack; truy cap tu A, khong phai IP public AWS.",
+      "output_value": "172.24.4.199"
+    },
+    {
+      "output_key": "vip_address",
+      "description": "No description given",
+      "output_value": "10.20.0.119"
+    }
+  ]
+}
+
+## Baseline và nhận diện backend
+Lệnh: python3 sample_lb.py http://172.24.4.199:8080/ --expect app-a --expect app-b --requests 40 --timeout 3
+{"utc": "2026-10-27T15:00:22.224899+00:00", "members": [{"id": "689156de-78b6-498c-ab70-427c212bff2e", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.138", "protocol_port": 8080, "operating_status": "ONLINE", "weight": 1}, {"id": "69f51cc9-c68a-4087-8ed7-b5aaade7c82b", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.170", "protocol_port": 8080, "operating_status": "ONLINE", "weight": 1}]}
+BASELINE_40 {
+  "service": "campuslink-lb-stub-sample",
+  "started_utc": "2026-10-27T15:00:22.265868+00:00",
+  "finished_utc": "2026-10-27T15:00:22.355072+00:00",
+  "requests": 40,
+  "counts": {
+    "app-a": 19,
+    "app-b": 21
+  },
+  "errors": {},
+  "missing": [],
+  "passed": true
+}
+ exit 0
+IDENTITY_RESPONSE {"service": "campuslink-lb-stub", "backend": "app-b", "hostname": "tv2-lb-lab-app-b-qco7av4x2wpj-server-f2ijjns5ra2j", "time_utc": "2026-10-27T15:00:22.379321+00:00"}
+IDENTITY_RESPONSE {"service": "campuslink-lb-stub", "backend": "app-a", "hostname": "tv2-lb-lab-app-a-tfokn5iedzca-server-tddf3f2g2xo5", "time_utc": "2026-10-27T15:00:22.385513+00:00"}
+IDENTITY_RESPONSE {"service": "campuslink-lb-stub", "backend": "app-b", "hostname": "tv2-lb-lab-app-b-qco7av4x2wpj-server-f2ijjns5ra2j", "time_utc": "2026-10-27T15:00:22.384890+00:00"}
+IDENTITY_RESPONSE {"service": "campuslink-lb-stub", "backend": "app-a", "hostname": "tv2-lb-lab-app-a-tfokn5iedzca-server-tddf3f2g2xo5", "time_utc": "2026-10-27T15:00:22.390238+00:00"}
+IDENTITY_RESPONSE {"service": "campuslink-lb-stub", "backend": "app-b", "hostname": "tv2-lb-lab-app-b-qco7av4x2wpj-server-f2ijjns5ra2j", "time_utc": "2026-10-27T15:00:22.389237+00:00"}
+IDENTITY_RESPONSE {"service": "campuslink-lb-stub", "backend": "app-a", "hostname": "tv2-lb-lab-app-a-tfokn5iedzca-server-tddf3f2g2xo5", "time_utc": "2026-10-27T15:00:22.394250+00:00"}
+IDENTITY_RESPONSE {"service": "campuslink-lb-stub", "backend": "app-b", "hostname": "tv2-lb-lab-app-b-qco7av4x2wpj-server-f2ijjns5ra2j", "time_utc": "2026-10-27T15:00:22.392408+00:00"}
+IDENTITY_RESPONSE {"service": "campuslink-lb-stub", "backend": "app-a", "hostname": "tv2-lb-lab-app-a-tfokn5iedzca-server-tddf3f2g2xo5", "time_utc": "2026-10-27T15:00:22.397799+00:00"}
+IDENTITY_RESPONSE {"service": "campuslink-lb-stub", "backend": "app-b", "hostname": "tv2-lb-lab-app-b-qco7av4x2wpj-server-f2ijjns5ra2j", "time_utc": "2026-10-27T15:00:22.395958+00:00"}
+IDENTITY_RESPONSE {"service": "campuslink-lb-stub", "backend": "app-a", "hostname": "tv2-lb-lab-app-a-tfokn5iedzca-server-tddf3f2g2xo5", "time_utc": "2026-10-27T15:00:22.400695+00:00"}
+
+## Phương pháp thu failover/recovery
+Bộ thu tạm chạy qua stdin trên A; không thêm file thực thi vào repo. Mỗi mẫu gọi sample_lb.sample với requests=1, expected={app-a,app-b}, timeout=3; chỉ counts/errors được dùng đánh giá HTTP, không dùng missing/passed của một mẫu đơn. Quan sát VM/member bằng CLI trong luồng riêng mỗi 5 giây cộng độ trễ API. Dừng khi VM A SHUTOFF, member A ERROR/OFFLINE, B ONLINE và 5 mẫu B liên tiếp, tối đa 120 giây kể từ trước lệnh stop. Giữ toàn bộ lỗi chuyển tiếp. Đo ổn định B 40 kết nối rồi start lại A trong finally; chờ phục hồi tối đa 300 giây, đo cả hai 40 kết nối. Kiểm UUID/AZ/metadata và output stack trước stop.
+
+## Timeline gây lỗi và phục hồi
+Lệnh thay đổi trạng thái: openstack server stop 336d209b-6f5d-4bb7-a3c9-184e2037b7fb; sau đó openstack server start cùng UUID. Chỉ tác động Nova VM app A; không dừng EC2.
+{"kind": "VERIFY_VM", "utc": "2026-10-27T15:01:18.891864+00:00", "vm": {"OS-EXT-AZ:availability_zone": "campus-az-a", "addresses": {"campus-net": ["10.20.0.138"]}, "id": "336d209b-6f5d-4bb7-a3c9-184e2037b7fb", "name": "tv2-lb-lab-app_a-tfokn5iedzca-server-tddf3f2g2xo5", "properties": {"campuslink.purpose": "lb-stub"}, "status": "ACTIVE"}}
+{"kind": "VERIFY_VM", "utc": "2026-10-27T15:01:20.340618+00:00", "vm": {"OS-EXT-AZ:availability_zone": "campus-az-b", "addresses": {"campus-net": ["10.20.0.170"]}, "id": "613a2f4c-7c1c-45d4-9456-038fd9beb290", "name": "tv2-lb-lab-app_b-qco7av4x2wpj-server-f2ijjns5ra2j", "properties": {"campuslink.purpose": "lb-stub"}, "status": "ACTIVE"}}
+{"kind": "STOP_VM", "utc": "2026-10-27T15:01:20.340695+00:00", "server": "336d209b-6f5d-4bb7-a3c9-184e2037b7fb"}
+{"kind": "TRANSITION_HTTP", "utc": "2026-10-27T15:01:21.844245+00:00", "elapsed_seconds": 1.504, "counts": {"app-b": 1}, "errors": {}}
+{"kind": "TRANSITION_HTTP", "utc": "2026-10-27T15:01:22.839482+00:00", "elapsed_seconds": 2.499, "counts": {"app-b": 1}, "errors": {}}
+{"kind": "TRANSITION_HTTP", "utc": "2026-10-27T15:01:23.851657+00:00", "elapsed_seconds": 3.511, "counts": {"app-b": 1}, "errors": {}}
+{"kind": "FAILOVER_STATE", "utc": "2026-10-27T15:01:24.418582+00:00", "vm": "ACTIVE", "members": [{"id": "689156de-78b6-498c-ab70-427c212bff2e", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.138", "protocol_port": 8080, "operating_status": "ERROR", "weight": 1}, {"id": "69f51cc9-c68a-4087-8ed7-b5aaade7c82b", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.170", "protocol_port": 8080, "operating_status": "ONLINE", "weight": 1}]}
+{"kind": "TRANSITION_HTTP", "utc": "2026-10-27T15:01:24.840268+00:00", "elapsed_seconds": 4.5, "counts": {"app-b": 1}, "errors": {}}
+{"kind": "TRANSITION_HTTP", "utc": "2026-10-27T15:01:25.839553+00:00", "elapsed_seconds": 5.499, "counts": {"app-b": 1}, "errors": {}}
+{"kind": "TRANSITION_HTTP", "utc": "2026-10-27T15:01:26.841122+00:00", "elapsed_seconds": 6.5, "counts": {"app-b": 1}, "errors": {}}
+{"kind": "TRANSITION_HTTP", "utc": "2026-10-27T15:01:27.840335+00:00", "elapsed_seconds": 7.5, "counts": {"app-b": 1}, "errors": {}}
+{"kind": "TRANSITION_HTTP", "utc": "2026-10-27T15:01:28.840997+00:00", "elapsed_seconds": 8.5, "counts": {"app-b": 1}, "errors": {}}
+{"kind": "TRANSITION_HTTP", "utc": "2026-10-27T15:01:29.840431+00:00", "elapsed_seconds": 9.5, "counts": {"app-b": 1}, "errors": {}}
+{"kind": "TRANSITION_HTTP", "utc": "2026-10-27T15:01:30.840441+00:00", "elapsed_seconds": 10.5, "counts": {"app-b": 1}, "errors": {}}
+{"kind": "TRANSITION_HTTP", "utc": "2026-10-27T15:01:31.841561+00:00", "elapsed_seconds": 11.501, "counts": {"app-b": 1}, "errors": {}}
+{"kind": "FAILOVER_STATE", "utc": "2026-10-27T15:01:32.038263+00:00", "vm": "SHUTOFF", "members": [{"id": "689156de-78b6-498c-ab70-427c212bff2e", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.138", "protocol_port": 8080, "operating_status": "ERROR", "weight": 1}, {"id": "69f51cc9-c68a-4087-8ed7-b5aaade7c82b", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.170", "protocol_port": 8080, "operating_status": "ONLINE", "weight": 1}]}
+{"kind": "TRANSITION_HTTP", "utc": "2026-10-27T15:01:32.840811+00:00", "elapsed_seconds": 12.5, "counts": {"app-b": 1}, "errors": {}}
+{"kind": "TRANSITION_SUMMARY", "utc": "2026-10-27T15:01:32.840869+00:00", "converged": true, "samples": 12, "http_errors": 0, "elapsed_seconds": 12.5}
+{"kind": "FAILOVER_STABLE_40", "utc": "2026-10-27T15:01:32.942402+00:00", "result": {"service": "campuslink-lb-stub-sample", "started_utc": "2026-10-27T15:01:32.840900+00:00", "finished_utc": "2026-10-27T15:01:32.942378+00:00", "requests": 40, "counts": {"app-b": 40}, "errors": {}, "missing": [], "passed": true}}
+{"kind": "START_VM", "utc": "2026-10-27T15:01:32.942444+00:00", "server": "336d209b-6f5d-4bb7-a3c9-184e2037b7fb"}
+{"kind": "RECOVERY_STATE", "utc": "2026-10-27T15:01:36.935934+00:00", "vm": {"status": "SHUTOFF"}, "members": [{"id": "689156de-78b6-498c-ab70-427c212bff2e", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.138", "protocol_port": 8080, "operating_status": "ERROR", "weight": 1}, {"id": "69f51cc9-c68a-4087-8ed7-b5aaade7c82b", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.170", "protocol_port": 8080, "operating_status": "ONLINE", "weight": 1}]}
+{"kind": "RECOVERY_STATE", "utc": "2026-10-27T15:01:44.595309+00:00", "vm": {"status": "SHUTOFF"}, "members": [{"id": "689156de-78b6-498c-ab70-427c212bff2e", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.138", "protocol_port": 8080, "operating_status": "ERROR", "weight": 1}, {"id": "69f51cc9-c68a-4087-8ed7-b5aaade7c82b", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.170", "protocol_port": 8080, "operating_status": "ONLINE", "weight": 1}]}
+{"kind": "RECOVERY_STATE", "utc": "2026-10-27T15:01:52.301126+00:00", "vm": {"status": "ACTIVE"}, "members": [{"id": "689156de-78b6-498c-ab70-427c212bff2e", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.138", "protocol_port": 8080, "operating_status": "ERROR", "weight": 1}, {"id": "69f51cc9-c68a-4087-8ed7-b5aaade7c82b", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.170", "protocol_port": 8080, "operating_status": "ONLINE", "weight": 1}]}
+{"kind": "RECOVERY_STATE", "utc": "2026-10-27T15:01:59.884632+00:00", "vm": {"status": "ACTIVE"}, "members": [{"id": "689156de-78b6-498c-ab70-427c212bff2e", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.138", "protocol_port": 8080, "operating_status": "ERROR", "weight": 1}, {"id": "69f51cc9-c68a-4087-8ed7-b5aaade7c82b", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.170", "protocol_port": 8080, "operating_status": "ONLINE", "weight": 1}]}
+{"kind": "RECOVERY_STATE", "utc": "2026-10-27T15:02:07.502167+00:00", "vm": {"status": "ACTIVE"}, "members": [{"id": "689156de-78b6-498c-ab70-427c212bff2e", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.138", "protocol_port": 8080, "operating_status": "ERROR", "weight": 1}, {"id": "69f51cc9-c68a-4087-8ed7-b5aaade7c82b", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.170", "protocol_port": 8080, "operating_status": "ONLINE", "weight": 1}]}
+{"kind": "RECOVERY_STATE", "utc": "2026-10-27T15:02:15.123228+00:00", "vm": {"status": "ACTIVE"}, "members": [{"id": "689156de-78b6-498c-ab70-427c212bff2e", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.138", "protocol_port": 8080, "operating_status": "ONLINE", "weight": 1}, {"id": "69f51cc9-c68a-4087-8ed7-b5aaade7c82b", "name": "", "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84", "provisioning_status": "ACTIVE", "address": "10.20.0.170", "protocol_port": 8080, "operating_status": "ONLINE", "weight": 1}]}
+{"kind": "RECOVERY_40", "utc": "2026-10-27T15:02:15.201026+00:00", "result": {"service": "campuslink-lb-stub-sample", "started_utc": "2026-10-27T15:02:15.123316+00:00", "finished_utc": "2026-10-27T15:02:15.201002+00:00", "requests": 40, "counts": {"app-a": 19, "app-b": 21}, "errors": {}, "missing": [], "passed": true}}
+{"kind": "FINAL_RESULT", "utc": "2026-10-27T15:02:15.201062+00:00", "failover_passed": true, "recovery_passed": true}
+
+## UUID tài nguyên giữ lại
+Lệnh: openstack stack resource list 88dabbc1-f487-4f26-9554-ced5c1fdb69b --nested-depth 2 -f json; openstack floating ip list -f json; openstack port list -f json.
+Tue Oct 27 15:02:00 UTC 2026
+[
+  {
+    "resource_name": "vip_fip",
+    "physical_resource_id": "eeb089ae-e3a7-47c6-999c-b9e41088f520",
+    "resource_type": "OS::Neutron::FloatingIP",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "app_b",
+    "physical_resource_id": "2b561994-70be-4ac2-b796-f5764eb2bae0",
+    "resource_type": "file:///home/tv2/campuslink-tv2-lab/stub-unit.yaml",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "app_a",
+    "physical_resource_id": "c40648a5-c078-4fe9-baa8-d223f693e460",
+    "resource_type": "file:///home/tv2/campuslink-tv2-lab/stub-unit.yaml",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "monitor",
+    "physical_resource_id": "a3c8c316-3b19-4a51-99c2-ee3ff8feb7d6",
+    "resource_type": "OS::Octavia::HealthMonitor",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "pool",
+    "physical_resource_id": "a9681cb9-b7a1-421e-86ee-059b7c35f854",
+    "resource_type": "OS::Octavia::Pool",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "listener",
+    "physical_resource_id": "a1376af3-a690-4241-8bc4-0bf47036733d",
+    "resource_type": "OS::Octavia::Listener",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "lb",
+    "physical_resource_id": "74721d83-07c8-4df2-b753-2f5f9b806cfa",
+    "resource_type": "OS::Octavia::LoadBalancer",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "member",
+    "physical_resource_id": "69f51cc9-c68a-4087-8ed7-b5aaade7c82b",
+    "resource_type": "OS::Octavia::PoolMember",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:58:14Z",
+    "stack_name": "tv2-lb-lab-app_b-qco7av4x2wpj"
+  },
+  {
+    "resource_name": "server",
+    "physical_resource_id": "613a2f4c-7c1c-45d4-9456-038fd9beb290",
+    "resource_type": "OS::Nova::Server",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:58:14Z",
+    "stack_name": "tv2-lb-lab-app_b-qco7av4x2wpj"
+  },
+  {
+    "resource_name": "config",
+    "physical_resource_id": "eedd8ac0-f7d1-44b9-b4b0-ebd9873866fb",
+    "resource_type": "OS::Heat::CloudConfig",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:58:14Z",
+    "stack_name": "tv2-lb-lab-app_b-qco7av4x2wpj"
+  },
+  {
+    "resource_name": "port",
+    "physical_resource_id": "00803da6-b263-4bee-9ae4-dbc34166dbc6",
+    "resource_type": "OS::Neutron::Port",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:58:14Z",
+    "stack_name": "tv2-lb-lab-app_b-qco7av4x2wpj"
+  },
+  {
+    "resource_name": "member",
+    "physical_resource_id": "689156de-78b6-498c-ab70-427c212bff2e",
+    "resource_type": "OS::Octavia::PoolMember",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:53Z",
+    "stack_name": "tv2-lb-lab-app_a-tfokn5iedzca"
+  },
+  {
+    "resource_name": "server",
+    "physical_resource_id": "336d209b-6f5d-4bb7-a3c9-184e2037b7fb",
+    "resource_type": "OS::Nova::Server",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:53Z",
+    "stack_name": "tv2-lb-lab-app_a-tfokn5iedzca"
+  },
+  {
+    "resource_name": "config",
+    "physical_resource_id": "6da2b80c-3629-4b02-a66c-c875be8d0b93",
+    "resource_type": "OS::Heat::CloudConfig",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:53Z",
+    "stack_name": "tv2-lb-lab-app_a-tfokn5iedzca"
+  },
+  {
+    "resource_name": "port",
+    "physical_resource_id": "aec9eaff-87ed-4198-96ed-4958fdef03c6",
+    "resource_type": "OS::Neutron::Port",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:53Z",
+    "stack_name": "tv2-lb-lab-app_a-tfokn5iedzca"
+  }
+]
+[
+  {
+    "ID": "eeb089ae-e3a7-47c6-999c-b9e41088f520",
+    "Floating IP Address": "172.24.4.199",
+    "Fixed IP Address": "10.20.0.119",
+    "Port": "d5ba48d9-cc83-4444-9489-e47b969b0f53",
+    "Floating Network": "88b4d52a-cf80-4758-a340-445b37d8bb8c",
+    "Project": "07af3a3dd4c24d1ba028efcb6d28ef84"
+  }
+]
+[
+  {
+    "ID": "00803da6-b263-4bee-9ae4-dbc34166dbc6",
+    "Name": "tv2-lb-lab-app_b-qco7av4x2wpj-port-aesuzkuqc2ie",
+    "MAC Address": "fa:16:3e:c5:85:ed",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+        "ip_address": "10.20.0.170"
+      }
+    ],
+    "Status": "ACTIVE"
+  },
+  {
+    "ID": "1512368b-5d13-445e-80b1-d64efbcd8665",
+    "Name": "",
+    "MAC Address": "fa:16:3e:b5:ee:d6",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+        "ip_address": "10.20.0.1"
+      }
+    ],
+    "Status": "ACTIVE"
+  },
+  {
+    "ID": "4f99adb9-d743-4ed1-b7fe-af0e0e2f99da",
+    "Name": "ovn-lb-hm-59399337-e22b-4237-87dd-bf4ac035bcfa",
+    "MAC Address": "fa:16:3e:2e:54:f5",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+        "ip_address": "10.20.0.112"
+      }
+    ],
+    "Status": "DOWN"
+  },
+  {
+    "ID": "7df6ea1d-2e8c-46d5-99b9-e121855d81b5",
+    "Name": "campus-db-port",
+    "MAC Address": "fa:16:3e:7e:4c:96",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+        "ip_address": "10.20.0.10"
+      }
+    ],
+    "Status": "DOWN"
+  },
+  {
+    "ID": "88a7dafa-88b5-42a8-80bd-62a5c6216ab9",
+    "Name": "",
+    "MAC Address": "fa:16:3e:95:39:a1",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+        "ip_address": "10.20.0.100"
+      }
+    ],
+    "Status": "DOWN"
+  },
+  {
+    "ID": "aec9eaff-87ed-4198-96ed-4958fdef03c6",
+    "Name": "tv2-lb-lab-app_a-tfokn5iedzca-port-b3qcyr4kizp6",
+    "MAC Address": "fa:16:3e:71:72:2a",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+        "ip_address": "10.20.0.138"
+      }
+    ],
+    "Status": "ACTIVE"
+  },
+  {
+    "ID": "d5ba48d9-cc83-4444-9489-e47b969b0f53",
+    "Name": "ovn-lb-vip-74721d83-07c8-4df2-b753-2f5f9b806cfa",
+    "MAC Address": "fa:16:3e:ab:68:d3",
+    "Fixed IP Addresses": [
+      {
+        "subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+        "ip_address": "10.20.0.119"
+      }
+    ],
+    "Status": "DOWN"
+  }
+]
+
+
+## Trạng thái cuối — giữ lab
+Tue Oct 27 15:03:11 UTC 2026
+{
+  "stack_status": "CREATE_COMPLETE",
+  "stack_status_reason": "Stack CREATE completed successfully"
+}
+[
+  {
+    "ID": "613a2f4c-7c1c-45d4-9456-038fd9beb290",
+    "Name": "tv2-lb-lab-app_b-qco7av4x2wpj-server-f2ijjns5ra2j",
+    "Status": "ACTIVE",
+    "Networks": {
+      "campus-net": [
+        "10.20.0.170"
+      ]
+    },
+    "Image": "ubuntu-noble-base",
+    "Flavor": "campus.app"
+  },
+  {
+    "ID": "336d209b-6f5d-4bb7-a3c9-184e2037b7fb",
+    "Name": "tv2-lb-lab-app_a-tfokn5iedzca-server-tddf3f2g2xo5",
+    "Status": "ACTIVE",
+    "Networks": {
+      "campus-net": [
+        "10.20.0.138"
+      ]
+    },
+    "Image": "ubuntu-noble-base",
+    "Flavor": "campus.app"
+  }
+]
+{
+  "id": "74721d83-07c8-4df2-b753-2f5f9b806cfa",
+  "operating_status": "ONLINE",
+  "provider": "ovn",
+  "provisioning_status": "ACTIVE"
+}
+[
+  {
+    "id": "689156de-78b6-498c-ab70-427c212bff2e",
+    "name": "",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "provisioning_status": "ACTIVE",
+    "address": "10.20.0.138",
+    "protocol_port": 8080,
+    "operating_status": "ONLINE",
+    "weight": 1
+  },
+  {
+    "id": "69f51cc9-c68a-4087-8ed7-b5aaade7c82b",
+    "name": "",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "provisioning_status": "ACTIVE",
+    "address": "10.20.0.170",
+    "protocol_port": 8080,
+    "operating_status": "ONLINE",
+    "weight": 1
+  }
+]
+
+## Kết luận
+PASS trong phạm vi lab HTTP stub FR-INF-07: stack CREATE_COMPLETE, hai VM đúng AZ; OVN/TCP8080/SOURCE_IP_PORT/TCP monitor; FIP duy nhất gắn VIP, app VM chỉ có IP private. Baseline 40: A19/B21, lỗi0; chuyển tiếp 12 mẫu, lỗi0; xác nhận điều kiện hội tụ sau12,5giây (mốc trước stop đến mẫu cuối, không phải downtime chính xác). Sau hội tụ40: B40, lỗi0. Sau start khoảng42,2giây quan sát cả hai ONLINE; recovery40: A19/B21, lỗi0.
+Capture phản hồi HTTP gồm backend/hostname đã đối chiếu Nova UUID/AZ; chưa thu guest journal hoặc packet capture trong guest. Không nghiệm thu SSH guest, Shlink, DB/Redis, ingress TLS, autoscaling hoặc HA của toàn hệ thống từ phép thử này. Không tạo jump, không đổi SG/network nền, không tác động EC2.
+Giữ stack 88dabbc1-f487-4f26-9554-ced5c1fdb69b, hai VM, LB/member/port và FIP để review/demo. Không tự xóa lab; giữ tài nguyên không có nghĩa giữ EC2 chạy liên tục.
+
+Kiểm thử local độc lập với evidence cloud: /tmp/campuslink-tv2-venv/bin/python -B -m unittest discover -s infra/heat/lab/tests -v; 15 tests, 7.297s, OK. Không sửa code/tests trong lượt triển khai; README cập nhật thao tác VM và giới hạn phép thử.

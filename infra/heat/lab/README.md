@@ -70,7 +70,7 @@ openstack --version
 
 Nếu CLI không nằm trong PATH, kiểm tra đường dẫn CLI theo H2 và `ops/ai-snapshot.sh`. Không source `openrc` hoặc dùng credential admin. Không đọc/in `clouds.yaml`, private key hoặc cấu hình dịch vụ chứa secret.
 
-### Xác minh CLI và schema — chưa kiểm trên cụm
+### Xác minh CLI và schema
 
 Chạy `--help` trên CLI đã cài trước khi sử dụng cú pháp dưới đây. Không tiếp tục nếu thiếu plugin hoặc bị 403; chuyển lỗi về phần quản trị nền.
 
@@ -98,7 +98,7 @@ openstack image show ubuntu-noble-base -c status
 openstack loadbalancer provider list
 ```
 
-Kiểm tra schema cho `OS::Octavia::LoadBalancer`, `OS::Octavia::Listener`, `OS::Octavia::Pool`, `OS::Octavia::HealthMonitor`, `OS::Octavia::PoolMember`, `OS::Neutron::Port`, `OS::Neutron::FloatingIP`, `OS::Nova::Server` và `OS::Heat::CloudConfig`. Ví dụ — **chưa kiểm trên cụm**:
+Kiểm tra schema cho `OS::Octavia::LoadBalancer`, `OS::Octavia::Listener`, `OS::Octavia::Pool`, `OS::Octavia::HealthMonitor`, `OS::Octavia::PoolMember`, `OS::Neutron::Port`, `OS::Neutron::FloatingIP`, `OS::Nova::Server` và `OS::Heat::CloudConfig`. Ví dụ:
 
 ```bash
 openstack orchestration resource type show OS::Octavia::LoadBalancer
@@ -117,7 +117,7 @@ scp infra/heat/lab/root.yaml infra/heat/lab/stub-unit.yaml infra/heat/lab/stub.p
 
 Không cần cài PyYAML lên A để chạy stub hoặc sampler. Môi trường OpenStack CLI trên A phải do phần quản trị nền cung cấp.
 
-## Tạo và kiểm tra stack — chưa kiểm trên cụm
+## Tạo và kiểm tra stack
 
 Sau khi đối chiếu `--help` và schema, chạy từ thư mục `~/campuslink-tv2-lab` trên A. Thay `REPLACE_KEYPAIR_NAME` bằng keypair thật. Chưa tạo tài nguyên ở bước validate:
 
@@ -131,12 +131,12 @@ Validate thành công không chứng minh cloud-init hoặc backend đã hoạt 
 Lệnh tiếp theo **tạo hai VM, LB, listener, pool, monitor, member, port và một FIP**, chỉ thực hiện sau khi duyệt:
 
 ```bash
-openstack stack create --template root.yaml --parameter key_name=REPLACE_KEYPAIR_NAME --wait tv2-lb-lab
+openstack stack create --template root.yaml --parameter key_name=REPLACE_KEYPAIR_NAME --timeout 20 tv2-lb-lab
 ```
 
 Không dán lệnh tạo hai lần. Ghi UUID stack; các thao tác tiếp theo dùng UUID, không dựa vào tên có thể trùng.
 
-Sau khi tạo, đặt các biến bằng UUID đọc từ output thật. Lệnh đọc trạng thái/output — **chưa kiểm trên cụm**:
+Sau khi gửi yêu cầu tạo, đặt các biến bằng UUID đọc từ output thật. Theo dõi trạng thái cho đến `CREATE_COMPLETE` hoặc `CREATE_FAILED`; không chạy phép thử traffic khi stack còn đang tạo:
 
 ```bash
 LAB_STACK_ID=REPLACE_STACK_UUID
@@ -172,13 +172,36 @@ Kết quả là JSON có thời điểm UTC, số request, `counts`, `errors`, `
 
 `--timeout` là timeout socket theo thao tác I/O, không phải giới hạn tổng thời gian một lượt chạy. Mỗi response được đọc tối đa 4097 byte và bị từ chối nếu lớn hơn 4096 byte. Không yêu cầu tỷ lệ traffic đúng 50/50.
 
-Để kiểm lỗi backend, dùng phương thức quản trị VM đã được thống nhất để **dừng service `campuslink-stub` trong một VM thử**, giữ host EC2 hoạt động. Đây là thao tác thay đổi trạng thái, cần duyệt; không tự suy đoán đường SSH guest.
+Để kiểm lỗi backend, **dừng rồi bật lại Nova VM app A của đúng stack lab**, giữ hai host EC2 hoạt động. Phép thử này không cần SSH vào guest hoặc VM nhảy. Đọc UUID từ output `app_a_id`, đối chiếu resource của stack và metadata `campuslink.purpose=lb-stub` trước khi thao tác. Đây là thay đổi trạng thái, cần duyệt phạm vi trước khi chạy.
 
-1. Ghi thời điểm UTC trước khi gây lỗi và theo dõi LB/member trong thời gian monitor hội tụ; giữ cả lỗi chuyển tiếp trong kết quả.
-2. Sau khi backend bị loại, chạy sampler với `--expect` chỉ backend còn sống. Đối chiếu trạng thái member để phân biệt failover với thiếu phân phối.
-3. Khởi động lại service sau khi duyệt, chờ phục hồi; chạy lại sampler với cả hai backend.
+```bash
+LAB_APP_A_ID=REPLACE_APP_A_UUID
+openstack server show "$LAB_APP_A_ID"
+openstack server stop "$LAB_APP_A_ID"
+# Chi bat lai sau khi da thu du ket qua failover.
+openstack server start "$LAB_APP_A_ID"
+```
+
+1. Trước khi dừng VM, chạy 40 kết nối mới với cả hai nhãn; yêu cầu không lỗi và thấy đủ backend.
+2. Ghi thời điểm UTC trước khi gây lỗi, lấy mẫu HTTP từng kết nối khoảng một lần/giây và theo dõi VM/member tối đa 120 giây; giữ cả lỗi chuyển tiếp trong kết quả.
+3. Khi VM A đã dừng và member A bị loại, chạy 40 kết nối mới với `--expect app-b`; yêu cầu không lỗi. Không dùng cờ `passed` của sampler một request với hai nhãn để suy ra lỗi HTTP, vì một request không thể thấy cả hai backend.
+4. Bật lại đúng VM cũ, chờ phục hồi tối đa 5 phút; chạy lại 40 kết nối với cả hai nhãn và yêu cầu không lỗi.
+
+Nếu hết thời gian chờ mà chưa đạt, lưu trạng thái và log thực tế; không đổi tiêu chí hoặc tạo VM thay thế. Sau phép thử phải xác nhận cả hai backend đã hoạt động lại. Giữ lab để review nếu đó là phạm vi đã duyệt; việc giữ stack không yêu cầu giữ EC2 chạy liên tục.
 
 Đối chiếu response nhận diện với UUID/AZ và log của từng VM. Lưu output thật đã che vào evidence theo gate hiện tại; không tạo evidence từ dữ liệu giả của tests local.
+
+### Kết quả kiểm chứng
+
+[Evidence ngày 27/10/2026](../../../evidence/G2/20261027-FR-INF-07-tv2-lb-cloud.txt) ghi nhận Heat validate và tạo stack thành công trên DevStack stable/2026.1 bằng quyền member. Hai Ubuntu VM nằm đúng hai AZ; LB dùng provider `ovn`, listener TCP 8080, pool `SOURCE_IP_PORT` và TCP monitor.
+
+| Phép đo | Kết quả |
+| --- | --- |
+| Bình thường, 40 kết nối mới | app-a: 19; app-b: 21; không lỗi |
+| Sau khi dừng VM app A, 40 kết nối mới | app-b: 40; không lỗi |
+| Sau khi bật lại app A, 40 kết nối mới | app-a: 19; app-b: 21; không lỗi |
+
+Bộ thu ghi 12 mẫu HTTP chuyển tiếp, không gặp lỗi; điều kiện VM A `SHUTOFF`, member A `ERROR`, member B `ONLINE` được xác nhận sau khoảng 12,5 giây từ trước lệnh stop. Sau lệnh start, cả hai member được quan sát `ONLINE` sau khoảng 42,2 giây. Đây là kết quả của một lượt lấy mẫu, không phải giới hạn downtime hoặc cam kết SLO. Capture HTTP chứa nhãn và hostname từng guest, đối chiếu với UUID/AZ qua Nova; chưa thu journal hoặc packet capture bên trong guest. Phép thử không bao gồm SSH guest, ingress Nginx, Shlink hoặc autoscaling.
 
 ## Dọn lab — chưa kiểm trên cụm
 
