@@ -45,7 +45,7 @@ nova-compute    campus-b  campus-az-b  enabled  DOWN  2026-10-27T07:49:30Z   (B 
 $ a openstack network agent list
 OVN Neutron agent           campus-a  Alive :-)  UP  neutron-ovn-agent
 OVN Controller Gateway agent campus-a  Alive :-)  UP  ovn-controller
-(chi 2 dong cua A; B vang khi B tat. Du kien 4 dong khi ca hai may bat (HANDOFF muc 19); chua co output nao ghi nhan duoc con so nay.)
+(chi 2 dong cua A; 2 dong cua B (OVN Controller agent, OVN Neutron agent) vang khi B tat. Khi ca hai may bat da thay du 4 dong True True: evidence G1 20261024-FR-INF-03-04-az-campus-net-vm-thu.txt va 20261025-FR-INF-19-stop-start-lan-2-loi-sau-boot-va-sua-ben.txt.)
 $ a openstack volume service list
 cinder-scheduler  campus-a              nova  enabled  up
 cinder-volume     campus-a@lvmdriver-1  nova  enabled  up
@@ -63,5 +63,5 @@ f43fbbd2-b85f-4bb1-b403-ba54a2f84189  campus-db-data  available  10 GiB  (khong 
 GHI CHU:
 1. Ten NVMe DAO CHO lan nua: lan nay root la nvme0n1, Cinder la nvme1n1 (23/10 thi nguoc lai). VG van len binh thuong, nen global_filter LVM khong bi ten thiet bi lam hong. Luon dung /dev/disk/by-id.
 2. Heartbeat cuoi cua nova-compute B la 07:49:30Z 27/10: B da chay trong ngay va tat luc khoang 07:49Z. Can ghi gio do vao issue #4 (Nhat ky cloud) neu chua co.
-3. network agent list chi con 2 dong cua A khi B tat. Chua kiem vi sao dong cua B bien mat han thay vi bao chet. Khi bat B, ghi lai so dong that (du kien 4) vao evidence kem theo.
+3. network agent list chi con 2 dong cua A khi B tat; 2 dong cua B khong hien (khong hien trang thai chet). Da thay du 4 dong khi ca hai may bat (24/10 va 25/10). Chua kiem vi sao dong cua B bien mat han thay vi bao chet; khi bat B phai thay lai 4 dong.
 KET QUA: PASS cho cac muc kiem duoc (2, 3, 4, 5 phan A, 7). CHUA KIEM: muc 1 (AWS 2/2), 6 (B), 8 (DB VM), 9 (LB), 10 (ingress), 11 (telemetry), bang truoc/sau FR-INF-19.
