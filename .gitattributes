@@ -1,7 +1,8 @@
 # Repo duoc commit tu Windows nhung script chay tren Linux: giu LF de bash khong loi "\r".
 * text=auto
 *.sh text eol=lf
-ops/campus-nat text eol=lf
+# 31/10: moi file trong ops/ deu chay/cai tren Linux (campus-check, campus-br-ex, octavia.tmpfiles.conf truoc day ra CRLF tren Windows)
+ops/** text eol=lf
 *.service text eol=lf
 *.yaml text eol=lf
 *.example text eol=lf
