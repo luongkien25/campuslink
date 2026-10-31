@@ -111,7 +111,18 @@ Khi máy tắt vẫn tốn (ước tính, ⚠️ chưa kiểm bằng AWS Pricing
 
 Chạy cả A và B khoảng 0,6 USD/giờ. Đơn giá B (0,2016) suy ra bằng nửa giá A, chưa thấy trực tiếp trong console.
 
-Credit còn lại: **129,57 USD** (TV1 đọc ở Billing → Credits ngày 24/10/2026; 22/10 là 131,38 USD, giảm 1,81 USD). ⚠️ Billing có thể trễ đến 24 giờ nên số này chưa chắc đã tính đủ các lần chạy máy.
+## Theo dõi credit (ghi một dòng sau mỗi phiên cloud, sau khi tắt máy)
+
+Đọc ở Billing → Credits, cột **Total estimated amount remaining**. Số này cập nhật khoảng 24 giờ một lần nên phiên vừa chạy có thể chưa được tính. Tổng credit đang hiệu lực: 140,00 USD (đọc 26/10); khoản 60 USD chưa nhận không tính ở đây. Giờ chạy từng máy lấy từ issue "Nhật ký cloud".
+
+| Ngày đọc | Còn lại (ước tính, USD) | Chênh | Phiên cloud nằm giữa hai lần đọc |
+|---|---|---|---|
+| 22/10 | 131,38 | — | chưa chạy EC2 |
+| 24/10 | 129,57 | −1,81 | 23/10: A 2,45 giờ + B 1,67 giờ (bảng trên) |
+| 26/10 | 125,58 | −3,99 | 24/10 (giờ chạy chưa có trong issue) và 25/10 (A từ 07:50Z, Stop khoảng 09:23Z theo TV1 báo). Phiên 26/10 chưa được tính |
+| 27/10 (cuối phiên, ~22:00 giờ VN) | 123,79 | −1,79 | 26/10 (A từ 01:49Z, Stop sau 03:05Z, B nhiều khả năng không bật). Chưa tính phiên TV2 sáng 27/10 (A từ 07:27Z, B đến khoảng 07:49Z) và phiên TV1 tối 27/10 (A 13:00Z đến 13:57Z) vì số cập nhật khoảng 24 giờ một lần |
+
+Cùng ngày 26/10, cột đã chốt hóa đơn: còn 135,33, đã dùng 4,67 (chỉ cập nhật khi hóa đơn tháng chốt). Ngày 27/10 vẫn còn 135,33, đã dùng 4,67; cột ước tính đã dùng 16,21. ⚠️ Hai lần đọc đầu (22/10, 24/10) được suy ra là cột ước tính, chưa kiểm.
 
 Còn thiếu (điền tay, không suy ra): số liệu thực tế từ Cost Explorer sau khoảng 24 giờ để đối chiếu bảng này.
 
