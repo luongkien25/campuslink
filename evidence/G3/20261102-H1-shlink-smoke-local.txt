@@ -1,0 +1,104 @@
+Evidence H1 (G3, issue #11): smoke hop dong Shlink 5.1.8 tren Compose LOCAL, 2 replica dung chung PostgreSQL 16 + Redis 7.0
+Ngay: 2026-11-02 (UTC ~14:15-14:45). May ca nhan cua TV3, Docker Desktop 29.8.1, 16 CPU. Claude Code chay lenh, TV3 xem.
+Cau hinh: app/compose/compose.yaml (profile hai-replica), Shlink doc nguyen hop dong app/shlink.env.example,
+chi ghi de DEFAULT_DOMAIN=localhost:18080, IS_HTTPS_ENABLED=false, DB_HOST=postgres.
+Secret: sinh ngau nhien bang app/compose/gen-secrets.sh, chi dung local; API key luu trong app/compose/secrets/ (gitignore), khong in ra.
+GIOI HAN: day KHONG phai cum. So do tren may manh; chua kiem tren guest 1 vCPU/2 GiB, chua qua Nginx/TLS/Octavia.
+
+== 1. Digest (docs/versions.lock)
+$ docker buildx imagetools inspect shlinkio/shlink:5.1.8
+Name:      docker.io/shlinkio/shlink:5.1.8
+MediaType: application/vnd.oci.image.index.v1+json
+Digest:    sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee
+  linux/arm64  sha256:c1b363e945602b51e139ad73baf5d7f01e50bf67b1ecf617045fa98deb04fb48
+  linux/amd64  sha256:9083dc4ba2b682c43e1a477b69ef451738253fc8ad680db072663ea68530a973
+$ docker image inspect shlinkio/shlink:5.1.8 --format '{{json .RepoDigests}}'
+["shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee"]
+Trong image: SHLINK_VERSION=5.1.8 SHLINK_RUNTIME=rr; RoadRunner 3.0.1.
+
+== 2. Khoi dong (migration trong entrypoint)
+Log replica A (lan dau, DB rong) va replica B (khoi dong sau khi A healthy) deu:
+Initializing database if needed... Success!
+Updating database... Success!
+Generating proxies... Success!
+Clearing entities cache... Success!
+[INFO] RoadRunner server started; version: 3.0.1
+Trong container chi co ten bien DB_PASSWORD_FILE, REDIS_SERVERS_FILE (khong co DB_PASSWORD/REDIS_SERVERS thuong); uid 1001.
+So tien trinh roadrunner-worker: 2 (WEB_WORKER_NUM=1 + TASK_WORKER_NUM=1).
+
+== 3. Redis PING co xac thuc (probe FR-INF-09), Redis 7.0.15, appendonly=yes
+REDISCLI_AUTH=<tu file> redis-cli ping   -> PONG
+redis-cli ping (khong mat khau)          -> NOAUTH Authentication required.
+redis-cli -a <sai> ping                   -> WRONGPASS invalid username-password pair or user is disabled.
+Sau vai request: Redis co 7 key "campuslink-v5:*" (Shlink dung Redis lam cache, dung CACHE_NAMESPACE).
+
+== 4. Smoke app/smoke/h1-smoke.sh (A=:18080, B=:18081)
+run_id=20261102T143324Z A=http://127.0.0.1:18080 B=http://127.0.0.1:18081 slug=tv3-smoke-20261102t143324z
+== health
+PASS  FR-APP-11  health A  (=200 pass)
+PASS  FR-APP-11  health B  (=200 pass)
+PASS  FR-INF-09  Redis PING co xac thuc  (=PONG)
+== API key
+PASS  FR-APP-07  POST khong key  (=401)
+PASS  FR-APP-07  POST key sai  (=401)
+== tao, trung slug, 404
+PASS  FR-APP-01  POST tao link  (=200)
+PASS  FR-APP-01  shortUrl dung domain  (=http://localhost:18080/tv3-smoke-20261102t143324z)
+PASS  FR-APP-12  tao trung slug  (=400 non-unique-slug)
+PASS  FR-APP-12  slug khong ton tai  (=404)
+== redirect, sua, nhat quan 2 replica
+PASS  FR-APP-02  GET qua A  (=302 https://example.org/?campus=20261102T143324Z)
+PASS  FR-APP-02  GET qua B (cache truoc khi sua)  (=302 https://example.org/?campus=20261102T143324Z)
+PASS  FR-APP-03  PATCH qua A  (=200)
+PASS  NFR-12  GET qua B sau PATCH o A  (=302 https://example.org/?campus=updated-20261102T143324Z)
+PASS  NFR-12  GET qua A sau PATCH  (=302 https://example.org/?campus=updated-20261102T143324Z)
+== visit (task nen ghi bat dong bo)
+PASS  FR-APP-04  so visit = so GET  (=24)
+INFO  FR-APP-04  visit du sau .039338955s ke tu GET cuoi
+== tag
+PASS  FR-APP-05  tags/stats co campus-smoke, co link va visit  (=true true)
+== author-only
+PASS  FR-APP-08  key don vi A tao link  (=200)
+PASS  FR-APP-08  key A doc link cua A  (=200)
+PASS  FR-APP-08  key B doc link cua A  (=404)
+PASS  FR-APP-08  danh sach cua key B khong co link A  (=0)
+PASS  FR-APP-08  key B sua link cua A  (=404)
+== CORS
+PASS  FR-APP-10  preflight allow-origin  (=https://admin.44-198-215-187.sslip.io)
+PASS  FR-APP-10  preflight cho x-api-key  (=yes)
+PASS  FR-APP-10  origin la khong duoc allow  (=none)
+== DB loi
+PASS  FR-APP-11  health khi DB dung  (=503 fail)
+PASS  FR-APP-11  health sau khi bat lai DB  (=200)
+PASS  FR-APP-02  redirect sau khi DB len lai  (=302 https://example.org/?campus=updated-20261102T143324Z)
+== ket qua: 0 FAIL
+
+== 5. Drain visit (SRS O-07), app/smoke/drain-measure.sh <mode> 300 20
+300 GET (20 song song) vao replica A, roi none = khong dung | stop = docker stop (SIGTERM) ngay | kill = docker kill (SIGKILL) ngay.
+Dem visit qua replica B. "visit_du_sau" tinh tu luc GET cuoi tra ve.
+5a. A khong gioi han CPU:
+mode=none slug=tv3-drain-none-20261102t143349z GET_302=300/300 tai=4.470950773s visit=300 mat=0 visit_du_sau=.044511735s
+mode=none slug=tv3-drain-none-20261102t143354z GET_302=300/300 tai=4.862955897s visit=300 mat=0 visit_du_sau=.030851116s
+mode=stop slug=tv3-drain-stop-20261102t143359z GET_302=300/300 tai=5.022818223s visit=300 mat=0 visit_du_sau=1.323901872s
+mode=stop slug=tv3-drain-stop-20261102t143419z GET_302=300/300 tai=4.401224587s visit=300 mat=0 visit_du_sau=1.307821412s
+mode=kill slug=tv3-drain-kill-20261102t143439z GET_302=300/300 tai=4.424527066s visit=300 mat=0 visit_du_sau=.254098393s
+mode=kill slug=tv3-drain-kill-20261102t143458z GET_302=300/300 tai=4.384393981s visit=300 mat=0 visit_du_sau=.256757064s
+5b. Kem Redis PSUBSCRIBE, A khong gioi han CPU: none/kill/stop deu nhan du 300 tin "https://shlink.io/new-visit/{shortCode}" va 300 tin "https://shlink.io/new-visit".
+5c. A gioi han 0.25 CPU (docker update --cpus 0.25) de gia lap guest yeu:
+mode=none  GET_302=300/300 tai=21.76s visit=300 mat=0 visit_du_sau=0.03s   pubsub new-visit/{shortCode}: 300 tin
+mode=stop  GET_302=300/300 tai=21.84s visit=300 mat=0 (docker stop mat 1.28s) pubsub: 300 tin
+mode=kill  GET_302=300/300 tai=20.62s visit=300 mat=0                      pubsub: 300 tin
+mode=kill  GET_302=300/300 tai=21.38s visit=300 mat=0                      pubsub: 296 tin  (MAT 4 su kien)
+(2 luot dau cua 5c khong hop le: A dang khoi dong lai sau docker update, 0/300 GET; da chay lai, ghi o tren.)
+Doi chieu ma nguon v5.1.8 (module/Core/src/Visit/VisitsTracker.php): visit duoc persist trong transaction cua chinh request,
+roi moi dispatch UrlVisited; listener async (NotifyVisitToRedis, Mercure, RabbitMQ, UpdateGeoLiteDb) chay qua hang doi memory cua RoadRunner.
+KET LUAN: visit trong DB khong mat khi dung/giet replica; su kien Redis pub/sub co the mat khi SIGKILL; SIGTERM (docker stop) khong mat, ~1.3 s.
+
+== 6. Ket noi PostgreSQL (SRS O-08), pg_stat_activity, datname=shlink
+Ranh (lau khong co request): 0 ket noi.
+Dang tai 600 GET song song 40 chia 2 replica: 172.19.0.4 (A) idle 1; 172.19.0.5 (B) active 1 + idle 1; dinh tong 3.
+Sau tai: moi replica 1 idle.
+KET LUAN: toi da 1 ket noi moi worker PHP (khong co pool rieng) => moi replica <= WEB_WORKER_NUM + TASK_WORKER_NUM = 2,
+cong 1 tam thoi khi entrypoint/CLI chay. PostgreSQL 16.15 mac dinh max_connections=100, superuser_reserved_connections=3.
+
+KET QUA: 28/28 PASS cho smoke local; digest da doi chieu registry. Do lai tren cum sau FR-INF-12.

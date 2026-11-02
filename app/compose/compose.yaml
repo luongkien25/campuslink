@@ -39,7 +39,7 @@ services:
       timeout: 3s
       retries: 20
 
-  shlink:
+  shlink: &shlink
     # Khoa bang digest trong docs/versions.lock (tag 5.1.8)
     image: ${SHLINK_IMAGE:-shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee}
     env_file: ../shlink.env.example
@@ -58,6 +58,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 18   # ~180 s, bang timeout khoi dong pilot (SRS 4.3)
+
+  # Replica thu hai de thu NFR-12/FR-APP-03 (sua qua A, doc qua B). Chi chay khi can:
+  #   docker compose --profile hai-replica up -d
+  # Chi khoi dong sau khi replica dau da healthy (migration xong), dung thu tu SRS 4.3.
+  shlink-b:
+    <<: *shlink
+    profiles: [hai-replica]
+    ports:
+      - "127.0.0.1:${SHLINK_B_HOST_PORT:-18081}:8080"
+    depends_on:
+      shlink: { condition: service_healthy }
 
 secrets:
   db_password:    { file: ./secrets/db_password }
