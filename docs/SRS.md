@@ -307,7 +307,7 @@ Các điểm dưới đây chưa được chốt trong tài liệu nhóm; SRS gi
 | O-01 | Domain thật cho `CAMPUS_DOMAIN`: đã chốt 22/10 không mua domain, dùng `<EIP-gạch-ngang>.sslip.io` + Let's Encrypt. Còn mở: điền EIP thật vào inventory; nếu Let's Encrypt từ chối do giới hạn tần suất của sslip.io thì chuyển sang DuckDNS (chỉ đổi `CAMPUS_DOMAIN`); có giới hạn IP cho trang admin hay không | FR-APP-01, 09; FR-INF-06; NFR-10; SG mở 443 ra Internet từ G3; 80 chỉ mở lúc cấp cert | TV1 + TV3 |
 | O-02 | Kênh trao đổi secret riêng của nhóm (DB password, Redis URI, API key) | H1, FR-INF-09, NFR-08 | Cả nhóm |
 | O-03 | Cơ chế cấp secret tự động cho VM do ASG tạo (nhập tay chỉ đủ cho instance đầu tiên) | FR-INF-08, 09, 11 | TV2 + TV3 |
-| O-04 | Rubric chính thức của giảng viên; SRS đang hiểu 8 hạng mục theo bảng trong đề xuất. Nếu rubric đòi entity "campaign" riêng thì ghi thiếu tính năng | Mục 6.2, FR-APP-05 | TV1 |
+| O-04 | Rubric chính thức của giảng viên; SRS đang hiểu 8 hạng mục theo bảng trong đề xuất. Nếu rubric đòi entity "campaign" riêng thì ghi thiếu tính năng. **02/11/2026 thầy duyệt đề tài: Đạt**, mọi cột tiêu chí đều đánh dấu; nhận xét "Ứng dụng có vẻ quá đơn giản" và "Cần đánh giá thêm khi demo trình bày trực tiếp". Chưa có rubric chi tiết. Hướng xử lý: không mở rộng tính năng app; demo và báo cáo nêu rõ app là workload đại diện, độ khó ở hạ tầng và phần đánh giá tải | Mục 6.2, FR-APP-05 | TV1 |
 | O-05 | Số dư và hạn thật của 200 USD credit; giá 0,410/0,205 USD/giờ chưa kiểm bằng Calculator | NFR-16 | TV4 |
 | O-06 | Gnocchi commit cụ thể (không có nhánh stable/2026.1) | NFR-14, FR-INF-10 | TV2 |
 | O-07 | Thời gian drain visit trước scale-in/backup (queue RoadRunner trong bộ nhớ) | FR-INF-11, 15 | TV3 đo |
