@@ -1,6 +1,7 @@
 # ADR-07: Mở SSH (22) trên host A cho 0.0.0.0/0 trong giai đoạn phát triển
 
 - Ngày: 22/10/2026 · Người quyết: TV1 (Kenn) · Trạng thái: chấp nhận, **tạm thời**
+- Cập nhật 02/11/2026: giảng viên lùi lịch (SRS C-09), mốc thu SSH dời từ 06/11 sang đầu freeze 19/11.
 
 ## Bối cảnh
 
@@ -8,7 +9,7 @@ Ban đầu SG `campus-ingress-admin` chỉ mở 22 cho IP /32 của từng ngư�
 
 ## Quyết định
 
-Từ G0 đến trước freeze (06/11), mở TCP 22 trên A cho 0.0.0.0/0, bù lại bằng:
+Từ G0 đến trước freeze (19/11), mở TCP 22 trên A cho 0.0.0.0/0, bù lại bằng:
 
 1. Chỉ đăng nhập bằng key: `sudo sshd -T | grep -E 'passwordauthentication|permitrootlogin'` phải ra `passwordauthentication no` và `permitrootlogin no` hoặc `without-password`.
 2. `fail2ban` bật jail `sshd` (`sudo apt-get install -y fail2ban`; kiểm `sudo fail2ban-client status sshd`).
