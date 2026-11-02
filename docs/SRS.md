@@ -3,6 +3,8 @@
 > Bản Markdown xuất ngày 22/10/2026 từ Claude Doc "SRS – CampusLink (Nhóm 11)". Khi sửa yêu cầu, giữ nguyên mã FR/NFR/O để các issue, PR và prompt cho AI agent tham chiếu đúng.
 >
 > **Bản 1.3 (02/11/2026, TV1):** thêm phần mở rộng ứng dụng sau nhận xét duyệt đề tài (mục 3.3, 4.6, NFR-17–19, ADR-08, ADR-09) và lịch mới của giảng viên (nộp 23/11, bảo vệ 30/11). Mã FR/NFR cũ giữ nguyên.
+>
+> **02/11/2026 (ADR-10, TV1):** chốt D3 và D4 (O-02, O-03): secret ứng dụng cất trong Swift `campus-secrets`, VM do ASG tạo lấy bằng application credential chỉ-đọc `campus-boot`. NFR-08 có một ngoại lệ duy nhất cho credential này (mục 4.6, NFR-08).
 
 **Có cần SRS không?** Có, nhưng là bản gọn để làm việc. Đề xuất nói *làm gì*, bản phân công nói *ai làm khi nào*, Lab TV1 nói *làm thế nào*; còn thiếu một chỗ đánh mã từng yêu cầu và ghi rõ phép thử PASS, để mỗi người (và AI agent khi "vibe code") nhìn một bảng là biết việc của mình xong hay chưa. Bản 1.0–1.2 chỉ tổng hợp từ 3 tài liệu nhóm; bản 1.3 thêm phạm vi mở rộng ứng dụng mà nhóm chốt ngày 02/11 (mục 3.3). Điểm chưa chốt nằm ở mục 7.
 
@@ -258,7 +260,7 @@ TRUSTED_PROXIES=1
 | H1b (1.3) | TV3 → TV2 | Image `campus-portal` (portal + worker) có digest, biến môi trường mục 4.6, `GET /healthz`, migration DB `campus_portal`, cách cấp secret |
 | H2 | TV1 → TV2, TV3 | project, network/subnet/router UUID, AZ, flavor, keypair, quota, SG, endpoint private |
 | H3 | TV1 → TV3 | Cinder service/backend, volume type/AZ, Swift auth endpoint, DB port 10.20.0.10; smoke attach/upload |
-| H3b (1.3) | TV1 → TV3, TV4 | Container Swift `campus-qr`, `campus-reports`; user `campus-svc` + application credential (giao qua kênh secret O-02, không qua chat); cert có `app.`; vhost `app.` |
+| H3b (1.3) | TV1 → TV3, TV4 | Container Swift `campus-qr`, `campus-reports`; user `campus-svc` + application credential (TV1 ghi vào Swift `campus-secrets/app/swift_app_cred`, ADR-10, không qua chat); cert có `app.`; vhost `app.` |
 | H4 | TV2 → TV3, TV4 | VIP port/UUID, pool, image UUID, Heat params, thủ tục scale/disable alarm |
 | H4b (1.3) | TV2 → TV3, TV4 | Listener/pool 8081 và FIP của VIP; image UUID mới có portal + worker; readiness chờ cả `/rest/health` và `/healthz` |
 | H5 | TV3 → TV4 | fixture, backup snapshot ID, restore checklist, expected outputs |
@@ -307,7 +309,7 @@ RECONCILE_INTERVAL_S=60
 - Sự kiện visit: Shlink phát lên Redis pub/sub theo topic trong Async API spec của v5.1.8. Phải đối chiếu tên topic và payload (có short code, tag hay không) trước khi viết `campus-stats` (O-12).
 - Mỗi entry trong Stream có `job_id`, `type` (`issue_cards`, `issue_cards_merge`, `import_csv`, `report`), `campaign_id`, `unit_id`, `batch` (nếu có). Dữ liệu lớn (CSV, danh sách người tham dự) nằm trong DB `campus_portal`, không đưa vào Stream.
 - Object Swift: `campus-qr/<campaign_id>/v<phiên bản>/lo-<n>.pdf` và `campus-qr/<campaign_id>/v<phiên bản>/tong.pdf`; `campus-reports/<campaign_id>/<yyyymmddThhmmZ>.csv`. Tên cố định để chạy lại thì ghi đè.
-- Secret mới thuộc NFR-08: mật khẩu DB `campus_portal`, `PORTAL_SECRET_KEY`, application credential `campus-svc`, key `campus-stats`. Không đưa vào image, Heat output, user-data hay evidence.
+- Secret mới thuộc NFR-08: mật khẩu DB `campus_portal`, `PORTAL_SECRET_KEY`, application credential `campus-svc`, key `campus-stats`. Không đưa vào image, Heat output, user-data hay evidence; chúng nằm trong Swift `campus-secrets/app/` và VM lấy lúc boot bằng credential `campus-boot` (ADR-10).
 
 ## 5. Yêu cầu phi chức năng
 
@@ -322,7 +324,7 @@ Mọi con số dưới đây là **mục tiêu cần đo**, không phải kết 
 | NFR-05 | Co giãn | Scale-out khi CPU > 60% qua 2 cửa sổ 60 s; scale-in khi < 25% qua 3 cửa sổ 60 s; cooldown ≥ 180 s. CPU phải quy đổi từ ns: % = Δcpu_ns / (Δt × 10^9 × N vCPU) × 100 | TV2 |
 | NFR-06 | Co giãn | Đo và báo cáo riêng: thời điểm ALARM, VM ACTIVE, app ready, request đầu tiên tới VM mới | TV2 + TV4 |
 | NFR-07 | Sẵn sàng | Mất app VM A không làm mất dịch vụ; đo thời gian phát hiện, lỗi trong lúc chuyển và thời gian hồi phục. Không cam kết chịu mất EC2 A/AZ-A | TV2 |
-| NFR-08 | Bảo mật | Không secret trong Git, Glance image, Heat output, evidence, user-data; `.gitignore` chặn `.env`, `*.pem`, `local.conf`, `clouds.yaml`, `*.dump`, `*.sql` | Cả nhóm |
+| NFR-08 | Bảo mật | Không secret trong Git, Glance image, Heat output, evidence, user-data (ngoại lệ duy nhất: application credential bootstrap `campus-boot`, chỉ-đọc, theo ADR-10; vẫn cấm trong Git và evidence); `.gitignore` chặn `.env`, `*.pem`, `local.conf`, `clouds.yaml`, `*.dump`, `*.sql` | Cả nhóm |
 | NFR-09 | Bảo mật | Ba lớp quyền tách biệt: AWS IAM (EC2 A gọi AWS API), Keystone (người/dịch vụ trong OpenStack), Shlink API key (người dùng app). IMDSv2 bắt buộc, hop limit 1; guest không lấy được credential IAM của host | TV1 |
 | NFR-10 | Bảo mật | Chứng thư Let's Encrypt hợp lệ cho cả 2 tên, còn hạn; không dùng `curl -k` để báo PASS | TV1 + TV3 |
 | NFR-11 | Bền dữ liệu | Dữ liệu link còn nguyên sau reboot DB VM và sau stop/start cả 2 EC2; luôn có ít nhất 1 bản dump ngoài host A | TV3 |
@@ -404,8 +406,8 @@ Các điểm dưới đây chưa được chốt trong tài liệu nhóm; SRS gi
 | # | Vấn đề | Ảnh hưởng tới | Người chốt |
 | --- | --- | --- | --- |
 | O-01 | Domain thật cho `CAMPUS_DOMAIN`: đã chốt 22/10 không mua domain, dùng `<EIP-gạch-ngang>.sslip.io` + Let's Encrypt. Còn mở: điền EIP thật vào inventory; nếu Let's Encrypt từ chối do giới hạn tần suất của sslip.io thì chuyển sang DuckDNS (chỉ đổi `CAMPUS_DOMAIN`); có giới hạn IP cho trang admin hay không | FR-APP-01, 09; FR-INF-06; NFR-10; SG mở 443 ra Internet từ G3; 80 chỉ mở lúc cấp cert | TV1 + TV3 |
-| O-02 | Kênh trao đổi secret riêng của nhóm (DB password, Redis URI, API key) | H1, FR-INF-09, NFR-08 | Cả nhóm |
-| O-03 | Cơ chế cấp secret tự động cho VM do ASG tạo (nhập tay chỉ đủ cho instance đầu tiên) | FR-INF-08, 09, 11 | TV2 + TV3 |
+| O-02 | Kênh trao đổi secret riêng của nhóm (DB password, Redis URI, API key). **Đã chốt 02/11/2026 (ADR-10, D3):** không có kênh người–người; Keystone ở `clouds.yaml` trên A, secret ứng dụng do chủ sở hữu ghi vào Swift `campus-secrets/app/`. Còn mở: kiểm `reader` (TV4) bị chặn đọc container | H1, FR-INF-09, NFR-08 | Cả nhóm |
+| O-03 | Cơ chế cấp secret tự động cho VM do ASG tạo (nhập tay chỉ đủ cho instance đầu tiên). **Đã chốt 02/11/2026 (ADR-10, D4):** VM lấy secret từ Swift lúc boot bằng application credential `campus-boot` (reader + ACL container) truyền qua tham số Heat `hidden`. Còn mở: thử trên cụm (ADR-10, mục "Phải kiểm"), TV2 viết script boot | FR-INF-08, 09, 11 | TV2 + TV3 |
 | O-04 | Rubric chính thức của giảng viên; SRS đang hiểu 8 hạng mục theo bảng trong đề xuất. Bản 1.3 đã có thực thể chiến dịch trong portal (FR-APP-14). **02/11/2026 thầy duyệt đề tài: Đạt**, mọi cột tiêu chí đều đánh dấu; nhận xét "Ứng dụng có vẻ quá đơn giản" và "Cần đánh giá thêm khi demo trình bày trực tiếp". Chưa có rubric chi tiết. Cập nhật cùng ngày: so với bảng duyệt đủ 13 đề tài, nhận xét chỉ nhắm vào app (không có nhận xét về kiến trúc cloud); nhóm chọn mở rộng app bằng dịch vụ bao quanh Shlink (mục 3.3, ADR-08). Báo cáo phải tách Load Balancing và Auto Scaling, có mục đánh giá rủi ro (hai lỗi giảng viên nêu ở nhóm khác). Còn mở: rubric chi tiết | Mục 3.3, 6.2 | TV1 |
 | O-05 | Số dư và hạn thật của 200 USD credit; giá 0,410/0,205 USD/giờ chưa kiểm bằng Calculator | NFR-16 | TV4 |
 | O-06 | Gnocchi commit cụ thể (không có nhánh stable/2026.1) | NFR-14, FR-INF-10 | TV2 |
@@ -416,7 +418,7 @@ Các điểm dưới đây chưa được chốt trong tài liệu nhóm; SRS gi
 | O-11 | Thông báo của giảng viên có thay đổi yêu cầu/lịch nộp hay không. 02/11: lịch đã lùi (C-09); còn chờ rubric (O-04) | Toàn bộ SRS | TV1 |
 | O-12 | Tên topic Redis pub/sub và payload sự kiện visit của Shlink 5.1.8 (có short code, tag hay không); đối chiếu Async API spec trước khi viết `campus-stats` | FR-APP-18, NFR-17 | TV4 |
 | O-13 | Hai listener (8080, 8081) trên một LB Octavia OVN chưa thử trên cụm; thử bằng stub trước | FR-INF-07, H4b | TV2 |
-| O-14 | Access rules của application credential `campus-svc` (chỉ GET/PUT/HEAD trên 2 container) chưa thử trên DevStack 2026.1 | NFR-18, H3b | TV1 |
+| O-14 | Access rules của application credential `campus-svc` (chỉ GET/PUT/HEAD trên 2 container) và `campus-boot` (chỉ GET `campus-secrets/app/*`, ADR-10) chưa thử trên DevStack 2026.1 | NFR-18, H3b | TV1 |
 | O-15 | RAM: DB VM 2 GiB cho PostgreSQL + Redis + `campus-stats`; app VM 2 GiB cho Shlink + portal + worker | NFR-13 | TV3 + TV4 đo |
 | O-16 | Cỡ danh sách phát hành thẻ để job dài hơn thời gian scale-out đo ở G4 | NFR-19, FR-APP-16 | TV2 + TV4 |
 | O-17 | Redis ≥ 6.2 (có `XAUTOCLAIM`) và bật AOF để job trong Stream không mất khi Redis khởi động lại | FR-APP-21 | TV3 |
