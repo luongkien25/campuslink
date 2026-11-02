@@ -55,7 +55,7 @@ TV1 đã thử bằng quyền `member` (26/10): tạo/xóa floating IP, LB `--pr
 - Gnocchi đang ghim commit **tạm** `4a41c1d…` (SRS O-06), chờ TV2 xác nhận (D1, D2). Metric `cpu` của VM đã có điểm mỗi 60 giây ở cả A và B, nhưng chưa kiểm archive policy, `rate:mean` và alarm Aodh (xem `docs/troubleshooting.md`, mục "insufficient data").
 - Image Ubuntu chỉ đối chiếu SHA256SUMS qua HTTPS, chưa kiểm chữ ký GPG. Chưa cài Docker hay Shlink vào image (FR-INF-22 là việc của TV2).
 - Quota 6 instance và 3 FIP tính cho cả project. VIP của LB sẽ cần một FIP (TV1 gắn cho Nginx, FR-INF-06).
-- Cổng 22 của A mở 0.0.0.0/0 đến freeze 06/11 (ADR-07). Máy tự tắt khi không có phiên SSH (A 60 phút, B 15 phút sau A).
+- Cổng 22 của A mở 0.0.0.0/0 đến freeze 19/11 (ADR-07). Máy tự tắt khi không có phiên SSH (A 60 phút, B 15 phút sau A).
 
 ### 4.1 Vào VM private qua VM nhảy tạm (đã kiểm 27/10)
 

@@ -77,7 +77,7 @@ EC2 → Lifecycle Manager → Create policy → *EBS snapshot policy*:
 - Máy tắt cả ngày thì snapshot gần như không tốn thêm (không có block mới).
 
 **Chụp tay ở mốc quan trọng** (giữ lâu, DLM không xóa vì không phải bản của nó):
-- Ngay khi `stack.sh` xong + G1 PASS; trước thay đổi lớn (`local.conf`, `stack.sh` lại); trước freeze 06/11.
+- Ngay khi `stack.sh` xong + G1 PASS; trước thay đổi lớn (`local.conf`, `stack.sh` lại); trước freeze 19/11.
 - Tắt B rồi A trước khi chụp. EC2 → Elastic Block Store → Snapshots → *Create snapshot* → Resource type **Instance** → chọn A (làm lại với B). Tag `Name=G1-ok-<ngày>`.
 - Chỉ giữ 1–2 bản chụp tay mới nhất; xóa bản cũ.
 

@@ -34,3 +34,27 @@ server {
     server_name s.REPLACE_CAMPUS_DOMAIN;
     location / { return 503 "app chua san sang\n"; }
 }
+
+# app.: campus-portal (SRS 1.3 muc 3.3, 4.4, 4.6). CHUA BAT: cert campus chua co ten app. va chua co listener 8081.
+# Khi co (10-14/11): cap lai cert truoc
+#   certbot certonly --webroot -w /var/www/html --cert-name campus --expand -d s.REPLACE_CAMPUS_DOMAIN -d admin.REPLACE_CAMPUS_DOMAIN -d app.REPLACE_CAMPUS_DOMAIN --dry-run
+# (mo SG 80 vai phut, ghi gio mo/dong, quet cong lai sau do), roi bo comment khoi duoi.
+# KHONG chep khoi s.: "Connection close" va timeout ngan se cat SSE cua bang realtime.
+# limit_req_zone $binary_remote_addr zone=campus_login:1m rate=10r/m;
+# server {
+#     listen 443 ssl;
+#     server_name app.REPLACE_CAMPUS_DOMAIN;
+#     proxy_http_version 1.1;
+#     proxy_set_header Host $host;
+#     proxy_set_header X-Forwarded-For $remote_addr;
+#     proxy_set_header X-Forwarded-Proto https;
+#     location / { proxy_pass http://REPLACE_VIP_FIP:8081; proxy_next_upstream off; }
+#     location = /login { limit_req zone=campus_login burst=5 nodelay; proxy_pass http://REPLACE_VIP_FIP:8081; proxy_next_upstream off; }
+#     location /events/ {                      # SSE (SRS 4.6)
+#         proxy_pass http://REPLACE_VIP_FIP:8081;
+#         proxy_set_header Connection "";
+#         proxy_buffering off;
+#         proxy_cache off;
+#         proxy_read_timeout 1h;
+#     }
+# }
