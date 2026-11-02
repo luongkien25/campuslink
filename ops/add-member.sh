@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # add-member.sh - TV1 chay tren host A de tao user Linux rieng cho 1 thanh vien (khong sudo).
 #   sudo ops/add-member.sh tv2 "ssh-ed25519 AAAA... ten@may"
-# Cong 22 dang mo 0.0.0.0/0 theo ADR-07; tu freeze 06/11 nho them IP /32 cua thanh vien vao SG. Ghi ten vao
+# Cong 22 dang mo 0.0.0.0/0 theo ADR-07; tu freeze 19/11 nho them IP /32 cua thanh vien vao SG. Ghi ten vao
 # docs/inventory.yaml (ssh.members_with_key). User Keystone tao rieng (FR-INF-18).
 set -euo pipefail
 [ "$(id -u)" -eq 0 ] || { echo "Chay bang sudo" >&2; exit 1; }

@@ -163,5 +163,5 @@ Tài khoản `tv2`/`tv3`/`tv4` **không có sudo**: bạn xem được log và d
 ## Bảo mật
 
 - Mất máy hoặc nghi lộ private key: **báo TV1 ngay** để gỡ key của bạn khỏi máy A.
-- Cổng 22 của máy A đang mở cho mọi IP đến hết 06/11/2026 (ADR-07), nên key và passphrase là lớp bảo vệ chính.
+- Cổng 22 của máy A đang mở cho mọi IP đến trước freeze 19/11/2026 (ADR-07), nên key và passphrase là lớp bảo vệ chính.
 - Không dán private key, passphrase hay mật khẩu tạm AWS vào nhóm chat, issue GitHub hay repo.
