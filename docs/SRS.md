@@ -3,6 +3,8 @@
 > Bản Markdown xuất ngày 22/10/2026 từ Claude Doc "SRS – CampusLink (Nhóm 11)". Khi sửa yêu cầu, giữ nguyên mã FR/NFR/O để các issue, PR và prompt cho AI agent tham chiếu đúng.
 >
 > **Bản 1.3 (02/11/2026, TV1):** thêm phần mở rộng ứng dụng sau nhận xét duyệt đề tài (mục 3.3, 4.6, NFR-17–19, ADR-08, ADR-09) và lịch mới của giảng viên (nộp 23/11, bảo vệ 30/11). Mã FR/NFR cũ giữ nguyên.
+>
+> **Bản 1.4 (03/11/2026, TV1):** thêm ba yêu cầu vận hành nâng cao FR-INF-23–25 (chuỗi cung ứng image, dịch vụ thí nghiệm lỗi `campus-chaos` do nhóm tự viết, khôi phục thảm họa có RPO/RTO), NFR-20–22, lịch và mốc cắt riêng (ADR-11). TV1 làm chính để TV2–TV4 giữ sức cho mục 3.3.
 
 **Có cần SRS không?** Có, nhưng là bản gọn để làm việc. Đề xuất nói *làm gì*, bản phân công nói *ai làm khi nào*, Lab TV1 nói *làm thế nào*; còn thiếu một chỗ đánh mã từng yêu cầu và ghi rõ phép thử PASS, để mỗi người (và AI agent khi "vibe code") nhìn một bảng là biết việc của mình xong hay chưa. Bản 1.0–1.2 chỉ tổng hợp từ 3 tài liệu nhóm; bản 1.3 thêm phạm vi mở rộng ứng dụng mà nhóm chốt ngày 02/11 (mục 3.3). Điểm chưa chốt nằm ở mục 7.
 
@@ -10,7 +12,7 @@
 
 **Mục đích.** SRS này gom các yêu cầu đã rải trong đề xuất và bản phân công v1.1 thành một nơi duy nhất, có mã yêu cầu (FR/NFR) để mỗi thành viên biết mình phải làm gì, nhận gì từ ai và thế nào là PASS. SRS không thay thế bản phân công: phân công nói *ai làm, khi nào*; SRS nói *hệ thống phải làm được gì và đo thế nào*.
 
-**Phạm vi.** CampusLink là dịch vụ rút gọn link cho trường, dùng Shlink v5.1.8 (backend) và Shlink Web Client v4.8.1 (UI) chạy trong Nova VM trên OpenStack DevStack stable/2026.1, lồng trong 2 EC2 AWS ở 2 AZ. Phạm vi gồm: tạo/sửa/chuyển hướng link, thống kê visit, QR, gắn tag theo chiến dịch, cân bằng tải, tự động mở rộng, lưu trữ block/object, sao lưu/khôi phục, phân quyền và đo hiệu năng. Từ bản 1.3 thêm ba dịch vụ nhóm tự viết bao quanh Shlink (ADR-08): cổng chiến dịch nhiều đơn vị `campus-portal`, worker xử lý job nền `campus-worker` (phát hành thẻ QR cá nhân hóa hàng loạt) và bộ thống kê thời gian thực `campus-stats` (check-in, số lượt theo phút). Ngoài phạm vi: viết lại backend/schema, Kubernetes/Magnum, chịu lỗi mất cả một AZ, bản đồ địa lý GeoLite, real-time Mercure.
+**Phạm vi.** CampusLink là dịch vụ rút gọn link cho trường, dùng Shlink v5.1.8 (backend) và Shlink Web Client v4.8.1 (UI) chạy trong Nova VM trên OpenStack DevStack stable/2026.1, lồng trong 2 EC2 AWS ở 2 AZ. Phạm vi gồm: tạo/sửa/chuyển hướng link, thống kê visit, QR, gắn tag theo chiến dịch, cân bằng tải, tự động mở rộng, lưu trữ block/object, sao lưu/khôi phục, phân quyền và đo hiệu năng. Từ bản 1.3 thêm ba dịch vụ nhóm tự viết bao quanh Shlink (ADR-08): cổng chiến dịch nhiều đơn vị `campus-portal`, worker xử lý job nền `campus-worker` (phát hành thẻ QR cá nhân hóa hàng loạt) và bộ thống kê thời gian thực `campus-stats` (check-in, số lượt theo phút). Ngoài phạm vi: viết lại backend/schema, Kubernetes/Magnum, dịch vụ OpenStack chưa bật lúc chạy `stack.sh` (Barbican, Designate, Trove…; bật thêm phải chạy lại `stack.sh`, xóa cụm), chịu lỗi mất cả một AZ, bản đồ địa lý GeoLite, real-time Mercure.
 
 **Thuật ngữ.**
 
@@ -92,7 +94,7 @@ Mọi request đi qua Nginx và VIP trên host A rồi mới tới app; vì vậ
 
 ## 3. Yêu cầu chức năng
 
-Có 43 yêu cầu, chia 3 nhóm: chức năng ứng dụng Shlink mà người dùng thấy (FR-APP-01–12), chức năng hạ tầng mà môn học chấm (FR-INF, bám 8 hạng mục bắt buộc) và chức năng mở rộng do nhóm viết (FR-APP-13–21, bản 1.3). Mức ưu tiên: **P0** = thiếu thì trượt tiêu chí; **P1** = cần cho demo; **P2** = chưa dùng trong bản này. Cột "Kiểm bằng" là phép thử tối thiểu để ghi PASS.
+Có 46 yêu cầu, chia 3 nhóm: chức năng ứng dụng Shlink mà người dùng thấy (FR-APP-01–12), chức năng hạ tầng mà môn học chấm (FR-INF, bám 8 hạng mục bắt buộc; FR-INF-23–25 là phần vận hành nâng cao từ bản 1.4) và chức năng mở rộng do nhóm viết (FR-APP-13–21, bản 1.3). Mức ưu tiên: **P0** = thiếu thì trượt tiêu chí; **P1** = cần cho demo; **P2** = chưa dùng trong bản này. Cột "Kiểm bằng" là phép thử tối thiểu để ghi PASS.
 
 ### 3.1 Chức năng ứng dụng (Shlink + Web Client)
 
@@ -137,6 +139,9 @@ Có 43 yêu cầu, chia 3 nhóm: chức năng ứng dụng Shlink mà người d
 | FR-INF-20 | Khi tắt app VM A, LB loại backend lỗi và app B tiếp tục phục vụ | P1 | TV2 + TV4 | Fault run: thời gian phát hiện, 5xx/timeout, thời gian hồi phục |
 | FR-INF-21 | Giám sát chi phí: budget cảnh báo 30/50/65 USD, ghi giờ chạy từng host | P1 | TV4 | `cost.csv` + ảnh budget |
 | FR-INF-22 | Image app trên Glance có Docker + Shlink digest nạp sẵn, không chứa secret; scale-out không build/pull | P0 | TV2 | `image-manifest.json`; clone boot độc lập |
+| FR-INF-23 | (1.4) Image `campus-portal` (portal + worker) và `campus-stats` build trên GitHub Actions mỗi PR vào `main`: chạy test, quét Trivy (chặn lỗ hổng CRITICAL đã có bản vá), sinh SBOM, ký cosign; digest đã ký ghi vào `versions.lock`; khi build Glance image (FR-INF-22) chạy `cosign verify` trước khi pull. Digest Shlink chỉ quét và báo cáo | P1 | TV1 (TV4 viết test) | Lượt Actions xanh có báo cáo Trivy + SBOM; `cosign verify` PASS với digest trong `versions.lock` và FAIL với một digest chưa ký; gitleaks không báo secret |
+| FR-INF-24 | (1.4) Dịch vụ thí nghiệm lỗi `campus-chaos` chạy trên host A: nhận kịch bản YAML, gây đúng một lỗi lên app VM của nhóm (tắt VM, tắt member LB, tắt port), dừng sớm khi tỷ lệ lỗi vượt ngưỡng hoặc không còn member ONLINE, tự hoàn tác sau thời lượng (tối đa 300 s), ghi báo cáo vào Swift `campus-reports`. Chỉ nhận đích có metadata `campus_role=app`; mỗi lúc một thí nghiệm; dùng application credential có access rules, không dùng admin | P1 | TV1 (TV4 viết kịch bản, TV2 review) | Kịch bản tắt 1 app VM ở B trong 120 s khi k6 chạy 30 RPS: báo cáo có đủ số đo NFR-07 và đích trở về trạng thái trước; kịch bản nhắm DB VM bị từ chối; kill tiến trình giữa chừng rồi `campus-chaos revert` hoàn tác được |
+| FR-INF-25 | (1.4) Khôi phục thảm họa 3 tầng có RPO/RTO đo được: (1) Cinder snapshot → volume mới → DB VM thử; (2) dump trong Swift → `campus_restore_test`; (3) dump trong S3 → Compose local. Host A đẩy dump đã kiểm checksum sang bucket S3 bật Versioning + Object Lock Governance 7 ngày, bằng role `CampusLinkBackup` chỉ thêm `s3:PutObject` vào đúng prefix (mở rộng FR-INF-17, không có quyền xóa) | P1 | TV1 + TV3 | Bảng RPO/RTO 3 kịch bản, chỉ diễn tập trên bản sao; `aws s3api get-object-retention` có hạn giữ; xóa object bằng role → `AccessDenied`; checksum S3 khớp Swift; kịch bản 3 chạy `smoke.sh` PASS |
 
 ### 3.3 Chức năng mở rộng ứng dụng (bản 1.3)
 
@@ -324,18 +329,21 @@ Mọi con số dưới đây là **mục tiêu cần đo**, không phải kết 
 | NFR-07 | Sẵn sàng | Mất app VM A không làm mất dịch vụ; đo thời gian phát hiện, lỗi trong lúc chuyển và thời gian hồi phục. Không cam kết chịu mất EC2 A/AZ-A | TV2 |
 | NFR-08 | Bảo mật | Không secret trong Git, Glance image, Heat output, evidence, user-data; `.gitignore` chặn `.env`, `*.pem`, `local.conf`, `clouds.yaml`, `*.dump`, `*.sql` | Cả nhóm |
 | NFR-09 | Bảo mật | Ba lớp quyền tách biệt: AWS IAM (EC2 A gọi AWS API), Keystone (người/dịch vụ trong OpenStack), Shlink API key (người dùng app). IMDSv2 bắt buộc, hop limit 1; guest không lấy được credential IAM của host | TV1 |
-| NFR-10 | Bảo mật | Chứng thư Let's Encrypt hợp lệ cho cả 2 tên, còn hạn; không dùng `curl -k` để báo PASS | TV1 + TV3 |
+| NFR-10 | Bảo mật | Chứng thư Let's Encrypt hợp lệ cho cả 2 tên, còn hạn; không dùng `curl -k` để báo PASS. Bản 1.4: SSL Labs hạng A trở lên (chọn không công khai kết quả); OWASP ZAP baseline cho `app.` và `admin.` không có cảnh báo High | TV1 + TV3 |
 | NFR-11 | Bền dữ liệu | Dữ liệu link còn nguyên sau reboot DB VM và sau stop/start cả 2 EC2; luôn có ít nhất 1 bản dump ngoài host A | TV3 |
 | NFR-12 | Nhất quán | Link tạo/sửa qua app A đọc được qua app B; tất cả replica dùng cùng DB, cùng Redis, cùng `CACHE_NAMESPACE` | TV3 |
 | NFR-13 | Tài nguyên | Không OOM/swap kéo dài khi chạy 3 app + DB; reserve A 16 GiB/4 vCPU, B 8 GiB/1 vCPU; allocation ratio 1.0 | TV1 + TV2 |
 | NFR-14 | Tái lập | Khóa SHA mọi repo OpenStack, Gnocchi commit, Shlink digest, Web Client checksum, image UUID trong `versions.lock`; một người khác đọc runbook chạy lại được smoke | TV4 |
 | NFR-15 | Quan sát | Log JSON, UTC, Request ID Shlink, guest UUID/IP trên mỗi replica; metric có đơn vị, timestamp, resource | TV2 + TV3 |
-| NFR-16 | Chi phí | Lab ≤ 70 USD mục tiêu (công thức: (0,615 × H + 18,56) × 1,2, H = giờ mỗi EC2); báo cáo thêm kịch bản 730 giờ/tháng (562,32 USD gồm dự phòng 20%) | TV4 |
+| NFR-16 | Chi phí | Lab ≤ 70 USD mục tiêu (công thức: (0,615 × H + 18,56) × 1,2, H = giờ mỗi EC2); báo cáo thêm kịch bản 730 giờ/tháng (562,32 USD gồm dự phòng 20%). Bản 1.4: đặt cạnh chi phí kiến trúc AWS thuần tương đương (ALB, EC2 Auto Scaling, RDS PostgreSQL, ElastiCache, S3) tính bằng AWS Pricing Calculator, ghi ngày lấy giá | TV4 + TV1 |
 | NFR-17 | Hiệu năng (1.3) | Độ trễ từ lúc redirect tới lúc số hiện trên bảng portal; ngưỡng chốt sau pilot, đề xuất p95 ≤ 5 s ở 60 RPS | TV4 |
 | NFR-18 | Bảo mật (1.3) | Cách ly dữ liệu giữa các đơn vị (phép thử FR-APP-13) và giữ bí mật của dịch vụ mới theo NFR-08; quét repo và image không có secret | TV4 (kiểm), TV3 |
 | NFR-19 | Co giãn (1.3) | Phát hành N thẻ: đo thời gian xong với số worker cố định (2) và khi ASG thêm worker; báo cáo thời điểm worker mới nhận lô đầu tiên. N chọn sau khi đo thời gian scale-out ở G4 (O-16) | TV4 + TV2 |
+| NFR-20 | Tin cậy (1.4) | RPO của mỗi tầng FR-INF-25 không vượt chu kỳ backup đã chốt (O-19); RTO đo cho cả 3 kịch bản. Ngưỡng RTO chốt sau lần diễn tập đầu, không sửa sau khi xem lượt chính | TV1 + TV3 |
+| NFR-21 | Sẵn sàng (1.4) | Mỗi lượt FR-INF-24 tự ghi các số đo của NFR-07 (thời gian LB phát hiện, 5xx/timeout trong lúc lỗi, thời gian hồi phục) và kết luận giả thuyết NFR-01, 02 đạt hay không; mọi lượt kết thúc với đích trở về trạng thái trước lỗi | TV4 + TV1 |
+| NFR-22 | Quan sát (1.4) | SLO lấy từ NFR-01 và NFR-02; SLI tính từ log Nginx trên A (thêm `$request_time` vào `log_format`); báo cáo error budget đã tiêu trong mỗi lượt scale-out, cập nhật, tắt app VM | TV4 (TV1 sửa log Nginx) |
 
-**Không được làm để đạt số:** chèn tác vụ CPU giả vào endpoint, gửi Heat signal SUCCESS thủ công rồi gọi là autoscaling tự động, hạ threshold để chữa thiếu metric, benchmark trên QEMU như KVM, đếm visit bằng HEAD, chạy đo đồng thời với build/backup lớn, chạy job phát hành thẻ trong lượt benchmark redirect rồi gọi đó là tải redirect, nhét vòng lặp CPU giả vào worker để kéo dài job.
+**Không được làm để đạt số:** chèn tác vụ CPU giả vào endpoint, gửi Heat signal SUCCESS thủ công rồi gọi là autoscaling tự động, hạ threshold để chữa thiếu metric, benchmark trên QEMU như KVM, đếm visit bằng HEAD, chạy đo đồng thời với build/backup lớn, chạy job phát hành thẻ trong lượt benchmark redirect rồi gọi đó là tải redirect, nhét vòng lặp CPU giả vào worker để kéo dài job, chạy thí nghiệm lỗi lên DB VM hoặc host, tắt điều kiện dừng của `campus-chaos` để có số đẹp, diễn tập khôi phục bằng cách tắt hoặc xóa DB thật, bỏ `cosign verify` khi build image mà vẫn ghi FR-INF-23 PASS.
 
 ## 6. Tiêu chí nghiệm thu theo thành viên
 
@@ -345,10 +353,10 @@ Mỗi thành viên "xong" khi mọi mã yêu cầu mình chủ trì có bằng c
 
 | Thành viên | Yêu cầu chủ trì | Nhận đầu vào | Hoàn thành khi | Review chéo bởi |
 | --- | --- | --- | --- | --- |
-| TV1 – Lương Đức Kiên (nền, mạng) | FR-INF-01–06, 13, 14, 17–19; NFR-09, 10, 13 | — (bắt đầu chuỗi) | G0–G2 PASS; TV2/TV3 tự dùng project mà không cần TV1 đăng nhập admin hộ; stop/start thật giữ link/object/volume; bản 1.3: vhost `app.` có SSE, cert có `app.`, container Swift `campus-qr`/`campus-reports`, `campus-svc` + application credential (H3b), SRS và ADR cập nhật | TV4 |
-| TV2 – Nguyễn Công Huy Hoàng (LB, image, scaling) | FR-INF-07–11, 20, 22; NFR-05–07 | H2 từ TV1, H1 và H1b từ TV3 (trước đó dùng HTTP stub) | 2→3→2 bằng tải thật có alarm history, Heat events, member lifecycle, request tới app mới; fault run có số đo; bản 1.3: listener 8081, image có portal + worker, readiness chờ cả hai (H4b); phối hợp NFR-19 | TV1 (quyền, Heat scope) |
-| TV3 – Đinh Quang Huy (ứng dụng, dữ liệu) | FR-APP-01–17, 20 (FR-APP-16: mẫu và hàm dựng thẻ), FR-INF-12, 15, 16; NFR-11, 12 | H2, H3, H3b từ TV1 (trước đó chạy Compose local) | Create → QR → 302 → edit → visits chạy qua 2 replica; backup/restore tách biệt PASS; manifest giao TV2 không chứa secret; bản 1.3: đăng nhập → chiến dịch → nhập CSV → phát hành thẻ chạy trên cụm (H1b) | TV2 (image, readiness) |
-| TV4 – Cao Song Toàn (kiểm thử, chi phí) | FR-APP-18, 19, 21 (khung hàng đợi, chia lô); FR-INF-21; NFR-01–04, 14, 16–19; phối hợp NFR-06, 07 | H4, H4b từ TV2, H5 từ TV3, H3b từ TV1 | Acceptance matrix đủ 8 tiêu chí; raw CSV + metadata mỗi lượt; `cost.csv`; người ngoài đọc runbook chạy lại được smoke; bản 1.3: bảng check-in khớp API visits sau đối soát, có số đo NFR-17 và NFR-19 | TV3 (dữ liệu, workload) |
+| TV1 – Lương Đức Kiên (nền, mạng) | FR-INF-01–06, 13, 14, 17–19, 23–25 (1.4); NFR-09, 10, 13, 20 (1.4) | — (bắt đầu chuỗi) | G0–G2 PASS; TV2/TV3 tự dùng project mà không cần TV1 đăng nhập admin hộ; stop/start thật giữ link/object/volume; bản 1.3: vhost `app.` có SSE, cert có `app.`, container Swift `campus-qr`/`campus-reports`, `campus-svc` + application credential (H3b), SRS và ADR cập nhật; bản 1.4: FR-INF-23 xong trước 09/11, FR-INF-24 và FR-INF-25 xong trước 14/11 | TV4 |
+| TV2 – Nguyễn Công Huy Hoàng (LB, image, scaling) | FR-INF-07–11, 20, 22; NFR-05–07 | H2 từ TV1, H1 và H1b từ TV3 (trước đó dùng HTTP stub) | 2→3→2 bằng tải thật có alarm history, Heat events, member lifecycle, request tới app mới; fault run có số đo; bản 1.3: listener 8081, image có portal + worker, readiness chờ cả hai (H4b); phối hợp NFR-19; bản 1.4: review hành động lên LB member của FR-INF-24 | TV1 (quyền, Heat scope) |
+| TV3 – Đinh Quang Huy (ứng dụng, dữ liệu) | FR-APP-01–17, 20 (FR-APP-16: mẫu và hàm dựng thẻ), FR-INF-12, 15, 16; NFR-11, 12 | H2, H3, H3b từ TV1 (trước đó chạy Compose local) | Create → QR → 302 → edit → visits chạy qua 2 replica; backup/restore tách biệt PASS; manifest giao TV2 không chứa secret; bản 1.3: đăng nhập → chiến dịch → nhập CSV → phát hành thẻ chạy trên cụm (H1b); bản 1.4: phối hợp FR-INF-25 (chu kỳ backup, restore) | TV2 (image, readiness) |
+| TV4 – Cao Song Toàn (kiểm thử, chi phí) | FR-APP-18, 19, 21 (khung hàng đợi, chia lô); FR-INF-21; NFR-01–04, 14, 16–19, 21–22 (1.4); phối hợp NFR-06, 07; viết test cho FR-INF-23 và kịch bản cho FR-INF-24 (1.4) | H4, H4b từ TV2, H5 từ TV3, H3b từ TV1 | Acceptance matrix đủ 8 tiêu chí; raw CSV + metadata mỗi lượt; `cost.csv`; người ngoài đọc runbook chạy lại được smoke; bản 1.3: bảng check-in khớp API visits sau đối soát, có số đo NFR-17 và NFR-19 | TV3 (dữ liệu, workload) |
 
 ### 6.2 Ma trận 8 hạng mục bắt buộc
 
@@ -357,10 +365,10 @@ Mỗi thành viên "xong" khi mọi mã yêu cầu mình chủ trì có bằng c
 | 1. Mạng, 2 AZ | FR-INF-01–04 | TV1 | EC2 AZ ID + Nova host/AZ mapping; route table; VM A/B; overlay test |
 | 2. Ứng dụng private | FR-INF-05, 06 | TV1/TV3 | Không FIP cho app/DB; B không public IPv4; SG; thử TCP public bị chặn |
 | 3. Hai loại storage | FR-INF-13, 14; FR-APP-16, 19 (1.3) | TV3/TV1 | Cinder mount; Swift private put/get; dữ liệu còn sau reboot; app ghi Swift bằng application credential (1.3) |
-| 4. Cơ sở dữ liệu | FR-INF-12, 15, 16; NFR-12 | TV3 | 2 app nhất quán; giới hạn pool; dump và restore tách biệt |
+| 4. Cơ sở dữ liệu | FR-INF-12, 15, 16, 25 (1.4); NFR-12, 20 (1.4) | TV3 | 2 app nhất quán; giới hạn pool; dump và restore tách biệt |
 | 5. IAM / quyền | FR-INF-17, 18; FR-APP-07, 08, 13; NFR-18 (1.3) | TV1 | Instance profile; STS role; allow/deny; Keystone reader/member; đơn vị cách ly, application credential có access rules (1.3) |
-| 6. LB + autoscaling | FR-INF-07–09, 11; NFR-19 (1.3) | TV2 | 2→3→2; alarm, Heat events, member lifecycle, request tới app mới; worker trên VM mới nhận lô (1.3) |
-| 7. Monitoring + alarm | FR-INF-10; NFR-15; FR-APP-18, NFR-17 (1.3) | TV2/TV4 | Metric có đơn vị/timestamp/resource; alarm transition; host metrics |
+| 6. LB + autoscaling | FR-INF-07–09, 11; NFR-19 (1.3); FR-INF-24, NFR-21 (1.4) | TV2 | 2→3→2; alarm, Heat events, member lifecycle, request tới app mới; worker trên VM mới nhận lô (1.3) |
+| 7. Monitoring + alarm | FR-INF-10; NFR-15; FR-APP-18, NFR-17 (1.3); NFR-22 (1.4) | TV2/TV4 | Metric có đơn vị/timestamp/resource; alarm transition; host metrics |
 | 8. Dự toán | FR-INF-21; NFR-16 | TV4 | Giá nguồn + ngày; actual usage; lab và 730 giờ; credit tách biệt |
 
 ### 6.3 Cổng nghiệm thu theo lịch
@@ -372,11 +380,13 @@ Mỗi thành viên "xong" khi mọi mã yêu cầu mình chủ trì có bằng c
 | 25–26/10 | G2 | Network/role/storage smoke; chạy lại được sau stop/start | TV1 + TV3 + TV4 |
 | 02–05/11 | G3 | App thật 2 replica, backup/restore, TLS, manual scaling | TV2 + TV3 |
 | 03–09/11 | Mở rộng (Compose) | Portal, worker, stats chạy trên Compose local (mục 3.3, 4.6) | TV3 + TV4 |
+| 03–09/11 | Vận hành nâng cao 1 (1.4) | FR-INF-23: CI build, Trivy, SBOM, ký cosign, digest vào `versions.lock`; cắt 09/11 (chưa xong thì giữ build + Trivy, bỏ ký) | TV1 |
 | 06–09/11 | G4 | Tải thật → alarm → VM ready → traffic → scale-in; đo thời gian scale-out (đầu vào NFR-19) | TV2 + TV4 |
 | 10/11 | Mốc cắt 1 | MVP mở rộng chạy trên Compose; FR-APP-16 chưa chia lô được thì lùi về 1 lô | Cả nhóm |
 | 10–14/11 | Mở rộng lên cụm | Listener 8081, vhost `app.`, image có portal + worker, Swift `campus-qr`/`campus-reports`, `campus-svc` | TV1 + TV2 + TV3 |
-| 14/11 | Mốc cắt 2 | Phần mở rộng chưa ổn trên cụm thì rút khỏi demo, chỉ giữ trong báo cáo | TV1 chốt |
-| 15–18/11 | G5 | Benchmark 3 lượt, fault run, NFR-17, NFR-19, giới hạn, chi phí | TV4 |
+| 10–14/11 | Vận hành nâng cao 2 (1.4) | FR-INF-24 `campus-chaos` (thử hành động trên stack lab trước); FR-INF-25: S3 Object Lock, đo RPO/RTO 3 kịch bản | TV1 (+TV3, TV4; TV2 review) |
+| 14/11 | Mốc cắt 2 | Phần mở rộng chưa ổn trên cụm thì rút khỏi demo, chỉ giữ trong báo cáo; FR-INF-24 chưa PASS thì làm tay FR-INF-20 như cũ, FR-INF-25 giữ 2 kịch bản đầu | TV1 chốt |
+| 15–18/11 | G5 | Benchmark 3 lượt, fault run, NFR-17, NFR-19, giới hạn, chi phí; bản 1.4: NFR-20–22, quét bảo mật NFR-10, so chi phí NFR-16, chương đánh giá chia theo 6 trụ cột AWS Well-Architected | TV4 |
 | 19–22/11 | Freeze | Diễn tập, video, kiểm đủ 8 tiêu chí, thu SSH về /32 | TV1 chốt |
 | 23/11 | Nộp (M4) | Mã nguồn/cấu hình, báo cáo, video | Cả nhóm |
 | 30/11 | Bảo vệ (M5) | Không nâng phiên bản phút cuối | Cả nhóm |
@@ -385,9 +395,12 @@ Mỗi thành viên "xong" khi mọi mã yêu cầu mình chủ trì có bằng c
 
 **Cập nhật lịch 02/11/2026.** Giảng viên lùi nộp sang 23/11 và bảo vệ sang 30/11. G3 trễ vì H1 chưa có (issue #11), nên G3–G5 dời như bảng; phần mở rộng (mục 3.3) làm trên Compose song song G3, G4 và chỉ lên cụm 10–14/11.
 
+**Cập nhật lịch 03/11/2026.** Nhóm chốt thêm FR-INF-23–25 (ADR-11). TV1 làm chính; mỗi yêu cầu có mốc cắt riêng (09/11, 14/11) nên không lấn G5 và freeze.
+
 - **Mốc quyết định 25/10:** G1 chưa PASS → cả nhóm họp cắt phạm vi.
 - **Mốc quyết định 05/11:** chưa có H1 (Shlink thật trên cụm) → TV2 dựng Shlink theo hợp đồng 4.3, phần portal chuyển cho TV1 + TV4.
 - **Mốc quyết định 09/11:** scale-out/in tự động bằng alarm chưa chạy → demo scale bằng tay qua webhook của scaling policy và ghi rõ giới hạn trong báo cáo.
+- **Mốc quyết định 10/11 (1.4):** TV1 trễ phần "Mở rộng lên cụm" → FR-INF-25 rút về 2 kịch bản đầu, FR-INF-24 chỉ giữ hành động tắt VM (O-21).
 - **Mốc cắt 10/11 và 14/11** cho phần mở rộng: xem bảng; P1, P2 bỏ trước, FR-APP-16 lùi về 1 lô.
 - **19/11 (đầu freeze):** thu SSH cổng 22 về /32 (ADR-07), chụp lại SG làm bằng chứng.
 - **Việc thêm của TV1 trong G0–G1:** gắn tag `Project=CampusLink` + IAM user chỉ Start/Stop cho TV2–TV4; user Linux riêng không sudo + fail2ban; tự tắt khi rảnh + lịch tắt 02:00 + snapshot EBS hằng ngày (`docs/runbooks/start-stop.md`); chứng thư Let's Encrypt cho tên miền sslip.io (thay CA lab).
@@ -420,3 +433,7 @@ Các điểm dưới đây chưa được chốt trong tài liệu nhóm; SRS gi
 | O-15 | RAM: DB VM 2 GiB cho PostgreSQL + Redis + `campus-stats`; app VM 2 GiB cho Shlink + portal + worker | NFR-13 | TV3 + TV4 đo |
 | O-16 | Cỡ danh sách phát hành thẻ để job dài hơn thời gian scale-out đo ở G4 | NFR-19, FR-APP-16 | TV2 + TV4 |
 | O-17 | Redis ≥ 6.2 (có `XAUTOCLAIM`) và bật AOF để job trong Stream không mất khi Redis khởi động lại | FR-APP-21 | TV3 |
+| O-18 | Repo và gói GHCR để công khai hay riêng tư: riêng tư thì host build image cần token đọc (giữ trên A, không vào Glance image); cosign ký kiểu keyless ghi tên repo vào log công khai Rekor | FR-INF-23 | TV1 |
+| O-19 | Chu kỳ backup sang Swift (FR-INF-15) và chu kỳ đẩy sang S3, quyết định RPO của NFR-20 | FR-INF-15, 25; NFR-20 | TV1 + TV3 |
+| O-20 | Bật/tắt member bằng `admin_state_up` và tắt/bật port có chạy đúng với provider `ovn` trên 2026.1 không; access rules tối thiểu cho `campus-chaos` (cùng rủi ro O-14) | FR-INF-24, NFR-21 | TV1 + TV2 |
+| O-21 | Tải việc của TV1 trong 10–14/11 (mở rộng lên cụm + FR-INF-24, 25); trễ thì FR-INF-25 rút về 2 kịch bản, FR-INF-24 chỉ giữ hành động tắt VM | FR-INF-24, 25 | TV1 |
