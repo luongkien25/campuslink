@@ -92,7 +92,7 @@ mode=kill  GET_302=300/300 tai=21.38s visit=300 mat=0                      pubsu
 (2 luot dau cua 5c khong hop le: A dang khoi dong lai sau docker update, 0/300 GET; da chay lai, ghi o tren.)
 Doi chieu ma nguon v5.1.8 (module/Core/src/Visit/VisitsTracker.php): visit duoc persist trong transaction cua chinh request,
 roi moi dispatch UrlVisited; listener async (NotifyVisitToRedis, Mercure, RabbitMQ, UpdateGeoLiteDb) chay qua hang doi memory cua RoadRunner.
-KET LUAN: visit trong DB khong mat khi dung/giet replica; su kien Redis pub/sub co the mat khi SIGKILL; SIGTERM (docker stop) khong mat, ~1.3 s.
+KET LUAN (pham vi: request DA tra loi xong truoc khi dung, script doi het GET roi moi stop/kill; chua do request dang xu ly - sua 05/11): visit trong DB khong mat khi dung/giet replica; su kien Redis pub/sub co the mat khi SIGKILL; SIGTERM (docker stop) khong mat, ~1.3 s.
 
 == 6. Ket noi PostgreSQL (SRS O-08), pg_stat_activity, datname=shlink
 Ranh (lau khong co request): 0 ket noi.
@@ -101,4 +101,4 @@ Sau tai: moi replica 1 idle.
 KET LUAN: toi da 1 ket noi moi worker PHP (khong co pool rieng) => moi replica <= WEB_WORKER_NUM + TASK_WORKER_NUM = 2,
 cong 1 tam thoi khi entrypoint/CLI chay. PostgreSQL 16.15 mac dinh max_connections=100, superuser_reserved_connections=3.
 
-KET QUA: 28/28 PASS cho smoke local; digest da doi chieu registry. Do lai tren cum sau FR-INF-12.
+KET QUA: 27/27 PASS cho smoke local (sua 05/11: truoc ghi nham 28/28; script co 27 lenh check); digest da doi chieu registry. Do lai tren cum sau FR-INF-12.

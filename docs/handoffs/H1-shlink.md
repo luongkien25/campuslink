@@ -3,7 +3,7 @@
 Ngày (UTC): 2026-11-02 · Gate: G3 · Commit: (điền sau khi merge) · Issue: #11
 Không ghi secret. Secret thật do TV3 tạo trên DB VM và cấp theo ADR-10 (mục 6), không qua Zalo, issue hay Git.
 
-**Phạm vi bản này:** mọi số liệu đo trên **Compose local** của TV3 (2 replica dùng chung PostgreSQL 16 + Redis 7.0), chưa đo trên cụm. Phần cần đo lại trên guest 1 vCPU/2 GiB ghi ở mục 8. Evidence: `evidence/G3/20261102-H1-shlink-smoke-local.txt`.
+**Phạm vi bản này:** mọi số liệu đo trên **Compose local** của TV3 (2 replica dùng chung PostgreSQL 16 + Redis 7.0), chưa đo trên cụm. Phần cần đo lại trên guest 1 vCPU/2 GiB ghi ở mục 8. Evidence: `evidence/G3/20261102-H1-shlink-smoke-local.txt` (02/11) và `evidence/G3/20261105-H1-shlink-smoke-local-lan2.txt` (05/11, chạy lại mục 3, Redis probe, dấu hiệu lỗi).
 
 ## 1. Đã sẵn sàng
 
@@ -12,7 +12,8 @@ Không ghi secret. Secret thật do TV3 tạo trên DB VM và cấp theo ADR-10 
 | Image | `shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee` (OCI index của tag `5.1.8`; manifest amd64 `sha256:9083dc4b…a973`), ghi trong `docs/versions.lock` | `docker buildx imagetools inspect shlinkio/shlink:5.1.8` ra đúng `Digest` trên |
 | Hợp đồng env | `app/shlink.env.example` (SRS 4.3, domain thật từ inventory, không secret). Trên app VM chép thành `/opt/campuslink/shlink.env` | `grep -c REPLACE app/shlink.env.example` ra `0` |
 | Secret app cần | 2 file: `/run/secrets/db_password` (1 dòng mật khẩu), `/run/secrets/redis_servers` (1 dòng `tcp://default:<mật-khẩu>@10.20.0.10:6379`) | mục 6 |
-| Smoke | `app/smoke/h1-smoke.sh` (28 phép thử FR-APP-01–05, 07, 08, 10–12, NFR-12, Redis PING); chạy được cho cụm bằng biến `A`, `B`, `SHORT_BASE` | 28/28 PASS local |
+| Smoke | `app/smoke/h1-smoke.sh` (27 phép thử FR-APP-01–05, 07, 08, 10–12, NFR-12, Redis PING); chạy được cho cụm bằng biến `A`, `B`, `SHORT_BASE` | 27/27 PASS local (02/11 và 05/11) |
+| Probe Redis | `app/smoke/redis-probe.sh`: PING có xác thực, chỉ đọc file `redis_servers`, exit code đúng | mục 3.1 |
 | Compose local | `app/compose/` để thử nhanh hợp đồng mà không cần cloud | mục 3 |
 | Runtime | RoadRunner 3.0.1, `WEB_WORKER_NUM=1` + `TASK_WORKER_NUM=1` → 2 tiến trình worker; khởi động lại replica khi DB đã migrate: khoảng 2,3 s tới `/rest/health` 200 (local) | `docker exec shlink sh -c 'ps aux \| grep -c "[r]oadrunner-worker"'` ra `2` |
 
@@ -40,20 +41,28 @@ docker run -d --name shlink --restart unless-stopped \
 
 ## 3. Cách tự kiểm tra (người nhận chạy, đều PASS mới coi là nhận xong)
 
-Trên máy có Docker, trong repo:
+Trên máy có Docker, trong repo (đã chạy nguyên khối này từ Compose rỗng ngày 05/11, kết quả 27 PASS, 0 FAIL; evidence `20261105-H1-shlink-smoke-local-lan2.txt`):
 
 ```
 cd app/compose
 ./gen-secrets.sh                                  # secret ngau nhien, chi local
-docker compose --profile hai-replica up -d        # A :18080, B :18081 (B chi len sau khi A healthy)
+docker compose --profile hai-replica up -d --wait # A :18080, B :18081; --wait cho ca 2 healthy (thieu --wait thi health B co the FAIL)
 curl -sS http://127.0.0.1:18080/rest/health       # {"status":"pass","version":"5.1.8",...}
 for n in tv3-admin:"" tv3-donvi-a:--author-only tv3-donvi-b:--author-only; do   # 3 key cho smoke
   docker compose exec -T shlink shlink api-key:generate --name="${n%%:*}" ${n#*:} --no-ansi \
   | grep -oE '[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}' | head -1 > "secrets/api_key_${n%%:*}"; done
-cd .. && DB_STOP_CMD='cd compose && docker compose stop postgres' DB_START_CMD='cd compose && docker compose start postgres' ./smoke/h1-smoke.sh
-# mong doi dong cuoi: "== ket qua: 0 FAIL"
+cd ..
+REDIS_PING_CMD='cd compose && docker compose run --rm --no-deps -T -v "$PWD/secrets/redis_servers:/run/secrets/redis_servers:ro" -v "$PWD/../smoke/redis-probe.sh:/probe.sh:ro" --entrypoint sh redis /probe.sh 2>/dev/null' \
+DB_STOP_CMD='cd compose && docker compose stop postgres' \
+DB_START_CMD='cd compose && docker compose start postgres' \
+./smoke/h1-smoke.sh
+# mong doi: 27 dong PASS (co "FR-INF-09 Redis PING co xac thuc (=PONG)"), dong cuoi "== ket qua: 0 FAIL"
 cd compose && docker compose --profile hai-replica down -v        # don sach
 ```
+
+- `REDIS_PING_CMD` chạy **đúng** `redis-probe.sh` của mục 3.1 trong một container riêng chỉ được mount file `redis_servers`, giống app VM. Không đặt biến này thì smoke bỏ qua Redis probe và chỉ còn 26 phép thử.
+- `2>/dev/null` để bỏ dòng "Container … Creating" mà `docker compose run` in ra stderr; smoke so stdout đúng bằng `PONG`.
+- Docker Desktop không mount được file trong `/tmp`; để file thử trong `app/compose/secrets/`.
 
 Trên cụm (sau FR-INF-12 và app unit đầu tiên), mục 3 của readiness:
 
@@ -65,19 +74,26 @@ curl -sS -m 5 http://<ip-app>:8080/rest/health        # 200 va "status":"pass"
 ### 3.1 Readiness (FR-INF-09): cả hai phải đạt, rồi mới signal WaitCondition và thêm PoolMember
 
 1. `curl -sS -m 5 -o /tmp/h -w '%{http_code}' http://127.0.0.1:8080/rest/health` ra `200` **và** body có `"status":"pass"`. Health chỉ kiểm DB, **không kiểm Redis** (SRS 4.1).
-2. Redis PING có xác thực, chỉ dùng file `redis_servers` (đã chạy thật từ một container riêng trong mạng Compose):
+2. Redis PING có xác thực: `app/smoke/redis-probe.sh [/run/secrets/redis_servers]`. Script chỉ đọc file, không in mật khẩu; in `PONG` + exit 0 khi đúng, `FAIL` + exit 1 khi khác. Đã chạy từ container riêng trong mạng Compose (05/11): đúng mật khẩu → `PONG`, exit 0; file chứa mật khẩu sai → `FAIL`, exit 1.
 
-   ```
-   u=$(cat /run/secrets/redis_servers); hp=${u##*@}; pw=${u#tcp://*:}; pw=${pw%@*}
-   [ "$(REDISCLI_AUTH="$pw" redis-cli -h "${hp%:*}" -p "${hp##*:}" --no-auth-warning ping)" = PONG ]
-   ```
+   - Script tự so output với `PONG` vì `redis-cli` 7.0 trả **exit 0 cả khi sai mật khẩu** (in `AUTH failed: WRONGPASS…` rồi `NOAUTH…`). Nếu tự viết probe, đừng dựa vào exit code của `redis-cli`.
+   - App VM cần `redis-cli` (gói `redis-tools` của Ubuntu 24.04), cài sẵn trong image (chưa kiểm tên gói trên guest) và `timeout` (coreutils).
+   - Mật khẩu chỉ gồm ký tự hex (mục 6), nên phần cắt chuỗi trong script không cần urldecode.
+3. Timeout khởi động: 180 s (SRS 4.3).
 
-   - **So output bằng `PONG`, không dùng exit code**: `redis-cli` 7.0 trả exit 0 cả khi sai mật khẩu (in `AUTH failed: WRONGPASS…` rồi `NOAUTH…`).
-   - App VM cần `redis-cli` (gói `redis-tools` của Ubuntu 24.04), cài sẵn trong image (chưa kiểm tên gói trên guest).
-   - Mật khẩu chỉ gồm ký tự hex (mục 6), nên phần cắt chuỗi ở trên không cần urldecode.
-3. Timeout khởi động: 180 s (SRS 4.3). Local, DB đã migrate: khoảng 2,3 s (3 lần đo). Lần đầu trên DB rỗng chưa đo chính xác.
+### 3.2 Dấu hiệu xong, dấu hiệu lỗi và thời gian (đo local, Docker Desktop, 05/11)
 
-Kết quả mong đợi khi lỗi (đã thấy local): dừng PostgreSQL → health `503` + `"status":"fail"`; Redis sai mật khẩu → không có `PONG`. Cả hai đều phải làm stack fail, không thêm member.
+| Tình huống | Thấy gì | Thời gian | Readiness làm gì |
+| --- | --- | --- | --- |
+| Bình thường, DB rỗng (instance đầu) | Log 4 dòng `... Success!` rồi `RoadRunner server started`; `/rest/health` 200 `pass`; probe `PONG` | container start → RoadRunner: **1,1 s** | Đạt cả 2 điều kiện ở 3.1 → signal |
+| Bình thường, DB đã migrate (replica sau) | Như trên, "Updating database" không làm gì | khởi động lại → health 200: **~2,3 s** (3 lần, đo 02/11) | Như trên |
+| Mật khẩu DB sai | Container **thoát exit 1**; log `[ERROR] Error generating database..` và `[ERROR] Error updating database..`; RoadRunner không chạy | thoát sau **~1,2 s** | `docker inspect -f '{{.State.Status}}' shlink` khác `running` (hoặc `RestartCount` > 0 khi có `--restart`) → fail ngay, không đợi hết 180 s |
+| **Redis sai mật khẩu/không tới được** | **Giống hệt dòng trên**: exit 1, log vẫn ghi "Error … database" (nguyên nhân thật là `Predis\Connection\ConnectionException`, xem bằng `-e SHELL_VERBOSITY=3`) | thoát sau **~1,2 s**, cả với DB rỗng lẫn DB đã migrate | Như trên; đọc log đừng chỉ đi sửa DB |
+| PostgreSQL dừng sau khi app đã chạy | `/rest/health` **503** `"status":"fail"`; container vẫn `running`; bật DB lại → 200 trong vài giây | — | Không đạt điều kiện 1 → không signal |
+
+- **Dấu hiệu migration xong:** `/rest/health` trả 200. Entrypoint chạy `set -e`, nên RoadRunner (và cổng 8080) chỉ chạy khi installer thoát 0. Đừng dựa vào chữ `Success!` trong log: khi lỗi, hai dòng `Generating proxies… Success!` và `Clearing entities cache… Success!` vẫn xuất hiện.
+- **Điều kiện khởi động replica tiếp theo:** app A đạt cả 2 điều kiện ở 3.1.
+- Chưa thử: Redis mất **sau khi** app đã chạy (health vẫn chỉ kiểm DB).
 
 ## 4. Migration và thứ tự khởi động
 
@@ -98,7 +114,9 @@ Kết quả mong đợi khi lỗi (đã thấy local): dừng PostgreSQL → hea
 
 ### 5.1 Drain
 
-Đo bằng `app/smoke/drain-measure.sh`: 300 GET (20 song song) vào replica A, rồi dừng A ngay; đếm visit qua B. Thêm một lượt giới hạn A còn 0,25 CPU để giả lập guest yếu.
+Đo bằng `app/smoke/drain-measure.sh`: 300 GET (20 song song) vào replica A, **đợi cả 300 GET trả 302 xong**, rồi mới dừng A; đếm visit qua B. Thêm một lượt giới hạn A còn 0,25 CPU để giả lập guest yếu.
+
+**Phạm vi của kết quả này:** chỉ nói về visit và sự kiện của các request **đã trả lời xong** lúc replica bị dừng (hàng đợi task nền còn việc). Phép đo **không** có request đang xử lý giữa chừng, nên chưa kết luận được gì về request đang chạy khi replica bị dừng (client có nhận lỗi không, visit của request đó có ghi không). Phần này cần đo riêng trên cụm (mục 8).
 
 | Cách dừng A | Visit mất | Sự kiện Redis pub/sub mất | Thời gian |
 | --- | --- | --- | --- |
@@ -111,12 +129,12 @@ Vì sao (mã nguồn v5.1.8, `VisitsTracker::trackVisit`): **visit được ghi 
 Thủ tục trước khi dừng một replica (scale-in, bảo trì):
 
 1. Gỡ PoolMember (Heat đã làm trước khi xóa VM, FR-INF-09).
-2. Đợi 5 s cho request đang chạy xong (Nginx dùng `Connection close`, request ngắn).
+2. Đợi 5 s cho request đang chạy xong. **Đây là đề xuất, chưa đo**: dựa trên việc Nginx dùng `Connection close` và request redirect ngắn; phải kiểm lại trên cụm cùng phép đo request đang xử lý (mục 8).
 3. `docker stop shlink` (SIGTERM, `--stop-timeout 30`), rồi mới xóa VM.
 
-Nếu VM bị xóa thẳng (Nova delete, không qua bước 3) thì visit vẫn còn, chỉ có thể mất vài sự kiện pub/sub; FR-APP-18 bù bằng đối soát với API visits. Backup (FR-INF-15) không cần drain, vì visit đã nằm trong DB.
+Nếu VM bị xóa thẳng (Nova delete, không qua bước 3) thì visit của request **đã trả lời** vẫn còn, chỉ có thể mất vài sự kiện pub/sub; FR-APP-18 bù bằng đối soát với API visits. Backup (FR-INF-15) không cần drain, vì visit của request đã trả lời nằm sẵn trong DB.
 
-**Lệch với SRS mục 2** ("không hứa exactly-once cho visit khi kill/scale-in"): theo đo đạc và mã nguồn, thứ không được hứa là **sự kiện pub/sub**, còn visit thì bền. Đã báo TV1 trong PR để sửa câu đó; H1 không tự sửa SRS.
+**Lệch với SRS mục 2** ("không hứa exactly-once cho visit khi kill/scale-in"): với request đã trả lời, đo đạc và mã nguồn cho thấy thứ có thể mất là **sự kiện pub/sub**, không phải visit. Với request đang xử lý thì chưa đo, nên câu trong SRS vẫn đúng cho trường hợp đó. Đề nghị TV1 làm rõ câu này; H1 không tự sửa SRS.
 
 ### 5.2 Kết nối PostgreSQL
 
@@ -170,9 +188,12 @@ Ngân sách đề xuất cho DB VM (2 GiB RAM; **đề xuất, chưa áp dụng*
 
 - Smoke `h1-smoke.sh` qua `https://s.44-198-215-187.sslip.io` (`SHORT_BASE`), A và B là IP app thật.
 - Drain và pub/sub trên guest 1 vCPU/2 GiB; số kết nối thật trên DB VM.
+- **Request đang xử lý khi dừng replica:** bắn tải liên tục qua VIP, gỡ member, đợi N giây, `docker stop`; đếm lỗi phía client và so số visit với số 302 nhận được. Từ đó chốt thời gian chờ ở bước 2 mục 5.1 (hiện là đề xuất 5 s). Làm chung với fault run FR-INF-20 (TV2 + TV4).
 - Thời gian khởi động tới ready (đầu vào NFR-06).
 
 ## 9. Lỗi đã gặp khi làm (đã thêm vào `docs/troubleshooting.md`)
 
 - `redis-cli` exit 0 khi sai mật khẩu → readiness phải so output `PONG`.
+- `docker compose up -d` trả về khi replica B mới được tạo, chưa phục vụ → smoke ngay sau đó FAIL health B (`curl: (52) Empty reply from server`). Dùng `up -d --wait`.
+- Redis sai mật khẩu làm container thoát với log "Error generating database" → dễ sửa nhầm DB (mục 3.2).
 - Docker Desktop đổi chủ sở hữu file bind-mount (thấy uid 1001 thay vì uid của người dùng) → phép thử quyền file secret trên Compose local không có giá trị chứng minh.
