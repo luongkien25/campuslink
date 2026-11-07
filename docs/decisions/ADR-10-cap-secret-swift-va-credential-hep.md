@@ -77,8 +77,8 @@ Request không khớp rule ra **401**, không phải 403 (middleware từ chối
 ## Chưa kiểm / chưa chốt
 
 - VM ở host B (ASG-B): đường mạng tới Keystone và Swift trên A (cần phiên có B).
-- `member` (TV2, TV3) ghi object vào `campus-secrets` (mới thấy `campus-backups` do TV3 ghi được 25/10).
+- **Đã kiểm 08/11/2026:** `member` (`campus-tv2`, `campus-tv3`) tạo, đọc lại (etag khớp md5) và xóa object giả dưới `app/` trong `campus-secrets`; `reader` (`campus-tv4`) ghi bị từ chối. Evidence `evidence/G3/20261108-FR-INF-22-campus-boot-credential-giao-tv2.txt`. Chưa thử `member` ghi object thật (`db_password`, `redis_servers`): TV3 làm ở issue #27.
 - Credential `campus-svc` và access rules cho `campus-qr`, `campus-reports` (O-14, H3b): cơ chế đã chạy với `campus-boot`.
-- Script boot thật của TV2 và tham số Heat `hidden`. **Chưa chốt** credential `campus-boot` thật tới `env.yaml` của TV2 bằng cách nào mà không qua kênh người–người (D3).
+- Script boot thật của TV2 và tham số Heat `hidden`: TV2 làm. **Đã chốt 08/11/2026 (issue #26):** credential `campus-boot` thật (`campus-boot-20261107`, 1 access rule `GET campus-secrets/app/*`, không đặt hạn) nằm trong file `/home/tv2/.config/openstack/campus-boot.cred` trên A (`tv2:tv2`, 0600, thư mục cha 0700, hai dòng `id=` và `secret=`); TV2 đọc từ đó vào `env.yaml` cục bộ, không qua chat, issue hay Git. Đã kiểm bằng `curl` từ A (8 phép, `tv3` và `tv4` không đọc được file); **chưa kiểm** từ VM ở B và bằng script boot thật.
 
-Phân việc: TV1 container, user, credential (mục 5, 6; đã tạo container và user, credential thật tạo khi TV2 cần); TV3 ghi object (mục 2); TV2 script boot và tham số Heat (mục 7, 8).
+Phân việc: TV1 container, user, credential (mục 5, 6; đã tạo container, user và credential thật 08/11); TV3 ghi object (mục 2); TV2 script boot và tham số Heat (mục 7, 8).
