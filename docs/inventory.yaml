@@ -139,8 +139,8 @@ shlink:                         # Lab 9.5
   campus_domain: "44-198-215-187.sslip.io"   # EIP 44.198.215.187 (23/10/2026)
   short_domain: "s.44-198-215-187.sslip.io"
   admin_domain: "admin.44-198-215-187.sslip.io"
-  app_domain: "app.44-198-215-187.sslip.io"   # SRS 1.3 (campus-portal); CHUA co trong cert campus, cap lai --expand 10-14/11
-  tls: { issuer: "Let's Encrypt", tool: certbot, challenge: http-01, webroot: /var/www/html, cert_name: campus, key_type: ECDSA, issued: "2026-10-27", expires: "2027-01-25", renew: "khong can truoc khi het du an (certbot.timer se loi vi SG 80 dong)" }  # khong commit /etc/letsencrypt
+  app_domain: "app.44-198-215-187.sslip.io"   # SRS 1.3 (campus-portal); cert campus co app. tu 08/11/2026 (het han 2027-02-05); vhost app. CHUA bat (chua co portal)
+  tls: { issuer: "Let's Encrypt", tool: certbot, challenge: http-01, webroot: /var/www/html, cert_name: campus, key_type: ECDSA, domains: "s., admin., app.", issued: "2026-11-08 (cap lai --expand; lan dau 2026-10-27)", expires: "2027-02-05", renew: "khong can truoc khi het du an (certbot.timer se loi vi SG 80 dong)" }  # khong commit /etc/letsencrypt
   ingress:                      # 27/10/2026, mau cau hinh: infra/nginx/campus.conf.example, infra/apache/campus-acme.conf.example
     nginx: { version: "1.24.0", listen: 443, conf: /etc/nginx/conf.d/campus.conf, admin_root: /var/www/campus-admin/shlink-web-client_4.8.1_dist }
     apache_acme_alias: /etc/apache2/conf-available/campus-acme.conf   # Alias /.well-known/acme-challenge/ -> /var/www/html
