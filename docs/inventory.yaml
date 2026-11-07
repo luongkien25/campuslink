@@ -107,8 +107,9 @@ openstack:
     name: campuslink
     id: "07af3a3dd4c24d1ba028efcb6d28ef84"
     users: { campus-tv2: member, campus-tv3: member, campus-tv4: reader }
-    service_users_planned:      # SRS 1.3 (H3b, O-14), CHUA tao; TV1 tao 10-14/11. Khong ghi secret o day
-      campus-svc: { role: member, app_credential: "access rules chi GET/PUT/HEAD tren campus-qr, campus-reports", id: "REPLACE" }
+    service_users:      # ADR-10, H3b (07/11/2026). Khong ghi secret o day
+      campus-boot: { role: reader, id: "ad816112e45648cbb00fcc0b23fa536e" }    # mat khau da dat ngau nhien va bo; credential THAT chua tao (tao khi TV2 can, co access rules GET campus-secrets/app/*)
+      campus-svc: { role: reader, id: "563767a155544f4daa40e9c40c8306cd", app_credential: { name: campus-svc, id: "2db59df23dec440590138da7106b1af0", rules: "10 rule: GET/HEAD/PUT tren campus-qr/** va campus-reports/**; GET/HEAD tren hai container" }, secret_object: "campus-secrets/app/swift_app_cred" }    # reader + ACL doc+ghi 2 container (khac ban dau ghi member); secret cua credential chi nam trong object nay
     quota: { instances: 6, cores: 8, ram_mib: 12288, volumes: 5, gigabytes: 30, floating_ips: 3 }
   flavors:
     campus.app:     { id: "a9083cf8-24ab-4a7a-8b5c-6ba44ed1b6de", vcpus: 1, ram_mib: 2048, disk_gib: 10 }
@@ -124,7 +125,11 @@ openstack:
     swift:
       endpoint: "http://10.11.0.10:8080/v1/AUTH_07af3a3dd4c24d1ba028efcb6d28ef84"    # public, khong token tra 401; campus-tv3 (member) tao/ghi/doc duoc (25/10/2026)
       container: campus-backups
-      containers_planned: [campus-qr, campus-reports]   # SRS 1.3 FR-APP-16, 19; private; CHUA tao, TV1 tao 10-14/11 (H3b)
+      containers_app:    # tao 07/11/2026, tat ca private
+        campus-secrets: "ADR-10; ACL doc cho campus-boot (<project_id>:<user_id>); chi chua secret VM app can luc boot"
+        campus-qr: "H3b, SRS 4.6 FR-APP-16; ACL doc+ghi cho campus-svc"
+        campus-reports: "H3b, SRS 4.6 FR-APP-19; ACL doc+ghi cho campus-svc"
+      cau_hinh_ngoai_repo: "/etc/swift/proxy-server.conf muc [filter:authtoken]: service_type = object-store va include_service_catalog = True (07/11/2026; can cho access rules, xem ADR-10 muc 6, troubleshooting)"
       disk_image: /opt/stack/data/swift/drives/images/swift.img
       mountpoint: /opt/stack/data/swift/drives/sdb1
       loopback_size: 5G

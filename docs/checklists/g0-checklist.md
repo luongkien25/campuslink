@@ -121,6 +121,7 @@ Chạy cả A và B khoảng 0,6 USD/giờ. Đơn giá B (0,2016) suy ra bằng 
 | 24/10 | 129,57 | −1,81 | 23/10: A 2,45 giờ + B 1,67 giờ (bảng trên) |
 | 26/10 | 125,58 | −3,99 | 24/10 (giờ chạy chưa có trong issue) và 25/10 (A từ 07:50Z, Stop khoảng 09:23Z theo TV1 báo). Phiên 26/10 chưa được tính |
 | 27/10 (cuối phiên, ~22:00 giờ VN) | 123,79 | −1,79 | 26/10 (A từ 01:49Z, Stop sau 03:05Z, B nhiều khả năng không bật). Chưa tính phiên TV2 sáng 27/10 (A từ 07:27Z, B đến khoảng 07:49Z) và phiên TV1 tối 27/10 (A 13:00Z đến 13:57Z) vì số cập nhật khoảng 24 giờ một lần |
+| 07/11 (TV1 đọc, khoảng, làm tròn; chưa có ảnh) | ≈115 | ≈−8,8 | Từ 27/10: phiên TV2 sáng 27/10 (A từ 07:27Z, B đến khoảng 07:49Z) và phiên TV1 tối 27/10 (A 13:00Z–13:57Z) chưa được tính ở lần đọc 27/10; issue "Nhật ký cloud" không có phiên nào từ 28/10 đến 06/11. Phiên 07/11 (A 05:44Z–06:30Z, khoảng 46 phút) nhiều khả năng chưa được tính vì số cập nhật khoảng 24 giờ một lần. Chưa tách phần chi phí khi tắt máy (EBS, snapshot, EIP) ⚠️ |
 
 Cùng ngày 26/10, cột đã chốt hóa đơn: còn 135,33, đã dùng 4,67 (chỉ cập nhật khi hóa đơn tháng chốt). Ngày 27/10 vẫn còn 135,33, đã dùng 4,67; cột ước tính đã dùng 16,21. ⚠️ Hai lần đọc đầu (22/10, 24/10) được suy ra là cột ước tính, chưa kiểm.
 
