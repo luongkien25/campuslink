@@ -20,7 +20,8 @@ guest_base_image=ubuntu-noble-base
 guest_base_image_sha256=04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94   # file ubuntu-24.04-server-cloudimg-amd64.img, release-20261017 (25/10/2026); doi chieu voi SHA256SUMS qua HTTPS, chua kiem GPG
 
 shlink_version=5.1.8
-shlink_image_digest=shlinkio/shlink@sha256:REPLACE_REPO_DIGEST
+shlink_image_digest=shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee   # OCI index cua tag 5.1.8; docker buildx imagetools inspect tren Docker Hub khop RepoDigest sau pull, 2026-11-02 UTC, TV3; smoke local (Compose) /rest/health 200 version 5.1.8
+shlink_image_digest_amd64=sha256:9083dc4ba2b682c43e1a477b69ef451738253fc8ad680db072663ea68530a973   # manifest linux/amd64 trong index tren (guest x86_64), cung nguon
 web_client_version=4.8.1
 web_client_dist=shlink-web-client_4.8.1_dist.zip
 web_client_dist_sha256=85c96539fd609ef80ea7d366cced743a1c0af1d9987d9f8d4517e969d519a120   # da doi chieu tren A 27/10/2026 (sha256sum -c OK), TV1
