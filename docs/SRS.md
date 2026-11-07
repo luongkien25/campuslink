@@ -418,7 +418,7 @@ Các điểm dưới đây chưa được chốt trong tài liệu nhóm; SRS gi
 | O-11 | Thông báo của giảng viên có thay đổi yêu cầu/lịch nộp hay không. 02/11: lịch đã lùi (C-09); còn chờ rubric (O-04) | Toàn bộ SRS | TV1 |
 | O-12 | Tên topic Redis pub/sub và payload sự kiện visit của Shlink 5.1.8 (có short code, tag hay không); đối chiếu Async API spec trước khi viết `campus-stats` | FR-APP-18, NFR-17 | TV4 |
 | O-13 | Hai listener (8080, 8081) trên một LB Octavia OVN chưa thử trên cụm; thử bằng stub trước | FR-INF-07, H4b | TV2 |
-| O-14 | Access rules của application credential `campus-svc` (chỉ GET/PUT/HEAD trên 2 container) và `campus-boot` (chỉ GET `campus-secrets/app/*`, ADR-10) chưa thử trên DevStack 2026.1 | NFR-18, H3b | TV1 |
+| O-14 | Access rules của application credential `campus-svc` (chỉ GET/PUT/HEAD trên 2 container) và `campus-boot` (chỉ GET `campus-secrets/app/*`, ADR-10) **Đã kiểm 07/11/2026** trên DevStack 2026.1: chạy được sau khi sửa 2 dòng cấu hình Swift (ADR-10 mục 6; `evidence/G3/20261107-ADR-10-kiem-tren-cum.txt`, `evidence/G3/20261107-H3b-campus-svc-access-rules.txt`). Còn mở: thử từ portal/worker thật và VM ở host B | NFR-18, H3b | TV1 |
 | O-15 | RAM: DB VM 2 GiB cho PostgreSQL + Redis + `campus-stats`; app VM 2 GiB cho Shlink + portal + worker | NFR-13 | TV3 + TV4 đo |
 | O-16 | Cỡ danh sách phát hành thẻ để job dài hơn thời gian scale-out đo ở G4 | NFR-19, FR-APP-16 | TV2 + TV4 |
 | O-17 | Redis ≥ 6.2 (có `XAUTOCLAIM`) và bật AOF để job trong Stream không mất khi Redis khởi động lại | FR-APP-21 | TV3 |

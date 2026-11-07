@@ -1,0 +1,52 @@
+Evidence H3b + O-14 (G3): container Swift campus-qr, campus-reports; user campus-svc (reader) + ACL doc/ghi; application credential campus-svc co 10 access rules; luu vao campus-secrets/app/swift_app_cred.
+Ngay: 2026-11-07. A bat 05:44Z (12:44 gio VN), B tat. TV1 tu chay (ubuntu@campus-a), dan output cho Claude Code doi chieu. Khoang 06:19Z-06:29Z. Script: h3b-1.sh, h3b-2.sh, h3b-3.sh (dua len A bang scp, chay bang source; khong nam trong repo).
+KHONG co secret trong file nay: mat khau campus-svc va secret cua credential chi nam trong bien shell; file swift_app_cred ghi quyen 600 roi shred; mat khau campus-svc da dat lai ngau nhien, khong luu.
+Project campuslink: 07af3a3dd4c24d1ba028efcb6d28ef84 (khong phai AWS account ID). Endpoint Swift: http://10.11.0.10:8080/v1/AUTH_<project_id>.
+GIOI HAN: (1) Thu chi voi curl tu host A (token lay bang credential), chua thu tu guest/portal/worker that cua TV3, TV4. (2) Phan ingress cua H3b (cert co app., vhost app.) CHUA lam. (3) Chua thu wildcard voi ten co ky tu dac biet; ten object mau theo SRS 4.6.
+
+--- 0. Lan dau (06:19Z) hong do dan khoi lenh dai vao SSH ---
+Terminal cat dong va dinh dong (vd "--dolink", printf bi tach dong). Ket qua: KHONG tao gi ca.
+  user create loi "unrecognized arguments: --dolink" (SVC rong); swift stat: Container 'campus-qr' not found, 'campus-reports' not found;
+  file rules chi co 6/10 rule; tao credential loi 401 (user chua co); cac PUT chay voi token rong deu 401.
+Cach moi: viet script, scp len A, chay bang source.
+
+--- 1. h3b-1.sh (06:22:35Z) ---
+Buoc 0 (chi doc): khong co container la; user campus-svc chua ton tai; container hien co: campus-backups, campus-secrets
+Buoc 1: openstack container create campus-qr campus-reports  -> 2 container trong AUTH_07af3a3d...; list: campus-backups, campus-qr, campus-reports, campus-secrets
+Buoc 2: user campus-svc (id 563767a155544f4daa40e9c40c8306cd), role reader@campuslink
+Buoc 3: swift post -r '<project_id>:<campus-svc id>' -w '<project_id>:<campus-svc id>' tren ca 2 container
+  campus-qr:      Read ACL 07af3a3d...:563767a1...   Write ACL 07af3a3d...:563767a1...
+  campus-reports: Read ACL 07af3a3d...:563767a1...   Write ACL 07af3a3d...:563767a1...
+Buoc 4: application credential campus-svc tao boi chinh campus-svc (bang mat khau): id 2db59df23dec440590138da7106b1af0; so rule trong file: 10; so rule Keystone luu: 10
+  Rule (moi container): GET, HEAD, PUT tren /v1/AUTH_<project_id>/<container>/**  va  GET, HEAD tren /v1/AUTH_<project_id>/<container>  ; service object-store
+
+--- 2. h3b-2.sh (06:26:03Z): thu bang credential campus-svc, object thu duoi probe/ ---
+Phai qua duoc:
+  GET  container campus-qr                         204
+  HEAD container campus-qr                         204
+  PUT  campus-qr/probe/v1/lo-1.pdf   (3 cap)       201
+  GET  campus-qr/probe/v1/lo-1.pdf                 200
+  HEAD campus-qr/probe/v1/lo-1.pdf                 200
+  PUT  ghi de cung ten                             201
+  PUT  campus-reports/probe/20261107T0600Z.csv (2 cap)  201
+  GET  campus-reports/probe/20261107T0600Z.csv     200
+Phai bi chan (401):
+  DELETE campus-qr/probe/v1/lo-1.pdf               401
+  POST   metadata object                           401
+  PUT    container campus-qr                       401
+  PUT    campus-secrets/app/adr-probe              401
+  GET    campus-secrets/app/x                      401
+  GET    campus-backups                            401
+  HEAD   account                                   401
+Don: admin xoa 2 object thu; campus-qr, campus-reports, campus-secrets deu rong.
+=> 8/8 qua, 7/7 chan. Wildcard ** khop ten object nhieu cap (3 cap va 2 cap). Hai lop doc lap (ACL cap container + access rules theo phuong thuc va duong dan).
+   Luu y: bi chan tra 401 (khong phai 403), cung ly do nhu ADR-10 (delay_auth_decision = 1).
+
+--- 3. h3b-3.sh (06:28:12Z) ---
+Ghi object app/swift_app_cred vao campus-secrets (2 dong: id=..., secret=...; quyen 600 roi shred); etag da5073133f9321d253dd10b3b01b5cd8 khop md5 cuc bo (noi dung dung, khong in secret)
+campus-secrets hien co: app/swift_app_cred
+Dat lai mat khau campus-svc ngau nhien, khong luu: mat khau cu bi tu choi
+Credential van dung sau khi doi mat khau: CO  (co so cho ADR-10: tao credential roi dat lai mat khau khong lam hong credential)
+Bien shell da unset, khong con sot.
+
+Con lai tren cum: container campus-qr, campus-reports (rong); user campus-svc (reader, mat khau khong ai biet); credential campus-svc (10 rule); object campus-secrets/app/swift_app_cred.
