@@ -211,11 +211,24 @@ Nếu hết thời gian chờ mà chưa đạt, lưu trạng thái và log thự
 
 Bộ thu ghi 12 mẫu HTTP chuyển tiếp, không gặp lỗi; điều kiện VM A `SHUTOFF`, member A `ERROR`, member B `ONLINE` được xác nhận sau khoảng 12,5 giây từ trước lệnh stop. Sau lệnh start, cả hai member được quan sát `ONLINE` sau khoảng 42,2 giây. Đây là kết quả của một lượt lấy mẫu, không phải giới hạn downtime hoặc cam kết SLO. Capture HTTP chứa nhãn và hostname từng guest, đối chiếu với UUID/AZ qua Nova; chưa thu journal hoặc packet capture bên trong guest. Phép thử không bao gồm SSH guest, ingress Nginx, Shlink hoặc autoscaling.
 
-[Preflight O-13 ngày 07/11](../../../evidence/G2/20261107-O-13-tv2-dual-listener-preflight.txt): suite offline 18 tests đạt, Heat validate có nested template thành công. **Chưa tạo stack hai cổng hoặc đo traffic** vì `campus-app-sg` thiếu ingress 8081; chờ TV1 qua [issue #19](https://github.com/luongkien25/campuslink/issues/19). Không dùng kết quả validate để báo O-13 PASS.
+[Preflight O-13 ban đầu ngày 07/11](../../../evidence/G2/20261107-O-13-tv2-dual-listener-preflight.txt) ghi suite offline 18 tests và Heat validate đạt, nhưng chưa tạo stack vì SG thiếu 8081 tại thời điểm đó. TV1 sau đó bổ sung SG qua PR #23, đóng [issue #19](https://github.com/luongkien25/campuslink/issues/19).
+
+### O-13: hai listener trên cùng LB — đã kiểm trên cụm
+
+[Evidence O-13 ngày 07/11/2026](../../../evidence/G2/20261107-O-13-tv2-dual-listener-cloud.txt) ghi TV2 đọc lại SG bằng quyền member rồi tạo stack `tv2-lb-o13` từ main `87ff75c`. Một LB provider `ovn` có hai listener TCP 8080/8081, mỗi listener nối pool `SOURCE_IP_PORT` và TCP monitor riêng. Cả bốn member `ONLINE`, trỏ đúng cổng trên cùng hai VM private ở hai AZ; FIP chỉ gắn VIP.
+
+| Phép đo lúc 13:41:22 UTC | Kết quả |
+| --- | --- |
+| FIP của VIP `172.24.4.111:8080`, 40 kết nối mới | app-a: 27; app-b: 13; không lỗi, không thiếu backend |
+| Cùng FIP `172.24.4.111:8081`, 40 kết nối mới | portal-a: 22; portal-b: 18; không lỗi, không thiếu backend |
+
+Capture bổ sung qua mỗi listener chứa nhãn và hostname cả hai guest; đối chiếu VM A `10.20.0.127`/`campus-az-a`, VM B `10.20.0.128`/`campus-az-b`. Hai báo cáo sampler đều `passed: true`. **O-13 PASS trong phạm vi stub**; phân phối không cần đúng 50/50. Không đo lại failover trong lượt này và không dùng kết quả để nghiệm thu Shlink, portal thật, SSE, readiness, image hoặc H4b.
 
 ## Dọn lab
 
-[Evidence cleanup 07/11/2026](../../../evidence/G2/20261107-FR-INF-07-tv2-lb-cleanup.txt) ghi stack lab cũ `88dabbc1-f487-4f26-9554-ced5c1fdb69b` đã `DELETE_COMPLETE` lúc 06:43:02 UTC. Hậu kiểm không còn VM/LB/FIP/port lab, volume/port DB và tài nguyên nền vẫn tồn tại. Chưa có kết quả triển khai/cleanup phiên bản hai listener.
+[Evidence cleanup 07/11/2026](../../../evidence/G2/20261107-FR-INF-07-tv2-lb-cleanup.txt) ghi stack lab cũ `88dabbc1-f487-4f26-9554-ced5c1fdb69b` đã `DELETE_COMPLETE` lúc 06:43:02 UTC. Hậu kiểm không còn VM/LB/FIP/port lab, volume/port DB và tài nguyên nền vẫn tồn tại.
+
+Stack hai listener O-13 `c8338308-8596-4202-8bcf-d707f7760751` cũng đã được dọn sau lượt đo: `DELETE_COMPLETE` lúc 13:44:26 UTC ngày 07/11, CLI exit 0. [Hậu kiểm cùng evidence O-13](../../../evidence/G2/20261107-O-13-tv2-dual-listener-cloud.txt) kết thúc 13:45:36 UTC: stack/VM/LB/listener/pool/monitor/FIP rỗng; port lab đã hết, ba port nền/DB giữ nguyên UUID, volume DB vẫn `available` như trước. Không để lại lab hai listener chạy chờ review.
 
 Kiểm tra UUID stack và danh sách tài nguyên trước khi xóa. Lệnh sau **xóa toàn bộ tài nguyên thuộc stack lab**, phải được duyệt riêng:
 
