@@ -100,7 +100,7 @@ openstack:
     campus_net: { cidr: 10.20.0.0/24, gateway: 10.20.0.1, pool: "10.20.0.100-10.20.0.220", mtu: 1400, id: "18ecc898-663f-4440-9782-bdf1675ba5c9", subnet_id: "59399337-e22b-4237-87dd-bf4ac035bcfa" }
     campus_router: { id: "971a03cd-406c-41ca-a395-a7637cc0f1f2" }
   security_groups:
-    campus-app-sg:  { id: "b3eb3225-3e50-4c38-b43f-3823b6022d05" }    # 8080 tu 10.20.0.0/24 va 172.24.4.0/24 (25/10/2026); SRS 1.3 can them 8081 (portal), CHUA mo
+    campus-app-sg:  { id: "b3eb3225-3e50-4c38-b43f-3823b6022d05" }    # 8080 (25/10/2026) va 8081 portal (07/11/2026, issue #19) tu 10.20.0.0/24 va 172.24.4.0/24; evidence/G2/20261107-O-13-sg-8081.txt
     campus-db-sg:   { id: "15d5d84d-f71a-4595-a5b2-ac75f818c040" }    # 5432 + 6379 chi tu campus-app-sg (25/10/2026)
     campus-diag-sg: { id: "14722bc6-5903-4951-82c0-bdb884877783" }    # tam thoi
   project:

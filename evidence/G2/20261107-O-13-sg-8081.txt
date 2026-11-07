@@ -1,0 +1,84 @@
+Evidence O-13 / FR-INF-07 (G2): them ingress TCP 8081 vao campus-app-sg (issue #19, yeu cau cua TV2)
+Ngay: 2026-11-07. A va B bat khoang 13:15Z (20:15 gio VN, theo TV1). TV1 tu chay tren ubuntu@campus-a bang admin, scope project campuslink, script sg8081.sh, 13:17:19Z-13:17:59Z; dan output cho Claude Code doi chieu. B khong dung trong buoc nay.
+KHONG co secret trong file nay: chi co ID SG, ID rule, ID project (da co trong docs/inventory.yaml).
+Project campuslink: 07af3a3dd4c24d1ba028efcb6d28ef84 (khong phai AWS account ID). SG campus-app-sg: b3eb3225-3e50-4c38-b43f-3823b6022d05.
+GIOI HAN: chi them SG. Chua tao stack O-13, chua do traffic qua VIP:8080/8081 (TV2 lam bang stub, theo issue #19). Them SG KHONG phai O-13 PASS.
+
+Doi chieu tieu chi cua issue #19:
+  (1) 8081 tu dung 2 CIDR 10.20.0.0/24 va 172.24.4.0/24: DAT (2 dong, IPv4, tcp, 8081:8081, ingress).
+  (2) Khong co ingress 8081 tu 0.0.0.0/0 hay ::/0: DAT (script dem 0 dong; bang sau khi tao cung khong co dong nao tu 2 dai nay).
+  (3) Giu 2 rule 8080: DAT (cung ID 6e5bfdc9-... va a78cdf96-... truoc va sau).
+  (4) TV2 doc lai bang OS_CLOUD=campus-tv2: CHUA, TV2 tu lam.
+Script tu kiem co cua lenh tao rule (--ingress --protocol --dst-port --remote-ip --ethertype: du) va hoi xac nhan truoc khi tao.
+
+--- output nguyen van (tu ~/sg8081-20261107T1317Z.txt) ---
+=== 0. Trang thai dau, chi doc (13:17:19Z) ===
+SG b3eb3225-3e50-4c38-b43f-3823b6022d05 ten: campus-app-sg
++--------------------------------------+-------------+-----------+---------------+------------+-----------+-----------------------+----------------------+
+| ID                                   | IP Protocol | Ethertype | IP Range      | Port Range | Direction | Remote Security Group | Remote Address Group |
++--------------------------------------+-------------+-----------+---------------+------------+-----------+-----------------------+----------------------+
+| 6e5bfdc9-0409-4521-8367-008c4e12bd1a | tcp         | IPv4      | 10.20.0.0/24  | 8080:8080  | ingress   | None                  | None                 |
+| a78cdf96-73b8-476d-9e43-9a32f9ce9c6b | tcp         | IPv4      | 172.24.4.0/24 | 8080:8080  | ingress   | None                  | None                 |
++--------------------------------------+-------------+-----------+---------------+------------+-----------+-----------------------+----------------------+
+rule 8080: 2 (ky vong 2); rule 8081: 0 (ky vong 0 truoc khi tao)
+=== 1. Kiem co cua lenh tao rule (AGENTS.md muc 4) ===
+du co: --ingress --protocol --dst-port --remote-ip --ethertype
+=== 2. Se tao ingress TCP 8081 (IPv4) tren campus-app-sg tu: 10.20.0.0/24 172.24.4.0/24 ===
+Khong dong cham toi rule 8080, khong mo ra 0.0.0.0/0 hay ::/0.
+Go yes de tao: yes
+--- tao 10.20.0.0/24 (13:17:56Z)
++-------------------------+--------------------------------------+
+| Field                   | Value                                |
++-------------------------+--------------------------------------+
+| belongs_to_default_sg   | False                                |
+| created_at              | 2026-11-07T13:17:57Z                 |
+| description             |                                      |
+| direction               | ingress                              |
+| ether_type              | IPv4                                 |
+| id                      | 33e0a358-6330-41e4-9f90-97f8288f2749 |
+| normalized_cidr         | 10.20.0.0/24                         |
+| port_range_max          | 8081                                 |
+| port_range_min          | 8081                                 |
+| project_id              | 07af3a3dd4c24d1ba028efcb6d28ef84     |
+| protocol                | tcp                                  |
+| remote_address_group_id | None                                 |
+| remote_group_id         | None                                 |
+| remote_ip_prefix        | 10.20.0.0/24                         |
+| revision_number         | 0                                    |
+| security_group_id       | b3eb3225-3e50-4c38-b43f-3823b6022d05 |
+| updated_at              | 2026-11-07T13:17:57Z                 |
++-------------------------+--------------------------------------+
+--- tao 172.24.4.0/24 (13:17:58Z)
++-------------------------+--------------------------------------+
+| Field                   | Value                                |
++-------------------------+--------------------------------------+
+| belongs_to_default_sg   | False                                |
+| created_at              | 2026-11-07T13:17:59Z                 |
+| description             |                                      |
+| direction               | ingress                              |
+| ether_type              | IPv4                                 |
+| id                      | a1ff0533-01ed-447c-a672-df9679240083 |
+| normalized_cidr         | 172.24.4.0/24                        |
+| port_range_max          | 8081                                 |
+| port_range_min          | 8081                                 |
+| project_id              | 07af3a3dd4c24d1ba028efcb6d28ef84     |
+| protocol                | tcp                                  |
+| remote_address_group_id | None                                 |
+| remote_group_id         | None                                 |
+| remote_ip_prefix        | 172.24.4.0/24                        |
+| revision_number         | 0                                    |
+| security_group_id       | b3eb3225-3e50-4c38-b43f-3823b6022d05 |
+| updated_at              | 2026-11-07T13:17:59Z                 |
++-------------------------+--------------------------------------+
+=== 3. Kiem lai (13:17:59Z) ===
++--------------------------------------+-------------+-----------+---------------+------------+-----------+-----------------------+----------------------+
+| ID                                   | IP Protocol | Ethertype | IP Range      | Port Range | Direction | Remote Security Group | Remote Address Group |
++--------------------------------------+-------------+-----------+---------------+------------+-----------+-----------------------+----------------------+
+| 33e0a358-6330-41e4-9f90-97f8288f2749 | tcp         | IPv4      | 10.20.0.0/24  | 8081:8081  | ingress   | None                  | None                 |
+| 6e5bfdc9-0409-4521-8367-008c4e12bd1a | tcp         | IPv4      | 10.20.0.0/24  | 8080:8080  | ingress   | None                  | None                 |
+| a1ff0533-01ed-447c-a672-df9679240083 | tcp         | IPv4      | 172.24.4.0/24 | 8081:8081  | ingress   | None                  | None                 |
+| a78cdf96-73b8-476d-9e43-9a32f9ce9c6b | tcp         | IPv4      | 172.24.4.0/24 | 8080:8080  | ingress   | None                  | None                 |
++--------------------------------------+-------------+-----------+---------------+------------+-----------+-----------------------+----------------------+
+ingress bat ky cong nao tu 0.0.0.0/0 hoac ::/0: 0 dong (ky vong 0)
+PASS: 8081 tu dung 2 CIDR noi bo, 8080 con nguyen, khong mo ra Internet
+Evidence tam: /home/ubuntu/sg8081-20261107T1317Z.txt (khong co secret; scp ve laptop)
