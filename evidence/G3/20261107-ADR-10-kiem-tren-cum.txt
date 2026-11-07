@@ -1,0 +1,76 @@
+Evidence ADR-10 (O-02, O-03, O-14; G3): kiem tren cum 5 phep "Phai kiem" cua ADR-10: container campus-secrets, user campus-boot (reader) + ACL doc, application credential co/khong access rules, VM thu lay secret tu trong guest.
+Ngay: 2026-11-07. A bat 05:44Z (12:44 gio VN), B tat. TV1 tu chay lenh (ubuntu@campus-a) va dan output cho Claude Code doi chieu. Khoang 05:46Z-06:08Z.
+Gia tri thu LA GIA (app/x = "gia-tri-gia-app", test/y = "gia-tri-gia-test"); khong co secret that trong file nay. Mat khau campus-boot, secret cua credential va token chi nam trong bien shell, khong in ra; da xoa credential va dat lai mat khau ngau nhien sau khi kiem.
+Project campuslink: 07af3a3dd4c24d1ba028efcb6d28ef84 (khong phai AWS account ID). Swift endpoint: http://10.11.0.10:8080/v1/AUTH_<project_id> (http, khong TLS).
+GIOI HAN: (1) VM thu chi o campus-az-a (host A); VM o B (ASG-B) di qua Geneve ve A, CHUA thu vi B tat. (2) Chua thu thu tuc that: object that, script boot cua TV2, tham so Heat hidden. (3) Lan thu 1-2 den 5 deu dung credential thu, da xoa.
+
+--- 0. Truoc khi kiem (after-start, chi doc) ---
+$ uptime; ip -br addr show br-ex; systemctl is-active campus-nat nginx apache2 devstack@s-proxy; systemctl is-enabled nginx
+up 2 min (05:46:10Z); br-ex UNKNOWN 172.24.4.1/24; 4 x active; nginx enabled
+$ ls -ld /run/octavia; openstack loadbalancer provider list
+drwxr-xr-x 2 stack stack ... Nov 7 05:44 /run/octavia; co dong "ovn  Octavia OVN driver."
+$ openstack compute service list: nova-compute campus-a up, campus-b down (B tat, dung thiet ke)
+$ openstack network agent list: 2 dong OVN cua campus-a True (2 dong cua B vang khi B tat, nhu evidence 27/10)
+$ sudo nginx -t: successful; ss: :443 nginx, :80 apache2
+Con lai tu truoc: stack tv2-lb-lab cua TV2 (2 VM campus.app ACTIVE, 1 LB ACTIVE)
+
+--- 1. Cong cu va cau hinh (chi doc) ---
+openstack container set --help: chi co --property (khong co co ACL) -> dung swift post -r
+/opt/stack/data/venv/bin/swift (swiftclient 4.10.0); khong co trong PATH cua user stack
+swift post -r, ACL cu phap: account2:user2 (v2.0+ identity API); ADR dung <project_id>:<user_id>
+/etc/swift/proxy-server.conf: operator_roles = Member, admin; system_reader_roles va project_reader_roles deu bi comment (mac dinh trong)
+Role: admin@Default co role admin tren campuslink (tao container truc tiep duoc); user campus-boot / campus-svc chua ton tai
+
+--- 2. Tao container, user, ACL, object gia, credential thu (DOI TRANG THAI) ---
+$ openstack container create campus-secrets   (token admin scope campuslink: project_id khop)
+account AUTH_07af3a3d..., container campus-secrets; container list: campus-backups, campus-secrets; Read ACL va Write ACL trong
+$ openstack user create campus-boot ... ; role add reader
+role assignment: reader | campus-boot@Default | campuslink@Default
+$ swift post -r '<project_id>:<user_id campus-boot>' campus-secrets
+Read ACL: 07af3a3dd4c24d1ba028efcb6d28ef84:ad816112e45648cbb00fcc0b23fa536e ; Write ACL trong
+$ openstack object create --name app/x ... ; --name test/y ...  -> object list: app/x, test/y
+$ openstack application credential create adr10-norules (do chinh campus-boot, bang mat khau): roles = reader  (user reader TU TAO DUOC application credential)
+
+--- 3. Phep kiem 1 va 2 (credential KHONG access rules; 05:54:57Z) ---
+campus-boot  GET campus-secrets/app/x            200
+campus-boot  GET campus-secrets/test/y           200   (gioi han CAP CONTAINER, dung thiet ke ADR muc 5)
+campus-boot  GET lietke campus-secrets           200
+campus-boot  PUT campus-secrets/adr10-probe      403
+campus-boot  DELETE campus-secrets/app/x         403
+campus-boot  GET lietke campus-backups           403
+campus-boot  PUT campus-backups/adr10-probe      403
+campus-boot  HEAD account                        403
+campus-tv4 (reader, khong trong ACL)  GET app/x 403; GET test/y 403; GET lietke campus-secrets 403
+adr10-probe con lai: campus-secrets=0 campus-backups=0 ; object list: app/x, test/y
+=> Phep kiem 1: PASS. Phep kiem 2: PASS.
+
+--- 4. Phep kiem 3: access rules (credential adr10-rules, rule GET /v1/AUTH_<project_id>/campus-secrets/app/* , service object-store) ---
+Lan 1 (05:56Z, cau hinh Swift goc): MOI request 401 (ke ca GET app/x). Log s-proxy:
+  "Cannot validate request with restricted access rules. Set service_type in [keystone_authtoken] to allow access rule validation." -> "Invalid user token"
+  proxy-server.conf muc [filter:authtoken] chi co delay_auth_decision = 1 va include_service_catalog = False; khong co service_type.
+Lan 2 (05:59Z): them dong  service_type = object-store  vao [filter:authtoken] + systemctl restart devstack@s-proxy:
+  credential co rules: MOI request 500 (xuat hien Traceback trong catch_errors). Credential khong rules van 200/200.
+  Ma nguon keystonemiddleware auth_token/__init__.py: "catalog = token['catalog']" khong kiem tra; token lay qua ?nocatalog khi include_service_catalog = False.
+Lan 3 (06:00Z): doi  include_service_catalog = False -> True  + restart devstack@s-proxy:
+  credential co rules:  GET app/x 200 ; GET app/khong-co 404 (rule khop, object khong co) ; GET test/y 401 ; GET lietke container 401 ; PUT app/adr10-probe 401 ; DELETE app/x 401 ; GET campus-backups 401
+  hoi quy: credential KHONG rules GET app/x 200, test/y 200; campus-tv4 GET app/x 403; admin object list app/x, test/y con nguyen; s-proxy active
+  Luu y: request khong khop rule ra 401 (khong phai 403): middleware tu choi token, delay_auth_decision = 1 cho di tiep nhu request an danh, Swift tra 401. Van la TU CHOI.
+=> Phep kiem 3: PASS sau 2 dong cau hinh. /etc/swift/proxy-server.conf tren A da sua (mtime Nov 7 06:00), KHONG nam trong repo.
+  Hoan tac neu can: sudo sed -i '/^service_type = object-store$/d; /^\[filter:authtoken\]/,/^\[/ s/^include_service_catalog = True$/include_service_catalog = False/' /etc/swift/proxy-server.conf && sudo systemctl restart devstack@s-proxy
+
+--- 5. Phep kiem 4 va 5: VM thu campus-az-a (06:04Z) ---
+VM adr10-vm-thu: flavor campus.app, image ubuntu-noble-base, mang campus-net, SG campus-app-sg, user-data (script bash) co credential adr10-rules; file user-data chi user stack doc duoc, da xoa sau khi tao
+Phep kiem 4: "server show -f json" co khoa OS-EXT-SRV-ATTR:user_data co gia tri?  admin: 1 ; campus-tv2 (member): 0 ; campus-tv4 (reader): 0
+Phep kiem 5 (console log cua VM, cloud-init, 14 s sau boot):
+  ADR10-RESULT begin 2026-11-07T06:04:57Z token=co      (guest toi duoc Keystone http://10.11.0.10/identity)
+  ADR10-RESULT GET campus-secrets/app/x -> 200
+  ADR10-RESULT GET campus-secrets/app/khong-co -> 404
+  ADR10-RESULT GET campus-secrets/test/y -> 401
+  ADR10-RESULT GET campus-secrets/ -> 401
+=> Phep kiem 4: PASS (member va reader khong thay user_data qua API). Phep kiem 5: PASS (tu guest A).
+
+--- 6. Thu don (06:07Z) ---
+VM adr10-vm-thu da xoa (con 2 VM cua TV2); 2 credential thu da xoa (credential list rong); object app/x, test/y da xoa (Objects: 0, Read ACL con nguyen);
+mat khau campus-boot dat lai ngau nhien, khong luu, mat khau cu bi tu choi; bien shell da unset.
+Con lai tren cum: container campus-secrets (rong, ACL doc cho campus-boot), user campus-boot (reader, khong ai biet mat khau), 2 dong cau hinh Swift da sua.
+Luu y phien: 1 lan lenh cb chay lai khi PW da unset nen openstack hoi "Password:", prompt da qua, khong anh huong ket qua.
