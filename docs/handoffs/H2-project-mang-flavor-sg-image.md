@@ -18,7 +18,7 @@ TV4 (`reader`) đọc được mọi thứ dưới đây nhưng không tạo đ�
 | Mạng ngoài | `public` 172.24.4.0/24, pool FIP 172.24.4.100–200 | `openstack network show public -c id` |
 | Flavor | `campus.app` `a9083cf8-24ab-4a7a-8b5c-6ba44ed1b6de` (1 vCPU/2 GiB/10 GiB), `campus.db` `9ae2d463-8202-4575-a4f3-e32c4800d02c` (1/2 GiB/10 GiB), `campus.builder` `ee0a0c60-54c7-4488-896d-5081c1b098cf` (2/4 GiB/20 GiB, tạm) | `openstack flavor list -c Name -c VCPUs -c RAM -c Disk` |
 | Quota project | 6 instance, 8 vCPU, 12288 MiB RAM, 5 volume/30 GiB, 3 floating IP | `openstack quota show` |
-| SG app | `campus-app-sg` `b3eb3225-3e50-4c38-b43f-3823b6022d05`: TCP 8080 từ 10.20.0.0/24 và 172.24.4.0/24 | `openstack security group rule list --ingress campus-app-sg` |
+| SG app | `campus-app-sg` `b3eb3225-3e50-4c38-b43f-3823b6022d05`: TCP 8080 và 8081 (portal, thêm 07/11/2026, issue #19) từ 10.20.0.0/24 và 172.24.4.0/24 | `openstack security group rule list --ingress campus-app-sg` |
 | SG DB | `campus-db-sg` `15d5d84d-f71a-4595-a5b2-ac75f818c040`: TCP 5432 và 6379 chỉ từ `campus-app-sg` | `openstack security group rule list --ingress campus-db-sg` |
 | Image guest | `ubuntu-noble-base` `b915f809-b352-4d03-a14a-ec9c294e85d8`, public; Ubuntu 24.04 `release-20261017`, qcow2 3,5 GiB, sha256 `04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94` | `openstack image show ubuntu-noble-base -c status -c visibility -c size` |
 | Octavia | provider **`ovn`** (listener TCP, pool `SOURCE_IP_PORT`, health monitor TCP); mặc định cũng là `ovn` nhưng vẫn ghi `--provider ovn` khi tạo LB | `openstack loadbalancer provider list` |
