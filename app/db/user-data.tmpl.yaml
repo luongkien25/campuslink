@@ -1,0 +1,149 @@
+#cloud-config
+# CampusLink - DB VM 10.20.0.10: PostgreSQL 16 + Redis (FR-INF-12, O-08). TV3.
+# Day la TEMPLATE, khong co secret. render-user-data.sh thay REPLACE_DB_PASSWORD, REPLACE_REDIS_PASSWORD
+# va ghi ban that vao ~/campus-db-secrets/ tren A (mode 600). Ban da render KHONG commit, xoa sau khi tao VM.
+#
+# Thu tu: cloud-init ghi file -> runcmd chay campus-db-setup (cho volume, mount, roi moi apt install,
+# de cluster PostgreSQL nam tren volume). Khong dung module packages vi no chay truoc khi mount.
+# Script khong in secret; output hien trong `openstack console log show campus-db`.
+
+bootcmd:
+  # Moi lan boot: chi root duoc goi metadata (user-data co mat khau). Dong lai neu da co.
+  - [sh, -c, "iptables -C OUTPUT -d 169.254.169.254 -m owner ! --uid-owner 0 -j DROP 2>/dev/null || iptables -A OUTPUT -d 169.254.169.254 -m owner ! --uid-owner 0 -j DROP"]
+
+write_files:
+  - path: /root/campus-secrets/db_password
+    permissions: "0600"
+    content: |
+      REPLACE_DB_PASSWORD
+  - path: /root/campus-secrets/redis_password
+    permissions: "0600"
+    content: |
+      REPLACE_REDIS_PASSWORD
+
+  - path: /usr/local/sbin/campus-db-setup
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      # Chay 1 lan (runcmd). Khong bao gio format volume da co filesystem.
+      set -euo pipefail
+      log() { echo "campus-db-setup: $*"; }
+      VOL_ID=f43fbbd2-b85f-4bb1-b403-ba54a2f84189   # campus-db-data (inventory storage.db_volume)
+      MNT=/var/lib/postgresql
+      dev=/dev/disk/by-id/virtio-${VOL_ID:0:20}     # virtio cat serial con 20 ky tu
+
+      log "cho volume $VOL_ID (toi da 15 phut; gan bang: openstack server add volume campus-db campus-db-data)"
+      for _ in $(seq 1 180); do [[ -e $dev ]] && break; sleep 5; done
+      [[ -e $dev ]] || { log "FAIL khong thay volume"; exit 1; }
+
+      if [[ -z $(blkid -o value -s TYPE "$dev" || true) ]]; then
+        log "volume trong, tao ext4"
+        mkfs.ext4 -q -L campus-db-data "$dev"
+      else
+        log "volume da co filesystem, giu nguyen"
+      fi
+      uuid=$(blkid -o value -s UUID "$dev")
+      mkdir -p "$MNT"
+      grep -q "$uuid" /etc/fstab || echo "UUID=$uuid $MNT ext4 defaults,nofail,x-systemd.device-timeout=30s 0 2" >> /etc/fstab
+      systemctl daemon-reload
+      mount "$MNT"
+      if [[ -e $MNT/16/main ]]; then
+        log "FAIL volume da co du lieu PostgreSQL; dung lai, lam tay theo docs/runbooks/db-vm.md muc 5"
+        exit 1
+      fi
+
+      log "cai postgresql-16, redis-server"
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get -o DPkg::Lock::Timeout=600 update -q
+      apt-get -o DPkg::Lock::Timeout=600 install -y -q postgresql-16 redis-server
+
+      # PostgreSQL: ngan sach ket noi theo H1 muc 5.2
+      install -o postgres -g postgres -m 644 /dev/stdin /etc/postgresql/16/main/conf.d/campus.conf <<'EOF'
+      listen_addresses = '*'
+      max_connections = 50
+      password_encryption = scram-sha-256
+      EOF
+      # Chi user shlink vao DB shlink tu campus-net; SG campus-db-sg da chan ngoai campus-app-sg
+      echo "host shlink shlink 10.20.0.0/24 scram-sha-256" >> /etc/postgresql/16/main/pg_hba.conf
+      # Thieu mount thi PostgreSQL khong chay (SRS FR-INF-12)
+      mkdir -p /etc/systemd/system/postgresql@16-main.service.d
+      printf '[Unit]\nRequiresMountsFor=%s\n' "$MNT" > /etc/systemd/system/postgresql@16-main.service.d/campus.conf
+      systemctl daemon-reload
+      systemctl restart postgresql@16-main
+
+      pw=$(</root/campus-secrets/db_password)
+      # Mat khau di qua stdin, khong qua argv; hex nen khong can escape
+      runuser -u postgres -- psql -q -v ON_ERROR_STOP=1 <<EOF
+      \set pw '$pw'
+      SELECT 'CREATE ROLE shlink LOGIN' WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'shlink') \gexec
+      ALTER ROLE shlink LOGIN CONNECTION LIMIT 15 PASSWORD :'pw';
+      SELECT 'CREATE DATABASE shlink OWNER shlink' WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'shlink') \gexec
+      REVOKE CONNECT ON DATABASE shlink FROM PUBLIC;
+      EOF
+      unset pw
+
+      # Redis: file phu chua mat khau, include o cuoi nen de len gia tri mac dinh
+      rpw=$(</root/campus-secrets/redis_password)
+      install -o redis -g redis -m 640 /dev/null /etc/redis/campus.conf
+      cat > /etc/redis/campus.conf <<EOF
+      bind 0.0.0.0
+      protected-mode yes
+      requirepass $rpw
+      appendonly yes
+      maxmemory 256mb
+      maxmemory-policy noeviction
+      EOF
+      unset rpw
+      grep -q '^include /etc/redis/campus.conf' /etc/redis/redis.conf || echo 'include /etc/redis/campus.conf' >> /etc/redis/redis.conf
+      systemctl restart redis-server
+
+      systemctl enable campus-db-check.service
+      log "xong, chay kiem"
+      systemctl start campus-db-check.service
+
+  - path: /usr/local/sbin/campus-db-check
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      # Moi lan boot (campus-db-check.service) va chay tay duoc. Chi in OK/FAIL va gia tri khong nhay cam.
+      p() { echo "campus-db-check: $*"; }
+      findmnt -n /var/lib/postgresql >/dev/null && p "OK mount /var/lib/postgresql $(findmnt -n -o SOURCE,FSTYPE /var/lib/postgresql | tr -s ' ')" || p "FAIL chua mount /var/lib/postgresql"
+      if systemctl is-active -q postgresql@16-main; then
+        q() { runuser -u postgres -- psql -At -c "$1" "${2:-postgres}" 2>&1; }
+        p "OK postgresql $(q 'SHOW server_version') max_connections=$(q 'SHOW max_connections') data=$(q 'SHOW data_directory')"
+        p "role shlink connlimit=$(q "SELECT rolconnlimit FROM pg_roles WHERE rolname='shlink'") db_shlink=$(q "SELECT count(*) FROM pg_database WHERE datname='shlink'")"
+        if [[ $(q "SELECT to_regclass('public.short_urls') IS NOT NULL" shlink) == t ]]; then
+          p "short_urls=$(q 'SELECT count(*) FROM short_urls' shlink) visits=$(q 'SELECT count(*) FROM visits' shlink)"
+        else
+          p "short_urls: chua co bang (Shlink chua chay migration)"
+        fi
+      else
+        p "FAIL postgresql@16-main khong chay ($(systemctl is-active postgresql@16-main))"
+      fi
+      p "listen $(ss -ltnH '( sport = :5432 or sport = :6379 )' | awk '{print $4}' | sort | tr '\n' ' ')"
+      out=$(REDISCLI_AUTH=$(</root/campus-secrets/redis_password) timeout 5 redis-cli --no-auth-warning ping 2>&1)
+      [[ $out == PONG ]] && p "OK redis $(redis-server --version | grep -o 'v=[0-9.]*') PING=PONG" || p "FAIL redis PING"
+      out=$(timeout 5 redis-cli ping 2>&1)
+      [[ $out == *NOAUTH* ]] && p "OK redis khong mat khau bi tu choi" || p "FAIL redis khong mat khau: $out"
+      iptables -C OUTPUT -d 169.254.169.254 -m owner ! --uid-owner 0 -j DROP 2>/dev/null && p "OK chan metadata cho non-root" || p "FAIL chua chan metadata"
+
+  - path: /etc/systemd/system/campus-db-check.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=CampusLink DB VM tu kiem sau boot (in ra console)
+      After=postgresql@16-main.service redis-server.service network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      ExecStartPre=/bin/sleep 5
+      ExecStart=/usr/local/sbin/campus-db-check
+      StandardOutput=journal+console
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  # Output runcmd da ra console (cloud-final), xem bang openstack console log show
+  - [/usr/local/sbin/campus-db-setup]
