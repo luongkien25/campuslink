@@ -1,0 +1,6 @@
+{
+  "keystone_url": "http://10.11.0.10/identity/v3/auth/tokens",
+  "swift_account_url": "http://10.11.0.10:8080/v1/AUTH_07af3a3dd4c24d1ba028efcb6d28ef84",
+  "credential_id": "REPLACE_CAMPUS_BOOT_ID",
+  "credential_secret": "REPLACE_CAMPUS_BOOT_SECRET"
+}

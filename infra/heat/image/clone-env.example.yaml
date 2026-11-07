@@ -1,0 +1,12 @@
+# Chi mau clone-check, khong phai env cua stack app chinh.
+# Ban that 0600 tren A; khong dua credential vao argv/Git/evidence.
+parameters:
+  image: REPLACE_CANDIDATE_GLANCE_ID
+  flavor: campus.app
+  key_name: campus-tv2
+  network: 18ecc898-663f-4440-9782-bdf1675ba5c9
+  subnet: 59399337-e22b-4237-87dd-bf4ac035bcfa
+  security_groups: [b3eb3225-3e50-4c38-b43f-3823b6022d05, REPLACE_PRIVATE_SSH_SG]
+  availability_zone: campus-az-a
+  bootstrap_credential_id: REPLACE_CAMPUS_BOOT_ID
+  bootstrap_credential_secret: REPLACE_CAMPUS_BOOT_SECRET
