@@ -1,6 +1,6 @@
 # Lab cân bằng tải OVN với hai HTTP backend
 
-Lab kiểm tra phân phối kết nối TCP qua Octavia OVN đến hai Nova VM, mỗi VM ở một AZ. Các backend trả về nhãn `app-a` hoặc `app-b` để nhận diện đường đi của traffic.
+Lab kiểm tra hai listener TCP 8080/8081 trên cùng LB Octavia OVN và VIP đến hai Nova VM, mỗi VM ở một AZ (O-13). Mỗi VM chạy hai HTTP stub: cổng 8080 trả nhãn `app-a`/`app-b`; cổng 8081 trả `portal-a`/`portal-b` để phát hiện nối nhầm pool.
 
 Lab sử dụng HTTP stub, không chạy Shlink. Kết quả của lab hỗ trợ kiểm chứng FR-INF-07; không thay thế nghiệm thu readiness DB/Redis, image ứng dụng hoặc autoscaling.
 
@@ -8,8 +8,8 @@ Lab sử dụng HTTP stub, không chạy Shlink. Kết quả của lab hỗ tr�
 
 | File | Chức năng |
 | --- | --- |
-| `root.yaml` | LB OVN, listener TCP 8080, pool `SOURCE_IP_PORT`, TCP monitor, FIP của VIP và hai app unit |
-| `stub-unit.yaml` | Một port private, VM, cloud-config và pool member |
+| `root.yaml` | Một LB OVN/VIP/FIP, hai listener TCP 8080/8081, mỗi listener có pool `SOURCE_IP_PORT` và TCP monitor; hai app unit |
+| `stub-unit.yaml` | Một port private, VM, cloud-config chạy hai stub và hai pool member đúng cổng |
 | `stub.py` | HTTP server nhận diện backend; Python standard library |
 | `sample_lb.py` | Gửi nhiều kết nối mới, tổng hợp backend và lỗi; Python standard library |
 | `tests/` | Tests HTTP local và kiểm tra hợp đồng cấu trúc template; dùng PyYAML |
@@ -22,7 +22,7 @@ Thông số mặc định được đối chiếu với [H2](../../../docs/hando
 | `app_flavor` | `campus.app`: 1 vCPU, 2 GiB RAM, 10 GiB đĩa |
 | `key_name` | Bắt buộc: tên keypair Nova của user tạo stack, không phải đường dẫn private key |
 | `app_network` / `app_subnet` | `campus-net` / `campus-subnet`, MTU 1400 |
-| `app_security_group` | `campus-app-sg`, cho TCP 8080 từ mạng tenant và mạng external OpenStack |
+| `app_security_group` | `campus-app-sg`, cần cho TCP 8080 **và 8081** từ `10.20.0.0/24` và `172.24.4.0/24`; xác minh trước tạo |
 | `external_network` | `public`, mạng ảo OpenStack 172.24.4.0/24 |
 | `az_a` / `az_b` | `campus-az-a` / `campus-az-b` |
 
@@ -96,7 +96,10 @@ openstack availability zone list --compute
 openstack network show campus-net -c mtu
 openstack image show ubuntu-noble-base -c status
 openstack loadbalancer provider list
+openstack security group rule list campus-app-sg
 ```
+
+Nếu SG chưa cho TCP 8081 từ hai CIDR nội bộ trên, chuyển TV1 bổ sung, không tự sửa SG nền hoặc tạo stack rồi chờ. [Issue #19](https://github.com/luongkien25/campuslink/issues/19) theo dõi đầu vào này. Không mở 8081 ra Internet.
 
 Kiểm tra schema cho `OS::Octavia::LoadBalancer`, `OS::Octavia::Listener`, `OS::Octavia::Pool`, `OS::Octavia::HealthMonitor`, `OS::Octavia::PoolMember`, `OS::Neutron::Port`, `OS::Neutron::FloatingIP`, `OS::Nova::Server` và `OS::Heat::CloudConfig`. Ví dụ:
 
@@ -128,7 +131,7 @@ openstack orchestration template validate --template root.yaml --parameter key_n
 
 Validate thành công không chứng minh cloud-init hoặc backend đã hoạt động. Nếu validate chưa nhận parameter theo cú pháp trên, dùng đúng cú pháp được `--help` của CLI tại A công bố.
 
-Lệnh tiếp theo **tạo hai VM, LB, listener, pool, monitor, member, port và một FIP**, chỉ thực hiện sau khi duyệt:
+Lệnh tiếp theo **tạo hai VM, một LB, hai listener/pool/monitor, bốn member, port và một FIP**, chỉ thực hiện sau khi duyệt và SG đã đủ hai cổng:
 
 ```bash
 openstack stack create --template root.yaml --parameter key_name=REPLACE_KEYPAIR_NAME --timeout 20 tv2-lb-lab
@@ -144,14 +147,15 @@ openstack stack show "$LAB_STACK_ID" -c stack_status
 openstack stack resource list --nested-depth 2 "$LAB_STACK_ID"
 openstack stack output show "$LAB_STACK_ID" lb_id
 openstack stack output show "$LAB_STACK_ID" pool_id
+openstack stack output show "$LAB_STACK_ID" portal_pool_id
 openstack stack output show "$LAB_STACK_ID" vip_fip
 openstack stack output show "$LAB_STACK_ID" app_a_id
 openstack stack output show "$LAB_STACK_ID" app_b_id
 ```
 
-Kiểm `CREATE_COMPLETE`, LB `ACTIVE` và member TCP hoạt động. Dùng UUID VM kiểm placement theo H2; nếu member chỉ cho thấy một phía, thu cloud-init/console log và trạng thái LB qua đường chẩn đoán đã được thống nhất. Không tự mở SSH/ICMP hoặc thay SG nền để gỡ lỗi.
+Kiểm `CREATE_COMPLETE`, LB provider `ovn`/`ACTIVE`, hai listener TCP trên cùng LB/VIP, hai pool `SOURCE_IP_PORT`, hai TCP monitor và bốn member `ONLINE`. Member của pool 8080 phải trỏ guest:8080; pool 8081 phải trỏ guest:8081, cùng hai địa chỉ private. Dùng UUID VM kiểm placement theo H2; nếu member chỉ cho thấy một phía, thu cloud-init/console log và trạng thái LB qua đường chẩn đoán đã được thống nhất. Không tự mở SSH/ICMP hoặc thay SG nền để gỡ lỗi.
 
-Hai app unit được tạo tuần tự để tránh sửa pool đồng thời. Dependency gỡ member trước VM khi xóa. Tuy nhiên, member có thể được tạo trước khi cloud-init hoàn tất; TCP monitor mới quyết định backend có nhận traffic. Lab không có WaitCondition và không kiểm DB/Redis.
+Hai listener/pool/monitor, hai app unit và hai member trong mỗi unit được tạo tuần tự để tránh sửa cùng LB đồng thời. Dependency gỡ cả hai member trước VM khi xóa. Tuy nhiên, member có thể được tạo trước khi cloud-init hoàn tất; TCP monitor mới quyết định backend có nhận traffic. Lab không có WaitCondition và không kiểm DB/Redis.
 
 ## Kiểm tra phân phối và lỗi backend
 
@@ -160,7 +164,11 @@ Trên A, lấy FIP từ output `vip_fip` rồi đặt URL bằng giá trị th�
 ```bash
 LAB_URL=http://REPLACE_VIP_FIP:8080/
 python3 sample_lb.py "$LAB_URL" --expect app-a --expect app-b --requests 40 --timeout 3
+LAB_PORTAL_URL=http://REPLACE_VIP_FIP:8081/
+python3 sample_lb.py "$LAB_PORTAL_URL" --expect portal-a --expect portal-b --requests 40 --timeout 3
 ```
+
+Chỉ coi O-13 đạt khi **cả hai lượt** không lỗi, thấy đủ hai backend đúng cổng và cấu hình LB/member khớp kiểm tra trên. Đây là phép thử stub; không chứng minh portal thật, SSE, readiness hoặc H4b đã đạt. Không bắt buộc lặp phép stop/start ngày 27/10 để kiểm riêng O-13; nếu làm thì phải duyệt và ghi kết quả từng cổng.
 
 Sampler mở kết nối mới, không follow redirect, không dùng proxy từ biến môi trường và vẫn kiểm chứng thư khi dùng HTTPS. URL không được chứa credential, query hoặc fragment. Sampler chỉ dùng với stub, không dùng đánh giá API Shlink.
 
@@ -193,7 +201,7 @@ Nếu hết thời gian chờ mà chưa đạt, lưu trạng thái và log thự
 
 ### Kết quả kiểm chứng
 
-[Evidence ngày 27/10/2026](../../../evidence/G2/20261027-FR-INF-07-tv2-lb-cloud.txt) ghi nhận Heat validate và tạo stack thành công trên DevStack stable/2026.1 bằng quyền member. Hai Ubuntu VM nằm đúng hai AZ; LB dùng provider `ovn`, listener TCP 8080, pool `SOURCE_IP_PORT` và TCP monitor.
+[Evidence ngày 27/10/2026](../../../evidence/G2/20261027-FR-INF-07-tv2-lb-cloud.txt) ghi nhận phiên bản lab **một listener 8080** validate và tạo stack thành công trên DevStack stable/2026.1 bằng quyền member. Hai Ubuntu VM nằm đúng hai AZ; LB dùng provider `ovn`, pool `SOURCE_IP_PORT` và TCP monitor. Kết quả lịch sử này không xác nhận template hai cổng hiện tại đã chạy trên cụm.
 
 | Phép đo | Kết quả |
 | --- | --- |
@@ -203,7 +211,11 @@ Nếu hết thời gian chờ mà chưa đạt, lưu trạng thái và log thự
 
 Bộ thu ghi 12 mẫu HTTP chuyển tiếp, không gặp lỗi; điều kiện VM A `SHUTOFF`, member A `ERROR`, member B `ONLINE` được xác nhận sau khoảng 12,5 giây từ trước lệnh stop. Sau lệnh start, cả hai member được quan sát `ONLINE` sau khoảng 42,2 giây. Đây là kết quả của một lượt lấy mẫu, không phải giới hạn downtime hoặc cam kết SLO. Capture HTTP chứa nhãn và hostname từng guest, đối chiếu với UUID/AZ qua Nova; chưa thu journal hoặc packet capture bên trong guest. Phép thử không bao gồm SSH guest, ingress Nginx, Shlink hoặc autoscaling.
 
-## Dọn lab — chưa kiểm trên cụm
+[Preflight O-13 ngày 07/11](../../../evidence/G2/20261107-O-13-tv2-dual-listener-preflight.txt): suite offline 18 tests đạt, Heat validate có nested template thành công. **Chưa tạo stack hai cổng hoặc đo traffic** vì `campus-app-sg` thiếu ingress 8081; chờ TV1 qua [issue #19](https://github.com/luongkien25/campuslink/issues/19). Không dùng kết quả validate để báo O-13 PASS.
+
+## Dọn lab
+
+[Evidence cleanup 07/11/2026](../../../evidence/G2/20261107-FR-INF-07-tv2-lb-cleanup.txt) ghi stack lab cũ `88dabbc1-f487-4f26-9554-ced5c1fdb69b` đã `DELETE_COMPLETE` lúc 06:43:02 UTC. Hậu kiểm không còn VM/LB/FIP/port lab, volume/port DB và tài nguyên nền vẫn tồn tại. Chưa có kết quả triển khai/cleanup phiên bản hai listener.
 
 Kiểm tra UUID stack và danh sách tài nguyên trước khi xóa. Lệnh sau **xóa toàn bộ tài nguyên thuộc stack lab**, phải được duyệt riêng:
 

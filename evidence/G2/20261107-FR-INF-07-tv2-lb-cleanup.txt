@@ -1,0 +1,323 @@
+FR-INF-07 / G2 - Don lab HTTP stub TV2 sau nghiem thu
+Ngay: 07/11/2026. Nguoi thuc hien: agent qua SSH user tv2, OS_CLOUD=campus-tv2.
+Phien cloud: nguoi dung xac nhan Zalo/A/B/nhat ky; dong y xoa lab trong chat.
+Nguon yeu cau: docs/inventory.yaml tren main, temporary_resources/tv2-lb-lab.
+Nhanh local khi thuc hien: tv2/app-contract, c545b3b; khong dong bo Git hoac sua template.
+Host A: fingerprint ED25519 khop gia tri nguoi dung da cung cap.
+Khong doc credential/private key; khong dung admin/sudo; khong bat/tat EC2.
+
+PHAM VI
+Stack 88dabbc1-f487-4f26-9554-ced5c1fdb69b (tv2-lb-lab).
+Xoa qua Heat: 2 VM stub, 2 guest port, 2 member, CloudConfig/nested stack,
+LB OVN, listener TCP 8080, pool, health monitor, FIP VIP.
+Khong xoa rieng tai nguyen ngoai stack; evidence 27/10 duoc giu nguyen.
+
+PRE-FLIGHT
+06:41:09 UTC: user tv2, hostname campus-a, uptime 2 phut.
+br-ex 172.24.4.1/24; khong co service failed trong output.
+campus-nat/nginx/apache2 deu active.
+Stack CREATE_COMPLETE; 2 VM lab ACTIVE; LB ACTIVE/ONLINE, provider ovn.
+FIP eeb089ae-e3a7-47c6-999c-b9e41088f520 = 172.24.4.199 -> VIP 10.20.0.119.
+Volume campus-db-data available truoc xoa. Khong coi day la after-start toan cum PASS.
+Cac lenh stack delete/resource list --help da duoc kiem tren CLI that.
+
+KIEM KE TRUOC XOA - OUTPUT THAT
+Lenh theo thu tu: date -u; openstack stack resource list --nested-depth 2 <stack_uuid> -f json;
+openstack port list -c ID -c Name -c device_id -f json;
+openstack network list -c ID -c Name -f json;
+openstack volume list -c ID -c Name -c Status -f json.
+Luu y port list chi tra ID/Name, khong co device_id trong output.
+Sat Nov  7 06:42:19 UTC 2026
+[
+  {
+    "resource_name": "vip_fip",
+    "physical_resource_id": "eeb089ae-e3a7-47c6-999c-b9e41088f520",
+    "resource_type": "OS::Neutron::FloatingIP",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "app_b",
+    "physical_resource_id": "2b561994-70be-4ac2-b796-f5764eb2bae0",
+    "resource_type": "file:///home/tv2/campuslink-tv2-lab/stub-unit.yaml",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "app_a",
+    "physical_resource_id": "c40648a5-c078-4fe9-baa8-d223f693e460",
+    "resource_type": "file:///home/tv2/campuslink-tv2-lab/stub-unit.yaml",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "monitor",
+    "physical_resource_id": "a3c8c316-3b19-4a51-99c2-ee3ff8feb7d6",
+    "resource_type": "OS::Octavia::HealthMonitor",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "pool",
+    "physical_resource_id": "a9681cb9-b7a1-421e-86ee-059b7c35f854",
+    "resource_type": "OS::Octavia::Pool",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "listener",
+    "physical_resource_id": "a1376af3-a690-4241-8bc4-0bf47036733d",
+    "resource_type": "OS::Octavia::Listener",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "lb",
+    "physical_resource_id": "74721d83-07c8-4df2-b753-2f5f9b806cfa",
+    "resource_type": "OS::Octavia::LoadBalancer",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:46Z",
+    "stack_name": "tv2-lb-lab"
+  },
+  {
+    "resource_name": "member",
+    "physical_resource_id": "69f51cc9-c68a-4087-8ed7-b5aaade7c82b",
+    "resource_type": "OS::Octavia::PoolMember",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:58:14Z",
+    "stack_name": "tv2-lb-lab-app_b-qco7av4x2wpj"
+  },
+  {
+    "resource_name": "server",
+    "physical_resource_id": "613a2f4c-7c1c-45d4-9456-038fd9beb290",
+    "resource_type": "OS::Nova::Server",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:58:14Z",
+    "stack_name": "tv2-lb-lab-app_b-qco7av4x2wpj"
+  },
+  {
+    "resource_name": "config",
+    "physical_resource_id": "eedd8ac0-f7d1-44b9-b4b0-ebd9873866fb",
+    "resource_type": "OS::Heat::CloudConfig",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:58:14Z",
+    "stack_name": "tv2-lb-lab-app_b-qco7av4x2wpj"
+  },
+  {
+    "resource_name": "port",
+    "physical_resource_id": "00803da6-b263-4bee-9ae4-dbc34166dbc6",
+    "resource_type": "OS::Neutron::Port",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:58:14Z",
+    "stack_name": "tv2-lb-lab-app_b-qco7av4x2wpj"
+  },
+  {
+    "resource_name": "member",
+    "physical_resource_id": "689156de-78b6-498c-ab70-427c212bff2e",
+    "resource_type": "OS::Octavia::PoolMember",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:53Z",
+    "stack_name": "tv2-lb-lab-app_a-tfokn5iedzca"
+  },
+  {
+    "resource_name": "server",
+    "physical_resource_id": "336d209b-6f5d-4bb7-a3c9-184e2037b7fb",
+    "resource_type": "OS::Nova::Server",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:53Z",
+    "stack_name": "tv2-lb-lab-app_a-tfokn5iedzca"
+  },
+  {
+    "resource_name": "config",
+    "physical_resource_id": "6da2b80c-3629-4b02-a66c-c875be8d0b93",
+    "resource_type": "OS::Heat::CloudConfig",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:53Z",
+    "stack_name": "tv2-lb-lab-app_a-tfokn5iedzca"
+  },
+  {
+    "resource_name": "port",
+    "physical_resource_id": "aec9eaff-87ed-4198-96ed-4958fdef03c6",
+    "resource_type": "OS::Neutron::Port",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-10-27T14:56:53Z",
+    "stack_name": "tv2-lb-lab-app_a-tfokn5iedzca"
+  }
+]
+[
+  {
+    "ID": "00803da6-b263-4bee-9ae4-dbc34166dbc6",
+    "Name": "tv2-lb-lab-app_b-qco7av4x2wpj-port-aesuzkuqc2ie"
+  },
+  {
+    "ID": "1512368b-5d13-445e-80b1-d64efbcd8665",
+    "Name": ""
+  },
+  {
+    "ID": "4f99adb9-d743-4ed1-b7fe-af0e0e2f99da",
+    "Name": "ovn-lb-hm-59399337-e22b-4237-87dd-bf4ac035bcfa"
+  },
+  {
+    "ID": "7df6ea1d-2e8c-46d5-99b9-e121855d81b5",
+    "Name": "campus-db-port"
+  },
+  {
+    "ID": "88a7dafa-88b5-42a8-80bd-62a5c6216ab9",
+    "Name": ""
+  },
+  {
+    "ID": "aec9eaff-87ed-4198-96ed-4958fdef03c6",
+    "Name": "tv2-lb-lab-app_a-tfokn5iedzca-port-b3qcyr4kizp6"
+  },
+  {
+    "ID": "d5ba48d9-cc83-4444-9489-e47b969b0f53",
+    "Name": "ovn-lb-vip-74721d83-07c8-4df2-b753-2f5f9b806cfa"
+  }
+]
+[
+  {
+    "ID": "18ecc898-663f-4440-9782-bdf1675ba5c9",
+    "Name": "campus-net"
+  },
+  {
+    "ID": "88b4d52a-cf80-4758-a340-445b37d8bb8c",
+    "Name": "public"
+  }
+]
+[
+  {
+    "ID": "f43fbbd2-b85f-4bb1-b403-ba54a2f84189",
+    "Name": "campus-db-data",
+    "Status": "available"
+  }
+]
+
+THAO TAC
+openstack stack delete --yes --wait 88dabbc1-f487-4f26-9554-ced5c1fdb69b
+Gui lenh luc 06:42:38 UTC.
+Heat events quan sat:
+06:42:41Z DELETE_IN_PROGRESS Stack DELETE started
+06:43:02Z DELETE_COMPLETE Stack DELETE completed successfully
+CLI ket thuc 06:43:19 UTC, stack_delete_exit=0.
+
+KIEM TRA SAU XOA - OUTPUT THAT
+Chay set -e; OS_CLOUD=campus-tv2.
+Lenh theo thu tu:
+date -u
+openstack stack list -f json
+openstack server list -c ID -c Name -c Status -f json
+openstack loadbalancer list -f json
+openstack loadbalancer listener list -f json
+openstack loadbalancer pool list -f json
+openstack loadbalancer healthmonitor list -f json
+openstack floating ip list -f json
+openstack port list -c ID -c Name -f json
+openstack volume list -c ID -c Name -c Status -f json
+openstack network list -c ID -c Name -f json
+openstack subnet list -c ID -c Name -f json
+openstack security group list -c ID -c Name -f json
+openstack image list -c ID -c Name -f json
+openstack keypair list -c Name -f json
+date -u
+Sat Nov  7 06:43:35 UTC 2026
+[]
+[]
+[]
+[]
+[]
+[]
+[]
+[
+  {
+    "ID": "1512368b-5d13-445e-80b1-d64efbcd8665",
+    "Name": ""
+  },
+  {
+    "ID": "7df6ea1d-2e8c-46d5-99b9-e121855d81b5",
+    "Name": "campus-db-port"
+  },
+  {
+    "ID": "88a7dafa-88b5-42a8-80bd-62a5c6216ab9",
+    "Name": ""
+  }
+]
+[
+  {
+    "ID": "f43fbbd2-b85f-4bb1-b403-ba54a2f84189",
+    "Name": "campus-db-data",
+    "Status": "available"
+  }
+]
+[
+  {
+    "ID": "18ecc898-663f-4440-9782-bdf1675ba5c9",
+    "Name": "campus-net"
+  },
+  {
+    "ID": "88b4d52a-cf80-4758-a340-445b37d8bb8c",
+    "Name": "public"
+  }
+]
+[
+  {
+    "ID": "41a894ab-5b20-47fa-bded-29f7942c8135",
+    "Name": "ipv6-public-subnet"
+  },
+  {
+    "ID": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+    "Name": "campus-subnet"
+  },
+  {
+    "ID": "f2686f2e-1eb8-4c5f-8834-00d4f1d37113",
+    "Name": "public-subnet"
+  }
+]
+[
+  {
+    "ID": "15d5d84d-f71a-4595-a5b2-ac75f818c040",
+    "Name": "campus-db-sg"
+  },
+  {
+    "ID": "b3eb3225-3e50-4c38-b43f-3823b6022d05",
+    "Name": "campus-app-sg"
+  },
+  {
+    "ID": "dac9eeec-d02c-4ccc-8297-e510330a39aa",
+    "Name": "default"
+  }
+]
+[
+  {
+    "ID": "10ed8a67-8808-480b-b04d-1faf7d118ba1",
+    "Name": "cirros-0.6.3-x86_64-disk"
+  },
+  {
+    "ID": "b915f809-b352-4d03-a14a-ec9c294e85d8",
+    "Name": "ubuntu-noble-base"
+  }
+]
+[
+  {
+    "Name": "campus-tv2"
+  }
+]
+Sat Nov  7 06:43:52 UTC 2026
+
+Exit code kiem tra sau: 0.
+
+KET LUAN
+PASS don stack lab: stack/server/LB/listener/pool/monitor/FIP list rong.
+Hai guest port va VIP port lab khong con. OVN health-monitor port khong con.
+campus-db-port, hai port nen, campus-net/public, subnet, SG, image va keypair campus-tv2 con.
+Volume campus-db-data f43fbbd2-b85f-4bb1-b403-ba54a2f84189 van available nhu truoc.
+Giai phong lab gom 2 VM campus.app = 2 vCPU, 4096 MiB RAM va 1 FIP.
+Khong co phep kiem traffic/8081/Shlink/ASG trong luot nay.
+Chua cap nhat temporary_resources tren main: checkout local cu; can dua evidence vao PR va cap nhat inventory theo main.
+Chua commit/push/mo PR/dang nhat ky GitHub hoac bat/tat EC2.
+

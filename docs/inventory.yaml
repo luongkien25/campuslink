@@ -160,12 +160,7 @@ load_balancer:                  # TV2 dien sau Heat (H4)
   pool: { algorithm: SOURCE_IP_PORT, id: "REPLACE" }
   health_monitor: { type: TCP, delay: 5, timeout: 3, max_retries: 3 }
 
-temporary_resources:            # diag-a/diag-b, LB smoke, FIP tam... ghi de xoa sau
-  # 31/10/2026 (TV1 ghi tu evidence/G2/20261027-FR-INF-07-tv2-lb-cloud.txt; chua kiem tren cum tu 27/10)
-  - name: tv2-lb-lab                         # Heat stack lab LB OVN tren 2 HTTP stub (infra/heat/lab/)
-    stack_id: "88dabbc1-f487-4f26-9554-ced5c1fdb69b"
-    owner: TV2
-    holds: "2 VM campus.app (1 o campus-az-a, 1 o campus-az-b) = 2 vCPU, 4096 MiB; 1 LB ovn; 1 FIP 172.24.4.199 cho VIP"
-    delete_before: "khi tao Heat stack Shlink chinh (Lab TV1 v1.2 muc 9.4: xoa LB smoke, tranh hai bo cung chay), cham nhat truoc G4"
-    why: "quota project 6 VM / 8 vCPU / 12288 MiB / 3 FIP: DB + 2 app + lab = 5 VM, 10240 MiB; scale-out len app thu 3 la cham tran RAM, them builder (4096 MiB) thi vuot; FIP: lab + VIP chinh + VM nhay = 3/3"
-    delete_cmd: "OS_CLOUD=campus-tv2 openstack stack delete --wait 88dabbc1-f487-4f26-9554-ced5c1fdb69b (TV2 chay, xem infra/heat/lab/README.md muc Don lab)"
+# 07/11/2026: tv2-lb-lab 88dabbc1-f487-4f26-9554-ced5c1fdb69b da xoa qua Heat.
+# DELETE_COMPLETE 06:43:02 UTC; hau kiem 06:43:52 UTC, giu volume/port DB va mang nen.
+# Evidence: evidence/G2/20261107-FR-INF-07-tv2-lb-cleanup.txt
+temporary_resources: []         # diag-a/diag-b, LB smoke, FIP tam... ghi de xoa sau
