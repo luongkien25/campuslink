@@ -174,7 +174,7 @@ Ngân sách đề xuất cho DB VM (2 GiB RAM; **đề xuất, chưa áp dụng*
 | --- | --- | --- |
 | Merge ADR-10, tạo `campus-secrets` và `campus-boot` | TV1 | trước 06/11 |
 | Script boot lấy secret vào `/run/secrets`, unit systemd đúng thứ tự | TV2 | cùng image app (G4) |
-| Tạo DB VM, mật khẩu thật, ghi 2 object | TV3 | 05–06/11 |
+| Tạo DB VM, mật khẩu thật, ghi 2 object | TV3 | **xong 08/11** (mục 10) |
 | Thử quyền 0444/uid 1001 trên app VM thật (local là Docker Desktop, tự đổi chủ sở hữu file nên chưa chứng minh được) | TV2 + TV3 | phiên cụm đầu tiên |
 
 ## 7. Đã biết còn thiếu hoặc lỗi
@@ -182,7 +182,7 @@ Ngân sách đề xuất cho DB VM (2 GiB RAM; **đề xuất, chưa áp dụng*
 - Toàn bộ chạy trên Compose local, chưa qua Nginx/TLS/Octavia. `TRUSTED_PROXIES=1` đúng với chuỗi Nginx → OVN LB (L4, không thêm hop) → app, nhưng chưa kiểm IP thật trong visit.
 - NFR-15 (guest UUID/IP trong log) chưa làm: log Shlink là JSON nhưng không có thông tin VM; đề xuất TV2 gắn qua log driver/tag của Docker trên VM.
 - `REDIS_PUB_SUB_ENABLED=true`: topic thấy được là `https://shlink.io/new-visit`, `https://shlink.io/new-visit/{shortCode}`, `https://shlink.io/new-short-url`; payload JSON có `shortUrl.shortCode`, `tags`. Đây chỉ là quan sát, O-12 vẫn do TV4 chốt.
-- Phiên bản Redis/PostgreSQL local (7.0.15, 16.15) gần với apt Ubuntu 24.04 nhưng chưa đối chiếu bản patch trên DB VM.
+- Phiên bản Redis/PostgreSQL local (7.0.15, 16.15) **khớp** bản apt trên DB VM (đối chiếu 08/11, mục 10).
 
 ## 8. Đo lại trên cụm (bổ sung vào H1 khi có)
 
@@ -197,3 +197,29 @@ Ngân sách đề xuất cho DB VM (2 GiB RAM; **đề xuất, chưa áp dụng*
 - `docker compose up -d` trả về khi replica B mới được tạo, chưa phục vụ → smoke ngay sau đó FAIL health B (`curl: (52) Empty reply from server`). Dùng `up -d --wait`.
 - Redis sai mật khẩu làm container thoát với log "Error generating database" → dễ sửa nhầm DB (mục 3.2).
 - Docker Desktop đổi chủ sở hữu file bind-mount (thấy uid 1001 thay vì uid của người dùng) → phép thử quyền file secret trên Compose local không có giá trị chứng minh.
+
+## 10. DB VM trên cụm (FR-INF-12, O-08, issue #27; 08/11/2026)
+
+Làm theo `docs/runbooks/db-vm.md`. Evidence: `evidence/G3/20261108-FR-INF-12-db-vm.txt`.
+
+| Thứ | Giá trị | Kiểm bằng (`OS_CLOUD=campus-tvN` trên A) |
+| --- | --- | --- |
+| VM | `campus-db` `6d17a9e8-4975-4c46-afd6-be1017e2a251`, `campus.db`, `campus-az-a`, `ubuntu-noble-base`, port `campus-db-port` 10.20.0.10, chỉ `campus-db-sg`, không FIP | `openstack server show campus-db -c status -c addresses` |
+| Volume | `campus-db-data` gắn `/dev/vdb`, ext4, mount `/var/lib/postgresql` theo UUID, `nofail` | `openstack volume show campus-db-data -c status` → `in-use` |
+| PostgreSQL | 16.15 (apt), `max_connections=50`, DB `shlink` owner role `shlink` `CONNECTION LIMIT 15`, `pg_hba`: chỉ `shlink`→`shlink` từ `10.20.0.0/24`, `scram-sha-256` | console: dòng `campus-db-check: OK postgresql ...` |
+| Redis | 7.0.15 (apt), `10.20.0.10:6379`, có mật khẩu, AOF, `maxmemory 256mb` `noeviction` (đề xuất, chốt cùng TV4), dữ liệu trên đĩa gốc | console: `OK redis ... PING=PONG`, `OK redis khong mat khau bi tu choi` |
+| Secret | `campus-secrets/app/db_password` (49 byte), `campus-secrets/app/redis_servers` (79 byte), đúng định dạng mục 6; etag khớp lúc ghi | `openstack object list campus-secrets --prefix app/` |
+| Tự kiểm | `campus-db-check.service` mỗi lần boot in `OK`/`FAIL` ra console, không in secret | `openstack console log show campus-db \| grep campus-db-check` |
+
+Đã kiểm trên cụm: reboot giữ nguyên cấu hình, PG và Redis tự lên; tháo volume rồi boot thì PostgreSQL **không chạy** (`FAIL chua mount`, `postgresql@16-main inactive`), gắn lại thì về `OK`; `member` không đọc được `user_data` của VM qua Nova API; gắn volume AZ `nova` vào VM `campus-az-a` chạy được.
+
+Chưa kiểm, người nhận (TV2) làm khi chạy clone:
+- Kết nối 5432/6379 từ VM có `campus-app-sg` (SG `campus-db-sg` chỉ nhận từ SG này; VM ngoài SG sẽ timeout, không phải lỗi mật khẩu).
+- Shlink chạy migration trên DB thật (local đã chạy được với cùng cấu hình, `evidence/G3/20261107-FR-INF-12-db-vm-thu-local.txt`).
+- "Reboot: link còn" của FR-INF-12: sau khi có link, TV3 reboot `campus-db` và so dòng `short_urls=` trước/sau.
+
+Lưu ý vận hành:
+- Mật khẩu đưa vào VM qua user-data (rủi ro chấp nhận như ADR-10, runbook mục "Thiết kế"); đổi mật khẩu về sau bằng `ALTER ROLE` trên VM rồi ghi lại object Swift, không qua user-data.
+- Không tạo lại `campus-db` trên volume đã có dữ liệu bằng user-data này: script sẽ dừng (`FAIL volume da co du lieu PostgreSQL`), xem runbook mục 8.
+- Port 22 của DB VM đóng (SG); gỡ lỗi bằng console log, cần vào máy thì dùng VM nhảy theo H2 mục 4.1 (keypair `tv3`).
+

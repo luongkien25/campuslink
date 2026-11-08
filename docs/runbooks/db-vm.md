@@ -15,9 +15,9 @@ Không ghi secret vào repo, evidence, issue hay Zalo. Lệnh đánh dấu ⚠�
 | Secret | `openssl rand -hex 24` trên A; đưa vào VM qua user-data; ghi Swift `campus-secrets/app/db_password`, `app/redis_servers` | ADR-10 mục 2, H1 mục 6 |
 | Tự kiểm | `campus-db-check.service` chạy mỗi lần boot, in `OK`/`FAIL` ra console (không in secret) | Không cần SSH hay VM nhảy để kiểm |
 
-**Rủi ro chấp nhận:** user-data của DB VM chứa 2 mật khẩu. Giống ADR-10 với credential `campus-boot` trên VM app. Giảm thiểu: `bootcmd` chặn tiến trình không phải root gọi `169.254.169.254` mỗi lần boot; DB VM không chạy container hay dịch vụ nhận URL từ người dùng; đổi mật khẩu về sau làm bằng `ALTER ROLE`/sửa `campus.conf`, không qua user-data. ⚠️ Chưa kiểm: user `member` khác có đọc được `user_data` qua Nova API không (bước 6).
+**Rủi ro chấp nhận:** user-data của DB VM chứa 2 mật khẩu. Giống ADR-10 với credential `campus-boot` trên VM app. Giảm thiểu: `bootcmd` chặn tiến trình không phải root gọi `169.254.169.254` mỗi lần boot; DB VM không chạy container hay dịch vụ nhận URL từ người dùng; đổi mật khẩu về sau làm bằng `ALTER ROLE`/sửa `campus.conf`, không qua user-data. Đã kiểm 08/11: `member` không đọc được `user_data` qua Nova API (bước 6).
 
-Script: `app/db/user-data.tmpl.yaml`, `app/db/render-user-data.sh`, `app/db/put-secrets.sh`. Đã chạy thử trong container Ubuntu 24.04 (evidence `evidence/G3/20261107-FR-INF-12-db-vm-thu-local.txt`), chưa chạy trên cụm.
+Script: `app/db/user-data.tmpl.yaml`, `app/db/render-user-data.sh`, `app/db/put-secrets.sh`. Đã chạy thử trong container Ubuntu 24.04 (evidence `evidence/G3/20261107-FR-INF-12-db-vm-thu-local.txt`) và **chạy trên cụm 08/11** (evidence `evidence/G3/20261108-FR-INF-12-db-vm.txt`, H1 mục 10).
 
 ## 0. Trước phiên
 
@@ -52,7 +52,7 @@ cd ~/campus-db && chmod +x *.sh
 OS_CLOUD=campus-tv3 ./put-secrets.sh probe          # ⚠️ tao roi xoa object app/_probe-tv3 (khong co secret)
 ```
 
-Kết quả `OK member ghi/xoa duoc` thì đi tiếp. `403` thì báo TV1 (comment issue #27), dừng ở đây.
+Kết quả `OK member ghi/xoa duoc` thì đi tiếp. `403` thì báo TV1 (comment issue #27), dừng ở đây. (TV1 đã kiểm `member` ghi được ngày 08/11, PR #28; lần chạy 08/11 bỏ bước này.)
 
 ## 3. Sinh mật khẩu, tạo VM
 
@@ -66,7 +66,7 @@ openstack server add volume campus-db campus-db-data                    # ⚠️
 rm ~/campus-db-secrets/user-data.yaml
 ```
 
-⚠️ Chưa kiểm: gắn volume AZ `nova` vào VM AZ `campus-az-a` (H3 mục 4, `cross_az_attach`). Lỗi thì báo TV1, đừng thử tạo volume mới.
+Gắn volume AZ `nova` vào VM AZ `campus-az-a` đã chạy (08/11). Lỗi thì báo TV1, đừng thử tạo volume mới.
 
 ## 4. Theo dõi cài đặt (5–10 phút)
 
@@ -106,7 +106,9 @@ openstack server reboot --wait campus-db            # ⚠️ roi xem lai console
 
 Phần "link còn sau reboot" của FR-INF-12 làm sau khi TV2 chạy Shlink trên clone (dòng `short_urls=` trong console phải giữ nguyên số trước/sau reboot).
 
-Thử thiếu mount (FR-INF-12), làm khi chưa có dữ liệu thật hoặc báo nhóm trước:
+Console log của Nova chỉ giữ lần boot gần nhất: chép output lần boot đầu vào evidence trước khi reboot.
+
+Thử thiếu mount (FR-INF-12), làm khi chưa có dữ liệu thật hoặc báo nhóm trước (đã làm 08/11, VM boot chậm khoảng 30 s do `x-systemd.device-timeout`):
 
 ```
 openstack server stop campus-db && openstack server remove volume campus-db campus-db-data   # ⚠️
