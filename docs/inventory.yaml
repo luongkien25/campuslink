@@ -108,7 +108,7 @@ openstack:
     id: "07af3a3dd4c24d1ba028efcb6d28ef84"
     users: { campus-tv2: member, campus-tv3: member, campus-tv4: reader }
     service_users:      # ADR-10, H3b (07/11/2026). Khong ghi secret o day
-      campus-boot: { role: reader, id: "ad816112e45648cbb00fcc0b23fa536e" }    # mat khau da dat ngau nhien va bo; credential THAT chua tao (tao khi TV2 can, co access rules GET campus-secrets/app/*)
+      campus-boot: { role: reader, id: "ad816112e45648cbb00fcc0b23fa536e", app_credential: { name: campus-boot-20261107, id: "327abbcdd80e4ce68e39ff24f4028649", rules: "1 rule: GET campus-secrets/app/* (object-store); khong dat han" }, secret_file: "/home/tv2/.config/openstack/campus-boot.cred (tv2:tv2 0600, tren A; 2 dong id= va secret=)" }    # tao 08/11/2026 theo issue #26; mat khau user da dat ngau nhien va bo; secret cua credential chi nam trong file nay
       campus-svc: { role: reader, id: "563767a155544f4daa40e9c40c8306cd", app_credential: { name: campus-svc, id: "2db59df23dec440590138da7106b1af0", rules: "10 rule: GET/HEAD/PUT tren campus-qr/** va campus-reports/**; GET/HEAD tren hai container" }, secret_object: "campus-secrets/app/swift_app_cred" }    # reader + ACL doc+ghi 2 container (khac ban dau ghi member); secret cua credential chi nam trong object nay
     quota: { instances: 6, cores: 8, ram_mib: 12288, volumes: 5, gigabytes: 30, floating_ips: 3 }
   flavors:
@@ -139,8 +139,8 @@ shlink:                         # Lab 9.5
   campus_domain: "44-198-215-187.sslip.io"   # EIP 44.198.215.187 (23/10/2026)
   short_domain: "s.44-198-215-187.sslip.io"
   admin_domain: "admin.44-198-215-187.sslip.io"
-  app_domain: "app.44-198-215-187.sslip.io"   # SRS 1.3 (campus-portal); CHUA co trong cert campus, cap lai --expand 10-14/11
-  tls: { issuer: "Let's Encrypt", tool: certbot, challenge: http-01, webroot: /var/www/html, cert_name: campus, key_type: ECDSA, issued: "2026-10-27", expires: "2027-01-25", renew: "khong can truoc khi het du an (certbot.timer se loi vi SG 80 dong)" }  # khong commit /etc/letsencrypt
+  app_domain: "app.44-198-215-187.sslip.io"   # SRS 1.3 (campus-portal); cert campus co app. tu 08/11/2026 (het han 2027-02-05); vhost app. CHUA bat (chua co portal)
+  tls: { issuer: "Let's Encrypt", tool: certbot, challenge: http-01, webroot: /var/www/html, cert_name: campus, key_type: ECDSA, domains: "s., admin., app.", issued: "2026-11-08 (cap lai --expand; lan dau 2026-10-27)", expires: "2027-02-05", renew: "khong can truoc khi het du an (certbot.timer se loi vi SG 80 dong)" }  # khong commit /etc/letsencrypt
   ingress:                      # 27/10/2026, mau cau hinh: infra/nginx/campus.conf.example, infra/apache/campus-acme.conf.example
     nginx: { version: "1.24.0", listen: 443, conf: /etc/nginx/conf.d/campus.conf, admin_root: /var/www/campus-admin/shlink-web-client_4.8.1_dist }
     apache_acme_alias: /etc/apache2/conf-available/campus-acme.conf   # Alias /.well-known/acme-challenge/ -> /var/www/html
