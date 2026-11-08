@@ -1,0 +1,99 @@
+Evidence FR-INF-06 + NFR-10 (G3, phan cert): them ten app.<domain> vao cert Let's Encrypt "campus" bang certbot --expand; kiem Nginx phuc vu cert moi; SG 80 mo vai phut roi dong; quet cong 80 tu ngoai.
+Ngay: 2026-11-07 khoang 23:37Z-23:50Z = 06:37-06:50 gio VN 08/11/2026. A bat 23:18Z (cung phien voi evidence 20261108-FR-INF-22-campus-boot-credential-giao-tv2.txt), B tat. TV1 tu chay lenh (ubuntu@campus-a va PowerShell tren laptop) va dan output cho Claude Code doi chieu.
+Script: cert-app.sh (viet, thu bang lenh gia tren Windows, scp len A, chay bang bash; khong nam trong repo). Output muc A la nguyen van file tee ~/cert-app-20261107T2342Z.txt; muc B va C la output TV1 dan lai.
+Domain: CAMPUS_DOMAIN = 44-198-215-187.sslip.io. Cert "campus" truoc: s., admin. (het han 2027-01-25). Sau: s., admin., app. (het han 2027-02-05 22:47:15Z).
+SG 80: rule sgr-05f5282024837c718 (TCP 80, 0.0.0.0/0) tren campus-ingress-admin (sg-0bf8503bfeee5a3c0). GIO MO: khoang 23:37Z (sau khi Claude Code nhac buoc 1) den truoc 23:39:52Z (buoc 0 cua lan chay dau). GIO DONG: sau 23:45:49Z (script ket thuc) va truoc 23:47:44Z (luc nhan anh console da chi con 2 rule). Day la KHOANG suy tu gio may, KHONG phai gio doc tren console (console khong hien gio tao/xoa rule). Mo khoang 7-10 phut. Sau khi dong, anh console: Inbound rules (2): 443 sgr-0fa88cb6e164fca2a, 22 sgr-08ba369199877dc42.
+KHONG co khoa rieng trong file nay (privkey.pem khong duoc in).
+GIOI HAN / GHI CHU:
+ (1) Lan chay dau (23:39:52Z) dung o buoc 0 vi script kiem co bang "certbot certonly --help" khong thay --expand (loi script, chua doi gi, SG 80 van mo). Da sua thanh "certbot --help all" (khong con CANH BAO co trong lan chay duoi) va dua len A lai; output lan do khong nam trong file nay.
+ (2) Mot lenh certbot do nguoi dung go nham vao PowerShell tren laptop Windows bao "not recognized", khong tac dung gi.
+ (3) Phep kiem curl.exe probe tu laptop BO QUA (nguoi dung go yes truoc khi chay). Thay bang dry-run (staging Let's Encrypt) thanh cong, tuc staging da xac thuc ca 3 ten tu ngoai qua HTTP-01.
+ (4) Dong "FAIL nginx chua phuc vu cert moi" o muc A GIU NGUYEN: s_client chay ngay sau systemctl reload nginx chi thay 2 ten. Kiem lai bang tay khoang 1,5 phut sau (muc B) thay du 3 ten. Nhieu kha nang la chay dua sau reload (suy luan, chua do).
+ (5) app. CHUA co vhost: Nginx tra 444 cho ten nay (server default_server); chua kiem bang request that. Portal chua co.
+ (6) certbot.timer "enabled": gia han tu dong se loi vi SG 80 dong; cert het han 2027-02-05, sau ngay bao ve (30/11/2026), nen khong can gia han trong du an.
+ (7) Lenh THAT chi chay 1 lan, khong gap loi han muc "too many certificates" cua sslip.io.
+
+======== A. cert-app.sh (23:42Z; lenh that 23:45:40Z) ========
+=== 0. Trang thai dau, chi doc (2026-11-07T23:42:49Z) ===
+certbot 2.9.0
+  Certificate Name: campus
+    Key Type: ECDSA
+    Domains: s.44-198-215-187.sslip.io admin.44-198-215-187.sslip.io
+    Expiry Date: 2027-01-25 12:45:26+00:00 (VALID: 78 days)
+app.44-198-215-187.sslip.io -> 44.198.215.187  STREAM app.44-198-215-187.sslip.io
+campus-acme: campus-acme (enabled by site administrator)
+apache: active; configtest: Syntax OK
+nginx: active; nginx: configuration file /etc/nginx/nginx.conf test is successful
+cong 80/443:
+0.0.0.0:443 users:(("nginx",pid=1404,fd=5),("nginx",pid=1403,fd=5),("nginx",pid=1402,fd=5),("nginx",pid=1401,fd=5),("nginx",pid=1400,fd=5),("nginx",pid=1399,fd=5),("nginx",pid=1398,fd=5),("nginx",pid=1397,fd=5),("nginx",pid=1396,fd=5))
+*:80 users:(("apache2",pid=1259,fd=4),("apache2",pid=1258,fd=4),("apache2",pid=1232,fd=4))
+da kiem co: --expand --webroot --cert-name --dry-run (xem CANH BAO neu co)
+=== 1. Kiem duong HTTP-01 tu ngoai (can SG 80 DA MO) ===
+Se tao 1 file thu probe-20261107T2342Z trong /var/www/html/.well-known/acme-challenge roi xoa ngay sau do.
+SG 80 da mo (TCP 80, 0.0.0.0/0, campus-ingress-admin) va ghi gio mo chua? Go yes: Apache cuc bo (Host app.44-198-215-187.sslip.io): probe-ok
+Tu chinh A qua ten cong khai (chi de tham khao, hairpin co the khong qua): 200
+TU LAPTOP (PowerShell) chay lenh sau, phai ra dung chu probe-ok:
+  curl.exe -m 8 -sS http://app.44-198-215-187.sslip.io/.well-known/acme-challenge/probe-20261107T2342Z
+Laptop ra probe-ok chua? Go yes: da xoa file thu
+=== 2. DRY-RUN certbot --expand (staging, khong cap cert that) (23:43:56Z) ===
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+Simulating renewal of an existing certificate for s.44-198-215-187.sslip.io and 2 more domains
+The dry run was successful.
+=== 3. LENH THAT, dung 1 lan ===
+certbot certonly --webroot -w /var/www/html --cert-name campus --expand -d s.44-198-215-187.sslip.io -d admin.44-198-215-187.sslip.io -d app.44-198-215-187.sslip.io
+Neu loi (vd too many certificates ... retry after ...): KHONG thu lai, dong SG 80, ghi gio 'retry after'.
+Chay lenh THAT 1 lan va reload nginx? Go yes: bat dau 23:45:40Z
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+Renewing an existing certificate for s.44-198-215-187.sslip.io and 2 more domains
+
+Successfully received certificate.
+Certificate is saved at: /etc/letsencrypt/live/campus/fullchain.pem
+Key is saved at:         /etc/letsencrypt/live/campus/privkey.pem
+This certificate expires on 2027-02-05.
+These files will be updated when the certificate renews.
+Certbot has set up a scheduled task to automatically renew this certificate in the background.
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If you like Certbot, please consider supporting our work by:
+ * Donating to ISRG / Let's Encrypt:   https://letsencrypt.org/donate
+ * Donating to EFF:                    https://eff.org/donate-le
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+=== 4. Kiem sau khi cap (23:45:48Z) ===
+  Certificate Name: campus
+    Domains: s.44-198-215-187.sslip.io admin.44-198-215-187.sslip.io app.44-198-215-187.sslip.io
+    Expiry Date: 2027-02-05 22:47:15+00:00 (VALID: 89 days)
+  PASS cert campus co app.44-198-215-187.sslip.io
+  PASS nginx -t
+nginx reload, active: active
+DNS:admin.44-198-215-187.sslip.io
+DNS:s.44-198-215-187.sslip.io
+  FAIL nginx chua phuc vu cert moi
+  PASS admin. van 200 verify=0
+  PASS s. van 503 tam (chua co VIP) verify=0
+app.44-198-215-187.sslip.io chua co vhost: Nginx tra 444 (server default_server), dung thiet ke cho toi khi portal co.
+=== Ket qua ===
+FAIL: 1 phep sai, KHONG tu sua them, dan output cho Claude Code
+Evidence tam: /home/ubuntu/cert-app-20261107T2342Z.txt (khong co khoa rieng; scp ve laptop). NHO DONG SG 80.
+!!! NHO: DONG SG 80 (campus-ingress-admin) NGAY BAY GIO, ghi gio dong (23:45:49Z UTC la gio script ket thuc)
+
+======== B. Kiem lai thu cong tren A (chi doc, sau khi dong SG 80; dong notAfter bi cat khi dan, khop voi certbot "Expiry Date 2027-02-05 22:47:15+00:00") ========
+$ echo | openssl s_client -connect 127.0.0.1:443 -servername admin.44-198-215-187.sslip.io 2>/dev/null | openssl x509 -noout -ext subjectAltName -enddate
+X509v3 Subject Alternative Name:
+    DNS:admin.44-198-215-187.sslip.io, DNS:app.44-198-215-187.sslip.io, DNS:s.44-198-215-187.sslip.io
+notAfter=Feb  5 22:4
+$ sudo systemctl is-enabled certbot.timer
+enabled
+
+======== C. Quet cong 80 tu laptop Windows sau khi dong SG (rut gon, bo dia chi LAN) ========
+PS> Test-NetConnection 44.198.215.187 -Port 80
+WARNING: TCP connect to (44.198.215.187 : 80) failed
+WARNING: Ping to 44.198.215.187 failed with status: TimedOut
+ComputerName     : 44.198.215.187
+RemotePort       : 80
+PingSucceeded    : False
+TcpTestSucceeded : False
+
+KET QUA:
+- Cert campus co 3 ten (s., admin., app.), het han 2027-02-05; Nginx phuc vu cert moi (muc B); admin. 200 verify=0 va s. 503 verify=0 khong doi (muc A, buoc 4, khong dung -k).
+- Cong 80 dong lai tu ngoai (TcpTestSucceeded False). FR-INF-05 quet cong day du (22/443) chua lam lai trong phien nay.
+CHUA KIEM: vhost app. (portal chua co); request that toi app. qua Nginx; gio mo/dong SG 80 chinh xac tu console.
