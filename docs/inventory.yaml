@@ -108,7 +108,7 @@ openstack:
     id: "07af3a3dd4c24d1ba028efcb6d28ef84"
     users: { campus-tv2: member, campus-tv3: member, campus-tv4: reader }
     service_users:      # ADR-10, H3b (07/11/2026). Khong ghi secret o day
-      campus-boot: { role: reader, id: "ad816112e45648cbb00fcc0b23fa536e" }    # mat khau da dat ngau nhien va bo; credential THAT chua tao (tao khi TV2 can, co access rules GET campus-secrets/app/*)
+      campus-boot: { role: reader, id: "ad816112e45648cbb00fcc0b23fa536e", app_credential: { name: campus-boot-20261107, id: "327abbcdd80e4ce68e39ff24f4028649", rules: "1 rule: GET campus-secrets/app/* (object-store); khong dat han" }, secret_file: "/home/tv2/.config/openstack/campus-boot.cred (tv2:tv2 0600, tren A; 2 dong id= va secret=)" }    # tao 08/11/2026 theo issue #26; mat khau user da dat ngau nhien va bo; secret cua credential chi nam trong file nay
       campus-svc: { role: reader, id: "563767a155544f4daa40e9c40c8306cd", app_credential: { name: campus-svc, id: "2db59df23dec440590138da7106b1af0", rules: "10 rule: GET/HEAD/PUT tren campus-qr/** va campus-reports/**; GET/HEAD tren hai container" }, secret_object: "campus-secrets/app/swift_app_cred" }    # reader + ACL doc+ghi 2 container (khac ban dau ghi member); secret cua credential chi nam trong object nay
     quota: { instances: 6, cores: 8, ram_mib: 12288, volumes: 5, gigabytes: 30, floating_ips: 3 }
   flavors:
