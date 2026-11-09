@@ -58,7 +58,7 @@ Không in `$TOKEN`, `$secret` ra log hay chat. Object `probe/test.csv` để l�
 ## 4. Đã biết còn thiếu hoặc lỗi
 
 - **Ingress `app.` chưa làm** (TV1, 10–14/11): cert Let's Encrypt thêm `app.` (mở SG 80 vài phút), vhost `app.` có SSE, thử với backend giả. Đây vẫn là một phần của H3b.
-- Chưa thử từ VM ở host B (ASG-B) và từ portal/worker thật; mới thử bằng `curl` trên A và từ một VM thử ở A.
+- Đã thử từ VM ở host B (`campus-az-b`) bằng credential tạm có 1 access rule (09/11/2026, `evidence/G3/20261109-ADR-10-vm-o-B-toi-keystone-swift.txt`): token Keystone, `GET` đúng object 200, `PUT`, `DELETE`, object khác và không token đều 401. Chưa thử từ portal/worker thật và bằng credential `campus-svc` thật từ VM ở B.
 - Credential `campus-svc` **không đặt hạn** (`--expiration`). Thu hồi (lộ hoặc đổi người): TV1 xóa credential, tạo lại và ghi đè `swift_app_cred`, rồi VM app lấy lại lúc boot (ADR-10 mục 10).
 - Định dạng `swift_app_cred` (`id=` và `secret=`) do TV1 chọn vì SRS chỉ ghi "id + secret". TV3 và TV4 chưa viết code đọc nên còn đổi được; muốn đổi thì báo TV1 trước 14/11.
 - Access rules chỉ chạy nhờ 2 dòng cấu hình Swift trên A (ADR-10 mục 6, `docs/troubleshooting.md` 07/11).
