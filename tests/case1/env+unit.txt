@@ -1,0 +1,51 @@
+test_backend_placement_and_octavia_mutations_are_serialized (test_lb_lab.HeatContractTests) ... ok
+test_lb_contract_uses_ovn_tcp_and_private_vms (test_lb_lab.HeatContractTests) ... ok    
+test_nested_parameters_and_local_files_resolve (test_lb_lab.HeatContractTests) ... ok   
+test_cli_exit_status_and_json_report (test_lb_lab.SamplerTests) ... ok
+test_does_not_accept_arbitrary_json_as_backend_evidence (test_lb_lab.SamplerTests) ... ok
+test_fails_when_one_expected_backend_never_receives_traffic (test_lb_lab.SamplerTests) ... ok
+test_http_error_does_not_count_as_success (test_lb_lab.SamplerTests) ... ok
+test_redirect_is_not_followed_or_counted_as_backend_evidence (test_lb_lab.SamplerTests) ... ok
+test_refuses_secret_urls_and_unbounded_inputs_before_network (test_lb_lab.SamplerTests) ... ok
+test_reports_both_backends_with_fresh_connections (test_lb_lab.SamplerTests) ... ok     
+test_truncated_chunked_response_is_reported_without_aborting_run (test_lb_lab.SamplerTests) ... ok
+test_truncated_content_length_never_counts_valid_json_as_success (test_lb_lab.SamplerTests) ... ok
+test_does_not_impersonate_shlink_health_or_redirect (test_lb_lab.StubTests) ... {
+    "time_utc": "2026-11-01T16:06:26.817001+00:00",
+    "backend": "app-b",
+    "event": "http_request"
+}   
+{
+    "time_utc": "2026-11-01T16:06:26.817001+00:00",
+    "backend": "app-b",
+    "event": "http_request"
+}
+{
+    "time_utc": "2026-11-01T16:06:26.817993+00:00",
+    "backend": "app-b",
+    "event": "http_request"
+}
+{
+    "time_utc": "2026-11-01T16:06:26.817993+00:00",
+    "backend": "app-b",
+    "event": "http_request"
+}
+ok
+test_identifies_backend_on_root_and_health (test_lb_lab.StubTests) ... {
+    "time_utc": "2026-11-01T16:06:27.327540+00:00",
+    "backend": "app-a",
+    "event": "http_request"
+}
+{
+    "time_utc": "2026-11-01T16:06:27.329539+00:00",
+    "backend": "app-a",
+    "event": "http_request"
+}
+ok
+test_rejects_invalid_backend_label (test_lb_lab.StubTests) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 7.449s
+
+OK
+""""""""""""""""""""
