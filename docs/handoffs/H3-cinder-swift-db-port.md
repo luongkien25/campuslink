@@ -40,7 +40,7 @@ openstack object delete campus-backups h3.txt; rm -f h3.txt h3.dl
 ## 4. Đã biết còn thiếu hoặc lỗi
 
 - **Dung lượng Swift rất nhỏ:** đĩa loopback của Swift là 5 GiB (`inventory.yaml`: `storage.swift.loopback_size`). Tính retention của `pg_dump` (FR-INF-15) cho vừa mức này, và mỗi bản chép về máy nhóm không thay được bản trong Swift.
-- **Chưa thử gắn volume vào VM ở AZ khác Cinder AZ** (`nova` so với `campus-az-a`/`campus-az-b`). Chưa kiểm cấu hình `cross_az_attach`. Nếu gắn lỗi, báo TV1.
+- **Gắn volume AZ `nova` vào VM ở `campus-az-a` chạy được** (TV3 gắn `campus-db-data` vào `campus-db`, 08/11/2026, `evidence/G3/20261108-FR-INF-12-db-vm.txt`; `cross_az_attach` giữ mặc định). Gắn vào VM ở `campus-az-b` cũng chạy được (09/11/2026: volume `in-use`, attachment đúng VM; chưa kiểm `lsblk` trong guest, `evidence/G3/20261109-ADR-10-vm-o-B-toi-keystone-swift.txt`). Nếu gắn lỗi, báo TV1.
 - Chưa thử mount thật: `nofail` và `RequiresMountsFor=` cho PostgreSQL trong DB VM là việc của bạn (09 mục G). Tên thiết bị trong guest có thể đổi, dùng UUID của filesystem hoặc `/dev/disk/by-id`.
 - Thin pool 28,5 GiB nhỏ hơn quota 30 GiB (cấp phát mỏng). Đừng ghi đầy volume rồi tạo thêm snapshot lớn.
 - Chưa thử snapshot hay restore volume. Chưa kiểm Swift với object lớn.
