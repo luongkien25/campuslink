@@ -36,12 +36,22 @@ write_files:
       for _ in $(seq 1 180); do [[ -e $dev ]] && break; sleep 5; done
       [[ -e $dev ]] || { log "FAIL khong thay volume"; exit 1; }
 
-      if [[ -z $(blkid -o value -s TYPE "$dev" || true) ]]; then
-        log "volume trong, tao ext4"
-        mkfs.ext4 -q -L campus-db-data "$dev"
-      else
-        log "volume da co filesystem, giu nguyen"
-      fi
+      # Chi format khi chac chan volume trang: doc duoc, blkid -p rc=2 (khong thay gi), wipefs khong thay chu ky.
+      # Moi truong hop khac (loi doc, blkid loi, khong phai ext4) deu dung lai, khong format.
+      dd if="$dev" of=/dev/null bs=1M count=1 status=none || { log "FAIL khong doc duoc $dev, khong format"; exit 1; }
+      rc=0; fstype=$(blkid -p -o value -s TYPE "$dev") || rc=$?
+      case $rc in
+        0)
+          [[ $fstype == ext4 ]] || { log "FAIL volume co '$fstype' (khong phai ext4), khong format"; exit 1; }
+          log "volume da co ext4, giu nguyen" ;;
+        2)
+          sigs=$(wipefs -n -O TYPE --noheadings "$dev") || { log "FAIL wipefs loi, khong format"; exit 1; }
+          [[ -z $sigs ]] || { log "FAIL wipefs thay chu ky ($sigs), khong format"; exit 1; }
+          log "volume trong (blkid rc=2, wipefs rong), tao ext4"
+          mkfs.ext4 -q -L campus-db-data "$dev" ;;
+        *)
+          log "FAIL blkid rc=$rc, khong format"; exit 1 ;;
+      esac
       uuid=$(blkid -o value -s UUID "$dev")
       mkdir -p "$MNT"
       grep -q "$uuid" /etc/fstab || echo "UUID=$uuid $MNT ext4 defaults,nofail,x-systemd.device-timeout=30s 0 2" >> /etc/fstab

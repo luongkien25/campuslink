@@ -42,3 +42,11 @@ campus-db-check                                           -> short_urls=1 visits
 
 Ket luan: script cai dat, cau hinh PG/Redis va pg_hba dung y do trong container. FR-INF-12 CHUA PASS: con kiem tren cum
 (reboot giu link, thieu mount thi PostgreSQL khong chay) theo docs/runbooks/db-vm.md muc 4-6.
+
+== 10/11/2026: thu lai sau review TV2 (PR #30): chi format khi chac chan volume trang
+# blkid -p rc=2 va wipefs rong moi format; rc khac, loi doc, hoac filesystem khong phai ext4 thi dung
+# Cung cach thu (container privileged, file loop), 3 trang thai volume:
+volume trang  -> campus-db-setup: volume trong (blkid rc=2, wipefs rong), tao ext4; ... OK mount, OK postgresql; rc=0
+volume ext4   -> campus-db-setup: volume da co ext4, giu nguyen; OK mount, OK postgresql; rc=0; UUID truoc = UUID sau (366ea3cf-...)
+volume swap   -> campus-db-setup: FAIL volume co 'swap' (khong phai ext4), khong format; rc=1; sau van TYPE=swap
+# Khong anh huong campus-db dang chay tren cum: runcmd chi chay lan boot dau (08/11).
