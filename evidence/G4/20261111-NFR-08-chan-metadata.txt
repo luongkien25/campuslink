@@ -1,0 +1,31 @@
+CampusLink TV2 - NFR-08 / YC #21 - metadata guard trên guest thật
+Ngày: 2026-11-11 UTC. Image: 2c43a06d-1db8-4c01-bd31-98803325d932.
+Nguồn runtime: e703fe6990a617ac347084b1a9a90c8c7112c666; Shlink index digest khóa trong versions.lock.
+
+ĐỐI CHỨNG TRƯỚC GUARD (builder riêng, không credential thật):
+- Docker29.1.3 iptables backend, bridge. Host GET meta_data.json HTTP200.
+- Container cached Shlink, entrypoint /bin/sh, wget -T3 -q -O /dev/null: rc0.
+- Body metadata bị bỏ, không đọc user_data vào evidence. Container --rm đã dọn.
+
+SAU GUARD TRÊN CLONE A/B:
+- Host vẫn GET metadata HTTP200, container uid1001 wget có sẵn nhưng rc1.
+- DOCKER-USER: -A DOCKER-USER -d 169.254.169.254/32 -j DROP.
+- FORWARD jump DOCKER-USER đứng đầu; guard không chấp nhận native nftables/host network.
+- Counter DROP tăng khi container thử truy cập; không suy từ timeout đơn lẻ.
+- Hai secret root:root0444, parent0700; uid1001 đọc được từng bind mount read-only.
+- Systemd secret→guard→app→ready; Docker restart=no, systemd quản lý lifecycle.
+
+clone_a_initial: {"observed_utc": "2026-11-11T11:16:07.948197+00:00", "guest_uuid": "c4ea0781-633f-4337-a296-921b9f19fa93", "boot_id": "b154078a-5c93-4ec1-a30a-b8414ca57c2f", "generation": "27895421604", "runtime_ready_seconds": 8.226, "metadata": {"container_rc": 1, "drop_packets_after": 3, "drop_packets_before": 0, "host_http": 200}, "result": "PASS"}
+clone_b_initial: {"observed_utc": "2026-11-11T11:18:09.772059+00:00", "guest_uuid": "7565927f-ccdf-4aeb-b465-a0225f1d5d1e", "boot_id": "fe1043e0-fcee-4ed5-888a-b7e54a710f98", "generation": "28913552089", "runtime_ready_seconds": 7.143, "metadata": {"container_rc": 1, "drop_packets_after": 3, "drop_packets_before": 0, "host_http": 200}, "result": "PASS"}
+clone_a_post_negative: {"observed_utc": "2026-11-11T11:27:31.953779+00:00", "guest_uuid": "c4ea0781-633f-4337-a296-921b9f19fa93", "boot_id": "b154078a-5c93-4ec1-a30a-b8414ca57c2f", "generation": "819482801826", "runtime_ready_seconds": 5.074, "metadata": {"container_rc": 1, "drop_packets_after": 6, "drop_packets_before": 3, "host_http": 200}, "result": "PASS"}
+clone_b_post_docker: {"observed_utc": "2026-11-11T11:28:06.159176+00:00", "guest_uuid": "7565927f-ccdf-4aeb-b465-a0225f1d5d1e", "boot_id": "fe1043e0-fcee-4ed5-888a-b7e54a710f98", "generation": "712475785816", "runtime_ready_seconds": 3.313, "metadata": {"container_rc": 1, "drop_packets_after": 6, "drop_packets_before": 3, "host_http": 200}, "result": "PASS"}
+clone_a_post_reboot: {"observed_utc": "2026-11-11T11:31:00.046135+00:00", "guest_uuid": "c4ea0781-633f-4337-a296-921b9f19fa93", "boot_id": "abba634d-6826-4ba5-a65d-2422981a5813", "generation": "11764658909", "runtime_ready_seconds": 7.106, "metadata": {"container_rc": 1, "drop_packets_after": 3, "drop_packets_before": 0, "host_http": 200}, "result": "PASS"}
+clone_b_post_reboot: {"observed_utc": "2026-11-11T11:35:51.489146+00:00", "guest_uuid": "7565927f-ccdf-4aeb-b465-a0225f1d5d1e", "boot_id": "6c9f8ca6-768a-46b8-99d0-aa485e067904", "generation": "11869854825", "runtime_ready_seconds": 7.105, "metadata": {"container_rc": 1, "drop_packets_after": 3, "drop_packets_before": 0, "host_http": 200}, "result": "PASS"}
+
+Reboot: boot_id A và B đều đổi; generation và state được tạo lại, không dùng bộ secret cũ.
+Docker restart: generation đổi trên cả A/B và tự ready, không start app thủ công để che dependency.
+7 negative cases trên clone A: lỗi fetch/guard/DB/Redis => không app/không ready, khôi phục về PASS.
+
+Nguồn output JSON và chương trình kiểm đã che: 20261111-tv2-guest-checks.json.
+Không có secret/token/API key/user_data trong evidence. Test không thay SG nền hoặc DB service.
+Evidence đủ để review YC #21 cho Shlink core; không tự gửi comment hoặc đóng issue.

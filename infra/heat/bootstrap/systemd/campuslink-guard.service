@@ -1,0 +1,14 @@
+[Unit]
+Description=CampusLink Docker metadata guard
+Requires=campuslink-secrets.service docker.service
+After=campuslink-secrets.service docker.service
+BindsTo=campuslink-secrets.service docker.service
+PartOf=docker.service
+ConditionPathExists=/etc/campuslink/bootstrap.json
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+UMask=0077
+ExecStart=/bin/sh /opt/campuslink/bootstrap/metadata-guard.sh
+TimeoutStartSec=30

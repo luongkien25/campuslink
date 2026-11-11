@@ -1,0 +1,73 @@
+CampusLink TV2 - FR-INF-22 / NFR-08 / NFR-15 / YC #21
+Date: 2026-11-07 UTC
+Scope: OFFLINE implementation and validation ONLY
+Branch: tv2/app-image
+Base: b4e6333e545191fd0b6fc0220991544779de7f28 (PR #25 merged)
+
+No SSH/OpenStack/AWS requests, real credentials, VM build/snapshot/clone,
+local Docker service changes or local firewall mutations in this task.
+HTTP fixtures use loopback and deliberately fake credentials/token/secrets.
+
+1. Bootstrap / guard / readiness tests
+Command:
+  .venv/bin/python -B -m unittest discover -s infra/heat/bootstrap/tests -v
+Final observed result (after review fixes):
+  Ran 19 tests in 5.651s
+  OK
+  exit_code=0
+
+Behavior exercised:
+- Application-credential JSON POST, token 201/X-Subject-Token, exact two GETs.
+- Ignoring proxy environment and curlrc; redirects not followed.
+- No credential/token in recorded process argv or CLI failure output.
+- HTTP scratch paths confined to state dir (production /run/campuslink).
+- Atomic two-file publish and modes 0700/0444; partial failure removes state.
+- HTTP 401/403/404, missing token, malformed JSON, empty/oversize/bad secret.
+- At most three attempts on temporary HTTP failure; slow responses share
+  one bounded deadline; no stale set after failed refetch; reject symlink.
+- Simulated Docker/iptables boundary: rule idempotence, unsupported backend,
+  Docker29 explicit backend, missing FORWARD hook/image/file/rule, ACCEPT
+  before DROP, invalid guest UUID, no-pull/no-restart/bridge/mount argv.
+- Simulated readiness boundary: HTTP 200 is insufficient without status=pass
+  and Redis PONG; deadline, exited/restarted/host-network fail; missing or
+  created container remains pending to avoid Type=exec startup race.
+
+2. Existing LB lab regression
+Command:
+  .venv/bin/python -B -m unittest discover -s infra/heat/lab/tests -v
+Observed:
+  Ran 18 tests in 7.248s
+  OK
+  exit_code=0
+
+3. Static validation
+- bash -n: image/prepare.sh, image/sanitize.sh => exit_code=0.
+- sh -n: bootstrap/metadata-guard.sh, bootstrap/start-shlink.sh => exit_code=0.
+- systemd-analyze verify bootstrap/systemd/campuslink-*.service => exit_code=0.
+- Python AST, YAML/JSON parse, relative documentation links, trailing
+  whitespace/newline, clone hidden credential constraints/resource boundary
+  checked locally => exit_code=0.
+Sandbox initially disallowed loopback sockets/systemd socket metadata;
+those checks were rerun with approved access, not skipped.
+
+4. TDD and fresh final review
+Initial tests failed before runtime implementation existed. Regression tests
+also reproduced curlrc redirect and ACCEPT-before-DROP, then passed after fixes.
+Fresh read-only reviewer found two issues, both reproduced RED then fixed:
+- P1 Type=exec startup race: missing/created container must be pending.
+- P2 /tmp HTTP scratch persisted secrets outside tmpfs: use runtime state dir.
+The final 19/19 bootstrap suite above passed after both fixes. Reviewer made
+no file changes and reported no other critical/important findings or minors.
+
+5. NOT VERIFIED / NOT ACCEPTED
+- Ubuntu24.04 guest package/CLI versions, Docker backend and packet path.
+- Live systemd lifecycle across reboot/Docker restart and root file ownership.
+- Builder prepare/sanitize, disk compatibility, cached image and clean snapshot.
+- Glance image UUID/hash/min_disk/min_ram/virtual_size/size, clone A or B.
+- Real campus-boot access rules, real Swift objects/DB/Redis, 180s guest ready.
+- Guest JSON log attrs/Request ID and real no-pull event evidence.
+- Heat2026.1 clone schema validation; main ASG/WaitCondition/scaling deployment.
+
+FR-INF-22 remains pending guest/image acceptance. YC #21 remains OPEN;
+offline tests do not prove metadata isolation. Dependencies tracked in #26
+(TV1 credential delivery) and #27 (TV3 DB/Redis/core objects).

@@ -1,0 +1,16 @@
+[Unit]
+Description=CampusLink local readiness (HTTP and Redis)
+Requires=campuslink-shlink.service
+After=campuslink-shlink.service
+BindsTo=campuslink-shlink.service docker.service
+PartOf=docker.service
+ConditionPathExists=/etc/campuslink/bootstrap.json
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+UMask=0077
+ExecStart=/usr/bin/python3 -B /opt/campuslink/bootstrap/readiness.py
+ExecStop=/usr/bin/rm -f /run/campuslink/ready.json
+ExecStopPost=-/usr/bin/docker stop --time 30 shlink
+TimeoutStartSec=180
