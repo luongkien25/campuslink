@@ -1,0 +1,52 @@
+# FR-INF-12 / O-08 - thu user-data DB VM trong container (CHUA PHAI tren cum). TV3, 07/11/2026 ~23:30 gio VN.
+# Muc dich: bat loi script truoc phien cloud. Khong thay the kiem tren cum (docs/runbooks/db-vm.md).
+# Cach thu:
+#   - render-user-data.sh sinh mat khau thu vao thu muc gitignore, da xoa sau khi thu
+#   - container ubuntu:24.04 --privileged, mang Docker 10.20.0.0/24, IP 10.20.0.10
+#   - ghi write_files cua user-data, chay lenh bootcmd (iptables), roi /usr/local/sbin/campus-db-setup
+#   - file loop 200 MiB thay cho volume Cinder, symlink /dev/disk/by-id/virtio-f43fbbd2-b85f-4bb1-b
+#   - systemctl gia (khong co systemd): restart PG = pg_ctlcluster, restart Redis = chay lai redis-server
+# Chua thu duoc o day: systemd that (RequiresMountsFor, campus-db-check.service luc boot), reboot, cloud-init that,
+#   console log Nova, gan volume that, image ubuntu-noble-base co san iptables khong.
+
+== campus-db-setup (lan dau, volume trong)
+campus-db-setup: cho volume f43fbbd2-b85f-4bb1-b403-ba54a2f84189 (toi da 15 phut; gan bang: openstack server add volume campus-db campus-db-data)
+campus-db-setup: volume trong, tao ext4
+campus-db-setup: cai postgresql-16, redis-server
+campus-db-setup: xong, chay kiem
+campus-db-check: OK mount /var/lib/postgresql /dev/loop0 ext4
+campus-db-check: OK postgresql 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) max_connections=50 data=/var/lib/postgresql/16/main
+campus-db-check: role shlink connlimit=15 db_shlink=1
+campus-db-check: short_urls: chua co bang (Shlink chua chay migration)
+campus-db-check: listen 0.0.0.0:5432 0.0.0.0:6379 [::]:5432
+campus-db-check: OK redis v=7.0.15 PING=PONG
+campus-db-check: OK redis khong mat khau bi tu choi
+campus-db-check: OK chan metadata cho non-root
+
+== ket noi tu 10.20.0.10 (trong 10.20.0.0/24)
+psql -h 10.20.0.10 -U shlink -d shlink (mat khau dung)   -> shlink|shlink
+psql -U shlink -d shlink (mat khau sai)                   -> FATAL: password authentication failed for user "shlink"
+psql -U shlink -d postgres                                -> FATAL: no pg_hba.conf entry ... database "postgres"
+redis-cli -h 10.20.0.10 ping (REDISCLI_AUTH)              -> PONG
+/etc/fstab                                                -> UUID=... /var/lib/postgresql ext4 defaults,nofail,x-systemd.device-timeout=30s 0 2
+grep mat khau DB trong /etc /var/log                      -> khong thay
+
+== tu 172.17.0.2 (ngoai 10.20.0.0/24), luot thu dau
+psql -U shlink -d shlink                                  -> FATAL: no pg_hba.conf entry for host "172.17.0.2" (dung thiet ke)
+
+== Shlink 5.1.8 (digest trong versions.lock) chay vao DB thu, IP 10.20.0.101, env tu app/shlink.env.example
+/rest/health                                              -> 200 {"status":"pass","version":"5.1.8",...}
+shlink short-url:create https://example.org/dbtest --custom-slug dbtest -> Generated short URL: http://localhost:18080/dbtest
+campus-db-check                                           -> short_urls=1 visits=0
+# => role shlink (owner DB shlink) du quyen cho migration Shlink tren PostgreSQL 16 (schema public)
+
+Ket luan: script cai dat, cau hinh PG/Redis va pg_hba dung y do trong container. FR-INF-12 CHUA PASS: con kiem tren cum
+(reboot giu link, thieu mount thi PostgreSQL khong chay) theo docs/runbooks/db-vm.md muc 4-6.
+
+== 10/11/2026: thu lai sau review TV2 (PR #30): chi format khi chac chan volume trang
+# blkid -p rc=2 va wipefs rong moi format; rc khac, loi doc, hoac filesystem khong phai ext4 thi dung
+# Cung cach thu (container privileged, file loop), 3 trang thai volume:
+volume trang  -> campus-db-setup: volume trong (blkid rc=2, wipefs rong), tao ext4; ... OK mount, OK postgresql; rc=0
+volume ext4   -> campus-db-setup: volume da co ext4, giu nguyen; OK mount, OK postgresql; rc=0; UUID truoc = UUID sau (366ea3cf-...)
+volume swap   -> campus-db-setup: FAIL volume co 'swap' (khong phai ext4), khong format; rc=1; sau van TYPE=swap
+# Khong anh huong campus-db dang chay tren cum: runcmd chi chay lan boot dau (08/11).

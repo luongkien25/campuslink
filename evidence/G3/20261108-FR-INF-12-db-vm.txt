@@ -1,0 +1,99 @@
+# FR-INF-12 / O-08 / issue #27 - DB VM campus-db tren cum. TV3, 08/11/2026 (15:50Z-16:13Z).
+# Lam theo docs/runbooks/db-vm.md. Lenh chay tren A bang tv3, OS_CLOUD=campus-tv3 (member).
+# Khong co secret trong file nay: mat khau chi nam trong Swift campus-secrets/app/ va /root/campus-secrets tren DB VM.
+
+== after-start phan 1 (15:50Z)
+hostname campus-a; up 6 min
+br-ex  UNKNOWN  172.24.4.1/24
+systemctl --state=failed -> khong co unit, rc=0
+campus-nat nginx apache2 -> active active active
+compute AZ: campus-az-a available; campus-az-b not available (B tat, dung du kien)
+
+== 1. kiem dau vao (chi doc)
+openstack server list                         -> (rong)
+volume campus-db-data                         -> available, attachments [], az nova
+port campus-db-port                           -> 10.20.0.10, device_id rong, sg 15d5d84d-f71a-4595-a5b2-ac75f818c040 (campus-db-sg)
+image ubuntu-noble-base                       -> active
+flavor campus.db                              -> 1 vCPU, 2048 MiB, 10 GiB
+campus-secrets --prefix app/                  -> app/swift_app_cred (truoc khi ghi)
+
+== 3. render + tao VM
+render-user-data.sh -> ~/campus-db-secrets (drwx------), 4 file -rw-------, "con REPLACE_: 0"
+openstack keypair create --public-key tv3.pub tv3 -> fingerprint 47:ce:ba:84:72:aa:12:15:89:0d:2c:31:2e:f3:94:6c (khop MD5 khoa cong khai cua TV3)
+openstack server create --flavor campus.db --image ubuntu-noble-base --port campus-db-port \
+  --availability-zone campus-az-a --key-name tv3 --user-data <file> --wait campus-db
+  -> 6d17a9e8-4975-4c46-afd6-be1017e2a251 ACTIVE campus-az-a {'campus-net': ['10.20.0.10']}
+openstack server add volume campus-db campus-db-data -> rc=0; volume in-use, device /dev/vdb
+  # gan volume AZ nova vao VM campus-az-a: CHAY (H3 muc 4 ghi chua kiem)
+rm ~/campus-db-secrets/user-data.yaml
+
+== 4. console log lan boot dau (cloud-init 26.1-0ubuntu1~24.04.1)
+[   14.999719] cloud-init[1013]: campus-db-setup: cho volume f43fbbd2-b85f-4bb1-b403-ba54a2f84189 (toi da 15 phut; ...)
+[   40.023832] cloud-init[1013]: campus-db-setup: volume trong, tao ext4
+[   83.201432] cloud-init[1013]: campus-db-setup: cai postgresql-16, redis-server
+[  121.566456] cloud-init[1013]: campus-db-setup: xong, chay kiem
+[  126.596960] campus-db-check: OK mount /var/lib/postgresql /dev/vdb ext4
+[  126.698405] campus-db-check: OK postgresql 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) max_connections=50 data=/var/lib/postgresql/16/main
+[  126.985357] campus-db-check: role shlink connlimit=15 db_shlink=1
+[  127.020427] campus-db-check: short_urls: chua co bang (Shlink chua chay migration)
+[  127.040542] campus-db-check: listen 0.0.0.0:5432 0.0.0.0:6379 [::]:5432
+[  127.066575] campus-db-check: OK redis v=7.0.15 PING=PONG
+[  127.073137] campus-db-check: OK redis khong mat khau bi tu choi
+[  127.078631] campus-db-check: OK chan metadata cho non-root
+
+== 5. ghi secret vao Swift (16:03Z)
+put-secrets.sh
+OK campus-secrets/app/db_password etag khop md5 file local (49 byte)
+OK campus-secrets/app/redis_servers etag khop md5 file local (79 byte)
+rc=0
+# 49 = 48 ky tu hex + \n; 79 = "tcp://default:" + 48 hex + "@10.20.0.10:6379" + \n (dung dinh dang H1 muc 6)
+openstack object list campus-secrets --prefix app/ -> app/db_password app/redis_servers app/swift_app_cred
+last-modified: app/db_password Sun, 08 Nov 2026 16:03:56 GMT; app/redis_servers 16:03:58 GMT
+
+== 6a. member co doc duoc user_data (chua mat khau) qua Nova API khong
+--os-compute-api-version 2.3      -> truong OS-EXT-SRV-ATTR:user_data co, gia tri rong
+--os-compute-api-version 2.latest -> truong OS-EXT-SRV-ATTR:user_data co, gia tri rong
+=> member (campus-tv3) khong doc duoc user_data. Chua thu bang campus-tv2/tv4 (cung role member/reader, cung policy).
+
+== 6b. reboot (openstack server reboot --wait campus-db -> Complete, ACTIVE)
+console log sau reboot: khong co dong campus-db-setup (runcmd chi chay 1 lan)
+[   16.172884] campus-db-check: OK mount /var/lib/postgresql /dev/vdb ext4
+[   16.347695] campus-db-check: OK postgresql 16.15 (...) max_connections=50 data=/var/lib/postgresql/16/main
+[   16.480593] campus-db-check: role shlink connlimit=15 db_shlink=1
+[   16.567499] campus-db-check: short_urls: chua co bang (Shlink chua chay migration)
+[   16.584657] campus-db-check: listen 0.0.0.0:5432 0.0.0.0:6379 [::]:5432
+[   16.606588] campus-db-check: OK redis v=7.0.15 PING=PONG
+[   16.612198] campus-db-check: OK redis khong mat khau bi tu choi
+[   16.617560] campus-db-check: OK chan metadata cho non-root
+
+== 6c. thieu mount thi PostgreSQL khong chay (Kiem bang cua FR-INF-12)
+server stop -> SHUTOFF; server remove volume campus-db campus-db-data -> available; server start
+(16:11:13Z)
+[   37.941083] campus-db-check: FAIL chua mount /var/lib/postgresql
+[   37.950280] campus-db-check: FAIL postgresql@16-main khong chay (inactive)
+[   37.969126] campus-db-check: listen 0.0.0.0:6379
+[   37.993479] campus-db-check: OK redis v=7.0.15 PING=PONG
+[   37.999305] campus-db-check: OK redis khong mat khau bi tu choi
+[   38.004255] campus-db-check: OK chan metadata cho non-root
+# VM van boot (nofail), cham ~30 s (x-systemd.device-timeout=30s); Redis o dia goc nen van chay
+
+server stop; server add volume campus-db campus-db-data -> /dev/vdb, in-use; server start (16:12:27Z) -> ACTIVE
+[   16.799038] campus-db-check: OK mount /var/lib/postgresql /dev/vdb ext4
+[   16.983671] campus-db-check: OK postgresql 16.15 (...) max_connections=50 data=/var/lib/postgresql/16/main
+[   17.118962] campus-db-check: role shlink connlimit=15 db_shlink=1
+[   17.211778] campus-db-check: listen 0.0.0.0:5432 0.0.0.0:6379 [::]:5432
+[   17.233778] campus-db-check: OK redis v=7.0.15 PING=PONG
+[   17.239323] campus-db-check: OK redis khong mat khau bi tu choi
+[   17.244418] campus-db-check: OK chan metadata cho non-root
+
+== 7. trang thai cuoi (16:12:42Z)
+rm -rf ~/campus-db-secrets tren A (ban goc trong Swift)
+campus-db 6d17a9e8-4975-4c46-afd6-be1017e2a251 ACTIVE, campus-az-a, 10.20.0.10, campus.db, ubuntu-noble-base (b915f809-...),
+  key tv3, security_groups [campus-db-sg], volumes_attached f43fbbd2-b85f-4bb1-b403-ba54a2f84189 (delete_on_termination false)
+campus-db-data in-use; campus-db-port device_id 6d17a9e8-..., sg chi 15d5d84d-...
+
+== Ket luan
+FR-INF-12: PASS phan "thieu mount thi PostgreSQL khong chay" va reboot giu PG/Redis/cau hinh.
+CHUA kiem phan "reboot: link con" (chua co Shlink chay vao DB nay; lam sau khi TV2 chay clone, dong short_urls= giu nguyen).
+CHUA kiem tu app VM that: ket noi 5432/6379 qua campus-db-sg tu campus-app-sg, Shlink migration tren DB that (TV2, issue #27).
+O-08: max_connections=50, role shlink CONNECTION LIMIT 15 da ap dung.

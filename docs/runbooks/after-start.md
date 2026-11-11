@@ -116,7 +116,7 @@ PASS: `enabled`, `active`, `syntax is ok`; `:443` là `nginx`, `:80` là `apache
 
 ### 2.7 B
 
-Nếu chưa ở A: `ssh campus-a`. Từ A: `ssh campus-b`.
+**Chạy từ laptop**, không chạy từ A: `ssh campus-b` (ProxyJump qua A). Khóa SSH vào B chỉ nằm trên laptop, trên A không có khóa nên `ssh campus-b` từ A báo `Host key verification failed` (`BatchMode`). Vào shell B rồi dán lệnh dưới, hoặc `ssh campus-b '<lệnh>'`.
 
 ```bash
 hostnamectl --static; chronyc tracking | grep -E 'System time|Leap'; systemctl list-units 'devstack@*' --state=failed --no-legend; echo rc=$?

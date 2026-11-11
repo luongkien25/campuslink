@@ -28,7 +28,7 @@
    - Đóng an toàn: nếu mất hai dòng đó (chạy lại `stack.sh`), credential có rules bị từ chối hoàn toàn, VM boot lỗi nhưng không lộ thêm. Mục 5 vẫn đúng kể cả khi không có access rules (phương án dự phòng: credential không rules, giới hạn cấp container).
 7. ID và secret của credential vào stack qua hai tham số Heat `hidden: true`, giá trị lấy từ `env.yaml` cục bộ (bị `.gitignore` chặn), không nằm trong Git hay Heat output. Chúng nằm trong user-data của VM.
 8. Script boot (TV2, `SOFTWARE_CONFIG`): lấy token bằng application credential, `GET` từng object `app/*`, ghi `/run/secrets/<tên>` mode 0444 trong thư mục cha 0700 root (SRS 4.3), rồi mới chạy container. Thiếu object hoặc 401/403 thì không chạy app và báo lỗi (không in giá trị ra log). Script phải biết sẵn tên từng object (`GET app/<tên>`): liệt kê container bị từ chối khi credential có access rules. Token lấy từ `http://10.11.0.10/identity/v3/auth/tokens`, Swift ở `http://10.11.0.10:8080/v1/AUTH_<project_id>`; đường này đã thử thông từ một VM ở host A (07/11).
-9. Sửa chữ SRS: NFR-08 và mục 4.6 thêm ngoại lệ duy nhất "application credential bootstrap `campus-boot`, chỉ-đọc, theo ADR-10". Mọi secret khác vẫn cấm trong user-data. Credential này vẫn **cấm trong Git và evidence**.
+9. Sửa chữ SRS: NFR-08 và mục 4.6 thêm ngoại lệ duy nhất "application credential bootstrap `campus-boot`, chỉ-đọc, theo ADR-10". Mọi secret khác vẫn cấm trong user-data. Credential này vẫn **cấm trong Git và evidence**. **Bổ sung 10/11/2026 (PR #30):** ngoại lệ thứ hai, hẹp: mật khẩu DB `shlink` và Redis trong user-data của DB VM `campus-db` (xem Hệ quả).
 10. Lộ credential `campus-boot` (hoặc nghi lộ): **coi như mọi secret trong `campus-secrets` đã lộ**, vì người có credential đã đọc được chúng. Làm theo thứ tự: (a) xóa application credential, tạo cái mới; (b) đổi từng secret trong container (mật khẩu DB `shlink`, `campus_portal` trên DB VM; mật khẩu Redis; `PORTAL_SECRET_KEY`; key `campus-stats`; xóa và tạo lại credential `campus-svc`), ghi bản mới vào `campus-secrets`; (c) `stack update` với tham số mới và thay VM app để chúng lấy secret mới. Chỉ xóa credential mà không đổi secret là **chưa đủ**. Thay người (không lộ): chỉ cần (a) và (c).
 
 ## Phương án đã loại
@@ -59,6 +59,7 @@
 - Cấu hình Swift (2 dòng ở mục 6) nằm ngoài repo; đã ghi vào `docs/troubleshooting.md`. File cấu hình bền qua Stop/Start, nên `after-start` không cần kiểm lại.
 - `reader` tự tạo được application credential: mật khẩu `campus-boot` luôn đặt ngẫu nhiên rồi bỏ (mục 6).
 - Cập nhật `infra/heat/env.example.yaml` (TV2): ghi hai tham số `hidden` và bỏ câu "O-03 còn mở".
+- **DB VM `campus-db` (bổ sung 10/11/2026, PR #30):** mật khẩu DB `shlink` và Redis đi vào VM qua user-data (cloud-init `app/db/user-data.tmpl.yaml`), vì DB VM không có FIP, không SSH và chưa có credential để tự đọc Swift. Chấp nhận vì VM tạo tay một lần, không thuộc ASG; `bootcmd` chặn tiến trình không phải root gọi `169.254.169.254` mỗi lần boot; DB VM không chạy container hay dịch vụ nhận URL từ người dùng; `member` (`campus-tv3`) không thấy `user_data` qua Nova API (đã kiểm 08/11, `evidence/G3/20261108-FR-INF-12-db-vm.txt`). Bản gốc của hai mật khẩu vẫn là `campus-secrets/app/`. Đổi mật khẩu về sau làm trên VM (`ALTER ROLE`, `/etc/redis/campus.conf`) rồi ghi lại object, không qua user-data. Thủ tục: `docs/runbooks/db-vm.md`.
 
 ## Đã kiểm trên cụm (07/11/2026)
 
@@ -76,9 +77,9 @@ Request không khớp rule ra **401**, không phải 403 (middleware từ chối
 
 ## Chưa kiểm / chưa chốt
 
-- VM ở host B (ASG-B): đường mạng tới Keystone và Swift trên A (cần phiên có B).
-- `member` (TV2, TV3) ghi object vào `campus-secrets` (mới thấy `campus-backups` do TV3 ghi được 25/10).
+- **Đã kiểm 09/11/2026:** VM ở host B (`campus-az-b`, tạo bằng `campus-tv2`) lấy token Keystone rồi `GET` đúng object giả bằng credential tạm có 1 access rule: Keystone 200, cấp được token, `GET` 200 (md5 khớp); `PUT`, `DELETE`, object khác và không token đều 401, nên access rules chạy đúng từ phía B. Evidence `evidence/G3/20261109-ADR-10-vm-o-B-toi-keystone-swift.txt`. Chưa thử `campus-boot` và `campus-svc` thật và script boot thật từ VM ở B.
+- **Đã kiểm 08/11/2026:** `member` (`campus-tv2`, `campus-tv3`) tạo, đọc lại (etag khớp md5) và xóa object giả dưới `app/` trong `campus-secrets`; `reader` (`campus-tv4`) ghi bị từ chối. Evidence `evidence/G3/20261108-FR-INF-22-campus-boot-credential-giao-tv2.txt`. Chưa thử `member` ghi object thật (`db_password`, `redis_servers`): TV3 làm ở issue #27.
 - Credential `campus-svc` và access rules cho `campus-qr`, `campus-reports` (O-14, H3b): cơ chế đã chạy với `campus-boot`.
-- Script boot thật của TV2 và tham số Heat `hidden`. **Chưa chốt** credential `campus-boot` thật tới `env.yaml` của TV2 bằng cách nào mà không qua kênh người–người (D3).
+- Script boot thật của TV2 và tham số Heat `hidden`: TV2 làm. **Đã chốt 08/11/2026 (issue #26):** credential `campus-boot` thật (`campus-boot-20261107`, 1 access rule `GET campus-secrets/app/*`, không đặt hạn) nằm trong file `/home/tv2/.config/openstack/campus-boot.cred` trên A (`tv2:tv2`, 0600, thư mục cha 0700, hai dòng `id=` và `secret=`); TV2 đọc từ đó vào `env.yaml` cục bộ, không qua chat, issue hay Git. Đã kiểm bằng `curl` từ A (8 phép, `tv3` và `tv4` không đọc được file); đường mạng từ VM ở B đã kiểm 09/11 bằng credential tạm (xem trên); **chưa kiểm** `campus-boot` thật từ VM ở B và bằng script boot thật.
 
-Phân việc: TV1 container, user, credential (mục 5, 6; đã tạo container và user, credential thật tạo khi TV2 cần); TV3 ghi object (mục 2); TV2 script boot và tham số Heat (mục 7, 8).
+Phân việc: TV1 container, user, credential (mục 5, 6; đã tạo container, user và credential thật 08/11); TV3 ghi object (mục 2); TV2 script boot và tham số Heat (mục 7, 8).

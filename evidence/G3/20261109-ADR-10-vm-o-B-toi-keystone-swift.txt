@@ -1,0 +1,99 @@
+Evidence ADR-10 / O-14 / H3 muc 4 (G3): VM o host B (campus-az-b) toi Keystone va Swift tren A; gan volume AZ nova vao VM o B.
+Ngay: 2026-11-09 (gio VN), UTC 2026-11-08 22:40Z-22:49Z. A boot 22:22Z, B boot khoang 22:23Z (B "up 14 min" luc 22:37:58Z). TV1 tu chay lenh tren A (ubuntu@campus-a) va dan output cho Claude Code doi chieu; Claude khong SSH.
+Script: b-probe.sh (ngoai repo). Chi tao tai nguyen TAM bang user campus-tv2 (member), khong dung object that trong campus-secrets, khong in token hay secret.
+Thiet ke: VM b-probe-vm (campus.app, ubuntu-noble-base, campus-az-b, campus-app-sg, KHONG FIP). user-data cloud-init tu lay token bang application credential TAM b-probe-tmp
+  (1 access rule: GET /v1/AUTH_07af3a3dd4c24d1ba028efcb6d28ef84/campus-secrets/app/_probe-b, service object-store; object gia, md5 biet truoc)
+  roi thu GET dung object, PUT, DELETE, GET object khac, khong token; in ket qua ra console log (doc bang `console log show`, khong SSH, khong FIP).
+GIOI HAN: (1) Mot VM, mot lan chay, credential TAM; CHUA thu credential campus-boot / campus-svc that va script boot that cua TV2 tren VM o B.
+  (2) CHUA kiem trong guest (lsblk) sau khi gan volume; bang chung la Nova chi chuyen volume sang in-use sau khi gan xong o host B.
+  (3) Chua ro image ubuntu-noble-base da co san tren B hay B moi keo: VM ACTIVE sau 17 giay (22:46:55Z -> 22:47:12Z).
+  (4) user-data chua secret cua credential TAM; file user-data nam o /tmp tren A (mode 644, thu muc tam) khoang 17 giay cho den khi VM tao xong roi bi xoa; user khac tren A doc duoc trong khoang do.
+      Credential chi GET duoc 1 object gia, da xoa.
+  (5) Ket qua tu phia VM chi la cac dong b-probe: tren console log; khong co ban ghi packet.
+
+== Lan chay 1 (22:43:48Z): dung o buoc 0, chua tao gi
+Script doc quota bang ten cot cu (maxTotalInstances); OSC tren A in ten snake_case (max_total_instances) -> "FAIL quota khong du hoac khong doc duoc (instance=0, RAM=0)". Da sua script nhan ca hai kieu ten.
+
+== Lan chay 2 (22:44:07Z): tao credential xong nhung script khong lay duoc id/secret
+object app/_probe-b ghi, etag khop. `application credential create -f json` thanh cong nhung khoa JSON khong phai chu thuong ("KeyError: 'id'", 'secret').
+=> credential b-probe-tmp va object _probe-b con sot, secret khong con ai giu (khong bi in ra).
+Don luc 22:46:13Z bang `bash b-probe.sh cleanup`:
+  da xoa credential 161d668b7c8b4eb3bef60db8789cae29
+  da xoa object app/_probe-b
+  PASS khong con tai nguyen b-probe
+  object that trong campus-secrets con nguyen (chi ten): app/db_password, app/redis_servers, app/swift_app_cred
+Da sua script chuan hoa ten khoa JSON (chu thuong, khoang trang thanh _) va tu don khi buoc nay loi.
+
+== Lan chay 3 (22:46:26Z): PASS 25, FAIL 0
+=== 0. Kiem dau vao (chi doc) ===
+nova-compute campus-a up
+nova-compute campus-b up
+PASS nova-compute campus-b up
+campus-az-a available
+campus-az-b available
+PASS AZ campus-az-b available
+PASS image show ubuntu-noble-base (b915f809-b352-4d03-a14a-ec9c294e85d8)
+PASS flavor show campus.app (a9083cf8-24ab-4a7a-8b5c-6ba44ed1b6de)
+PASS security group show campus-app-sg (b3eb3225-3e50-4c38-b43f-3823b6022d05)
+PASS network show campus-net (18ecc898-663f-4440-9782-bdf1675ba5c9)
+PASS image ubuntu-noble-base active
+(limits show --absolute, chi giu dong lien quan) instances 6; instances_used 1; max_total_cores 8; max_total_instances 6; max_total_ram_size 12288; max_total_volumes 5
+PASS quota du: con 5 instance, 10240 MiB RAM
+PASS khong co tai nguyen b-probe cu
+
+=== 1. Object gia + credential tam (22:46:49Z) ===
+app/_probe-b
+PASS object app/_probe-b ghi, etag khop
+PASS credential b-probe-tmp id=049d5054e84743cdbc25616855d04757, so rule=1
+=== 2. user-data cho VM (khong in secret) ===
+PASS user-data da render (khong con REPLACE_)
+=== 3. Volume 1 GiB (AZ nova) va VM o campus-az-b (22:46:53Z) ===
+nova
+f659553a-11ab-4318-a8f3-568f06b8e1cd
+PASS volume b-probe-vol available
+server create: bat dau 2026-11-08T22:46:55Z, xong 2026-11-08T22:47:12Z
+PASS VM b-probe-vm 89ea37f8-891c-4635-972f-571505a5577d ACTIVE
+host=campus-b az=campus-az-b
+PASS VM nam tren host campus-b, AZ campus-az-b
+=== 4. Gan volume AZ nova vao VM o B (cross_az_attach, H3 muc 4) (22:47:15Z) ===
+server add volume: Server ID 89ea37f8-891c-4635-972f-571505a5577d, Volume ID f659553a-11ab-4318-a8f3-568f06b8e1cd, Device /dev/vdb, Delete On Termination False
+server add volume rc=0
+PASS volume b-probe-vol in-use
+PASS attachment tro ve VM 89ea37f8-891c-4635-972f-571505a5577d
+=== 5. Cho VM thu Keystone/Swift (console log cua VM) ===
+b-probe: R0 host=b-probe-vm ip=10.20.0.213  start=2026-11-08T22:47:41Z
+b-probe: R0b route=default via 10.20.0.1 dev ens3
+b-probe: R1 keystone code=200_t=0.005917s
+b-probe: R2 token len=204
+b-probe: R3 get_obj code=200 md5=a7c94866...1400
+b-probe: R4 put_obj code=401
+b-probe: R5 get_other code=401
+b-probe: R6 delete_obj code=401
+b-probe: R7 no_token code=401
+b-probe: R8 done end=2026-11-08T22:47:41Z
+PASS VM chay xong b-probe
+=== 6. Danh gia ===
+PASS R1 Keystone /v3/ tu VM o B: 200_t=0.005917s
+PASS R2 lay duoc token bang credential tam (len 204)
+PASS R3 GET object 200, md5 khop
+PASS R4 put_ghi bi chan (401)
+PASS R5 get_object_khac bi chan (401)
+PASS R6 delete bi chan (401)
+PASS R7 khong_token bi chan (401)
+=== 7. Don ===
+Cau hoi "Don tai nguyen tam ngay? (yes = don)": nguoi dung go "yess" (go nham) -> script ghi "Chua don"; PASS=25 FAIL=0.
+
+== Don bang `bash b-probe.sh cleanup` (22:48:49Z-22:49:12Z)
+da xoa VM 89ea37f8-891c-4635-972f-571505a5577d
+da xoa volume f659553a-11ab-4318-a8f3-568f06b8e1cd
+da xoa credential 049d5054e84743cdbc25616855d04757
+da xoa object app/_probe-b
+PASS khong con tai nguyen b-probe
+object that trong campus-secrets con nguyen (chi ten): app/db_password, app/redis_servers, app/swift_app_cred
+(VM, volume, credential, object tren la tai nguyen tam, deu da xoa; credential tam khong con gia tri su dung.)
+
+== Ket luan
+ADR-10 "VM o host B (ASG-B): duong mang toi Keystone va Swift tren A": PASS voi credential tam. VM o campus-b (host campus-b, AZ campus-az-b, 10.20.0.213, khong FIP) lay token Keystone (200, 5,9 ms),
+GET dung object 200 voi md5 khop, PUT / DELETE / object khac / khong token deu 401 -> access rules chay dung tu phia B, khong chi o A.
+H3 muc 4 (gan volume AZ nova vao VM o AZ khac): campus-az-b PASS (in-use, attachment tro dung VM), cung voi campus-az-a (TV3, 08/11, evidence/G3/20261108-FR-INF-12-db-vm.txt trong PR #30); cross_az_attach giu mac dinh.
+CHUA lam: credential campus-boot / campus-svc that tu VM o B va script boot that (TV2); kiem lsblk trong guest.
