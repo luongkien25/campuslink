@@ -1,0 +1,76 @@
+CampusLink TV2 - FR-INF-22 / FR-INF-09 / NFR-08 / phần logging NFR-15
+Ngày: 11/11/2026 UTC. Phạm vi: giai đoạn4 TV2 (image và clone Shlink core).
+KHÔNG phải triển khai stack app chính, ASG/WaitCondition, portal/worker hoặc gate toàn nhóm.
+
+ĐẦU VÀO
+- #26 CLOSED: TV1 giao credential file tv2:tv2 0600, parent0700 trên A; helper tiêu thụ nội bộ, không in value.
+- #27 OPEN: TV3 đã giao DB/Redis và hai Swift object thật; phần TV2 kiểm clone đã đạt trong phiên này.
+- PR30 đã merge bản sửa blkid/ngoại lệ DB user-data, PR31 đã merge. origin/main đọc tại3c94af2.
+- Nhánh local tv2/app-image, runtime commit e703fe6990a617ac347084b1a9a90c8c7112c666.
+  Không tự merge main/commit/push/PR trong task; chỉ đọc đặc tả mới từ origin/main.
+
+IMAGE THẬT
+- campus-app-tv2-g4-20261111 / UUID2c43a06d-1db8-4c01-bd31-98803325d932.
+- Glance active11:06:55Z; min_disk10GiB, min_ram0MiB, virtual_size10737418240, size3236757504 bytes.
+- MD5 530e278fd51a2bc9f582a0416fa4955d; SHA512 nằm trong image-manifest.json (output Glance thật).
+- Builder campus.app root10GiB; Ubuntu24.04.5 amd64, Docker29.1.3, Shlink5.1.8 pinned index68a...85ee.
+- Builder chỉ nhận archive allowlist từ commit e703, không .git/ignored files/key/credential/secret thật.
+- prepare PASS, cached digest/architecture/units verify; còn6.1GiB free sau cài; /run tmpfs.
+- Sanitize known paths PASS; dọn cloud-init cache/user-data/history/authorized keys/host keys/machine-id.
+- Stop builder rồi snapshot; không reboot trước snapshot. Builder đã xóa TRƯỚC cloneA để kiểm độc lập.
+- Phạm vi sạch là known paths + controlled inputs, không tuyên bố scan mọi byte trong qcow2.
+
+CLONE THẬT, A READY/MIGRATE XONG MỚI TẠO B
+- Cả hai dùng imageUUID trên, flavorcampus.app, privateport/appSG+SGSSHtạm, khôngFIP.
+- A: stack7cbaaa4d-64df-465d-a06b-aaf101343599; VMc4ea0781-633f-4337-a296-921b9f19fa93, AZA,10.20.0.145.
+- B: stack5f46dc45-6dfe-4be5-bd79-96f4b67830c1; VM7565927f-ccdf-4aeb-b465-a0225f1d5d1e, AZB,10.20.0.196.
+- Initial A runtime ready8.226s, B7.143s; deadline chung180s từ fetch start, không180s mỗi bước.
+- HTTP200/statuspass/version5.1.8 và RedisPONG; không dùng HTTP đơn lẻ thay Redis.
+- Secret parentroot0700/filesroot0444, uid1001 đọc được từng mountRO; image/digest cached/--pull=never.
+- Không có image pull event trong các khoảng daemon được quan sát; đây không phải audit mọi lịch sử Docker.
+- Metadata host200, containerwgetrc1 và DROPcounter0→3 mỗi VM; source chi tiết file NFR-08.
+
+LIFECYCLE
+- Docker restart tự ready: A5.687s, B5.673s; generation đổi, không start app thủ công.
+- Sau reboot A: boot_id mới, runtime ready7.106s, boot monotonic ready18.714s.
+- Sau reboot B: boot_id mới, runtime ready7.105s, boot monotonic ready18.814s.
+- Packet test/filepermissions/order/no-pull lặp sau reboot và Docker restart đều PASS.
+
+FAIL-CLOSED (CHỈ CLONE A; KHÔNG DỪNG DB/REDIS/KEYSTONE/SWIFT CHUNG)
+- 4 HTTP fixture faults trong guest dùng credential giả: auth401; object404; badformat; Swift GETtimeout7s (>5s client).
+- 3 runtime faults: guard wrapper unavailable; DB_HOSTlocalhost; Redis localhost qua override chỉ clone.
+- Cả7: đúng unit lỗi, không app container, không ready/stale set; config gốc khôi phục và tự ready.
+- Lần chạy đầu FAIL setup ở ca4 vì Docker unit StartLimitBurst3/60s; không coi là7PASS.
+  Đã đối chiếu journal, xác nhận config đã restore, resetfailed counter chỉ trong clone và phục hồi.
+  Test lại với counter cô lập mỗi case; không thay policy image hoặc nới acceptance. Lần cuối7/7PASS,
+  timeout ở GET Swift (2 requestPOST+GET). JSON giữ cả lần đầu FAIL và các lần sau.
+
+LOGGING VÀ LINK DÙNG CHUNG
+- Trên từng replica: headerX-Request-ID của API401 khớp logmessage trong DockerJSON envelope UTC,
+  có attrs guestUUID/IP; timestamp ứng dụng UTCISO8601. Chỉ xuất boolean/tên field, không in log body.
+- Không dùng số đếm quan sát thay assert: checker cuối bắt buộc logJSON/attrs, RequestID/UTC correlation.
+- CLI Shlink nguyên bản tạo slug tv2g4-20261111 -> https://example.org/campuslink-tv2-g4 (exit0).
+- A vàB GET cùng slug trả302 đúngLocation, không followredirect ra Internet. Một link test được giữ
+  trong DB đểTV3 thực hiện "DB reboot còn link"; phiên này KHÔNG reboot DBVM hoặc thay cấu hình DB.
+- ConsoleDB trong cleanup là log boot cũ trước migration (vẫn nói chưa có bảng), không phải SQL hiện tại.
+
+CLEANUP 11:42:10Z–11:43:07Z
+- Hai stack DELETE_COMPLETE, jump/FIP/2SGSSHtạm đã xóa; builder đã xóa trướcclone.
+- EnvHeat thật dohelper tạo trênA đã gỡ, credential TV1 gốc giữ nguyên.
+- Hậu kiểm: chỉcampus-db ACTIVE; stacks[],FIPs[],SG chỉDB/app/default; Nova1VM/1vCPU/2048MiB,
+  1volume10GiB; DBvolume in-use đúngDBUUID, DBport10.20.0.10 chỉDBSG; candidate vẫnactive.
+- Không có lệnh đổi network/subnet/router/baseimage/SGnền/EC2/IAM hoặc DB data thủ công.
+- campus-check11:45:11Z: OK, không ai dùng; người dùng được nhắc Zalo/Stop BtrướcAsau, agent khôngStopEC2.
+
+CODE/VERIFICATION
+- Helper make_clone_env.py đọc file thay vì source shell, validate owner/mode/format/HOTconstraint,
+  reject symlink, atomicallypublishJSON0600 khôngoverwrite; secret khôngargv/output/Git/image.
+- 4tests helper RED trướccode rồiPASS; full bootstrap23/23PASS5.541s. SuiteLB18/18 từ mốc offline
+  còn nguyên code, chưa chạy lặp ở phiêncloud này vì không đổi lab. Checks cuối ghi ở bàn giao.
+- Fresh review không thấycritical/important helper. Đã bổ sung assertlog/UTC/correlation và timeoutGETSwift
+  theo điểm evidence reviewer nêu, rồi kiểm thật lại. Không tựcommit/push/merge/PR/comment/close issue.
+
+Artifact: 20261111-image-manifest.json; 20261111-tv2-guest-checks.json (output + source kiểm khôngsecret);
+20261111-NFR-08-chan-metadata.txt; docs/inventory.yaml; docs/versions.lock; infra/heat/image/README.md.
+FR-INF-22 và phần#21 Shlinkcore có evidence để review. FR-INF-12 reboot giữlink chờTV3; H4/H4b,
+ASG/scaling/drain/loadbenchmark/monitoring toànbộ chưa được nhậnPASS từ phép thử này.

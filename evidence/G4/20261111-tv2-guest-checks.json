@@ -1,0 +1,546 @@
+{
+  "scope": "G4 Shlink core guest integration; no ASG/main-stack deployment",
+  "checks": {
+    "clone_a_initial": {
+      "application_json_log_entries_observed": 3,
+      "boot_id": "b154078a-5c93-4ec1-a30a-b8414ca57c2f",
+      "docker_log_entries_with_guest_attrs": 10,
+      "generation": "27895421604",
+      "guest_ip": "10.20.0.145",
+      "guest_uuid": "c4ea0781-633f-4337-a296-921b9f19fa93",
+      "health": {
+        "http_status": 200,
+        "status": "pass",
+        "version": "5.1.8"
+      },
+      "health_request_id_header_present": true,
+      "image": "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+      "image_pull_events_since_boot": 0,
+      "metadata": {
+        "container_rc": 1,
+        "drop_packets_after": 3,
+        "drop_packets_before": 0,
+        "host_http": 200
+      },
+      "network_mode": "bridge",
+      "observed_utc": "2026-11-11T11:16:07.948197+00:00",
+      "redis": "PONG",
+      "restart_policy": "no",
+      "result": "PASS",
+      "runtime_ready_seconds": 8.226,
+      "secret_permissions_and_uid1001": "PASS",
+      "unit_start_monotonic_us": {
+        "guard": 27912099,
+        "ready": 28603110,
+        "secrets": 27046190,
+        "shlink": 28585828
+      }
+    },
+    "clone_b_initial": {
+      "application_json_log_entries_observed": 3,
+      "boot_id": "fe1043e0-fcee-4ed5-888a-b7e54a710f98",
+      "docker_log_entries_with_guest_attrs": 10,
+      "generation": "28913552089",
+      "guest_ip": "10.20.0.196",
+      "guest_uuid": "7565927f-ccdf-4aeb-b465-a0225f1d5d1e",
+      "health": {
+        "http_status": 200,
+        "status": "pass",
+        "version": "5.1.8"
+      },
+      "health_request_id_header_present": true,
+      "image": "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+      "image_pull_events_since_boot": 0,
+      "metadata": {
+        "container_rc": 1,
+        "drop_packets_after": 3,
+        "drop_packets_before": 0,
+        "host_http": 200
+      },
+      "network_mode": "bridge",
+      "observed_utc": "2026-11-11T11:18:09.772059+00:00",
+      "redis": "PONG",
+      "restart_policy": "no",
+      "result": "PASS",
+      "runtime_ready_seconds": 7.143,
+      "secret_permissions_and_uid1001": "PASS",
+      "unit_start_monotonic_us": {
+        "guard": 28929146,
+        "ready": 29611093,
+        "secrets": 28107168,
+        "shlink": 29591131
+      }
+    },
+    "clone_a_docker_restart": {
+      "operation": "docker-restart-automatic-dependencies",
+      "previous_generation": "27895421604",
+      "result": "PASS",
+      "new_generation": "354236100505",
+      "elapsed_seconds": 5.687
+    },
+    "clone_b_docker_restart": {
+      "operation": "docker-restart-automatic-dependencies",
+      "previous_generation": "28913552089",
+      "result": "PASS",
+      "new_generation": "712475785816",
+      "elapsed_seconds": 5.673
+    },
+    "clone_a_post_negative": {
+      "application_json_log_entries_observed": 3,
+      "boot_id": "b154078a-5c93-4ec1-a30a-b8414ca57c2f",
+      "boot_ready_monotonic_seconds": 824.458,
+      "docker_log_entries_with_guest_attrs": 10,
+      "generation": "819482801826",
+      "guest_ip": "10.20.0.145",
+      "guest_uuid": "c4ea0781-633f-4337-a296-921b9f19fa93",
+      "health": {
+        "http_status": 200,
+        "status": "pass",
+        "version": "5.1.8"
+      },
+      "health_request_id_header_present": true,
+      "image": "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+      "image_pull_events_since_boot": 0,
+      "metadata": {
+        "container_rc": 1,
+        "drop_packets_after": 6,
+        "drop_packets_before": 3,
+        "host_http": 200
+      },
+      "network_mode": "bridge",
+      "observed_utc": "2026-11-11T11:27:31.953779+00:00",
+      "redis": "PONG",
+      "restart_policy": "no",
+      "result": "PASS",
+      "runtime_ready_seconds": 5.074,
+      "secret_permissions_and_uid1001": "PASS",
+      "unit_start_monotonic_us": {
+        "guard": 819508093,
+        "ready": 820155075,
+        "secrets": 818909799,
+        "shlink": 820141158
+      }
+    },
+    "clone_b_post_docker": {
+      "application_json_log_entries_observed": 3,
+      "boot_id": "fe1043e0-fcee-4ed5-888a-b7e54a710f98",
+      "boot_ready_monotonic_seconds": 715.682,
+      "docker_log_entries_with_guest_attrs": 10,
+      "generation": "712475785816",
+      "guest_ip": "10.20.0.196",
+      "guest_uuid": "7565927f-ccdf-4aeb-b465-a0225f1d5d1e",
+      "health": {
+        "http_status": 200,
+        "status": "pass",
+        "version": "5.1.8"
+      },
+      "health_request_id_header_present": true,
+      "image": "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+      "image_pull_events_since_boot": 0,
+      "metadata": {
+        "container_rc": 1,
+        "drop_packets_after": 6,
+        "drop_packets_before": 3,
+        "host_http": 200
+      },
+      "network_mode": "bridge",
+      "observed_utc": "2026-11-11T11:28:06.159176+00:00",
+      "redis": "PONG",
+      "restart_policy": "no",
+      "result": "PASS",
+      "runtime_ready_seconds": 3.313,
+      "secret_permissions_and_uid1001": "PASS",
+      "unit_start_monotonic_us": {
+        "guard": 712488191,
+        "ready": 712816079,
+        "secrets": 712095175,
+        "shlink": 712802171
+      }
+    },
+    "clone_a_post_reboot": {
+      "application_json_log_entries_observed": 3,
+      "boot_id": "abba634d-6826-4ba5-a65d-2422981a5813",
+      "boot_ready_monotonic_seconds": 18.714,
+      "docker_log_entries_with_guest_attrs": 10,
+      "generation": "11764658909",
+      "guest_ip": "10.20.0.145",
+      "guest_uuid": "c4ea0781-633f-4337-a296-921b9f19fa93",
+      "health": {
+        "http_status": 200,
+        "status": "pass",
+        "version": "5.1.8"
+      },
+      "health_request_id_header_present": true,
+      "image": "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+      "image_pull_events_since_boot": 0,
+      "metadata": {
+        "container_rc": 1,
+        "drop_packets_after": 3,
+        "drop_packets_before": 0,
+        "host_http": 200
+      },
+      "network_mode": "bridge",
+      "observed_utc": "2026-11-11T11:31:00.046135+00:00",
+      "redis": "PONG",
+      "restart_policy": "no",
+      "result": "PASS",
+      "runtime_ready_seconds": 7.106,
+      "secret_permissions_and_uid1001": "PASS",
+      "unit_start_monotonic_us": {
+        "guard": 11782220,
+        "ready": 12478087,
+        "secrets": 11015154,
+        "shlink": 12460852
+      }
+    },
+    "clone_b_post_reboot": {
+      "application_json_log_entries_observed": 3,
+      "boot_id": "6c9f8ca6-768a-46b8-99d0-aa485e067904",
+      "boot_ready_monotonic_seconds": 18.814,
+      "docker_log_entries_with_guest_attrs": 10,
+      "generation": "11869854825",
+      "guest_ip": "10.20.0.196",
+      "guest_uuid": "7565927f-ccdf-4aeb-b465-a0225f1d5d1e",
+      "health": {
+        "http_status": 200,
+        "status": "pass",
+        "version": "5.1.8"
+      },
+      "health_request_id_header_present": true,
+      "image": "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+      "image_pull_events_since_boot": 0,
+      "metadata": {
+        "container_rc": 1,
+        "drop_packets_after": 3,
+        "drop_packets_before": 0,
+        "host_http": 200
+      },
+      "network_mode": "bridge",
+      "observed_utc": "2026-11-11T11:35:51.489146+00:00",
+      "redis": "PONG",
+      "restart_policy": "no",
+      "result": "PASS",
+      "runtime_ready_seconds": 7.105,
+      "secret_permissions_and_uid1001": "PASS",
+      "unit_start_monotonic_us": {
+        "guard": 11884573,
+        "ready": 12558106,
+        "secrets": 11101171,
+        "shlink": 12542224
+      }
+    },
+    "clone_a_logs": {
+      "guest_uuid": "c4ea0781-633f-4337-a296-921b9f19fa93",
+      "unauthenticated_api_http": 401,
+      "response_request_id_present": true,
+      "same_request_id_observed_in_application_log": true,
+      "application_json_keys": [
+        [
+          "driver",
+          "level",
+          "logger",
+          "msg",
+          "time"
+        ],
+        [
+          "address",
+          "level",
+          "list of the plugins with RPC methods:",
+          "logger",
+          "msg",
+          "time"
+        ],
+        [
+          "driver",
+          "elapsed",
+          "level",
+          "logger",
+          "msg",
+          "pipeline",
+          "start",
+          "time"
+        ]
+      ],
+      "timestamp_encodings_observed": [
+        "UTC_ISO8601",
+        "UTC_ISO8601",
+        "UTC_ISO8601"
+      ],
+      "correlated_docker_json_has_utc_and_guest_attrs": true,
+      "result": "PASS"
+    },
+    "clone_b_logs": {
+      "guest_uuid": "7565927f-ccdf-4aeb-b465-a0225f1d5d1e",
+      "unauthenticated_api_http": 401,
+      "response_request_id_present": true,
+      "same_request_id_observed_in_application_log": true,
+      "application_json_keys": [
+        [
+          "driver",
+          "level",
+          "logger",
+          "msg",
+          "time"
+        ],
+        [
+          "address",
+          "level",
+          "list of the plugins with RPC methods:",
+          "logger",
+          "msg",
+          "time"
+        ],
+        [
+          "driver",
+          "elapsed",
+          "level",
+          "logger",
+          "msg",
+          "pipeline",
+          "start",
+          "time"
+        ]
+      ],
+      "timestamp_encodings_observed": [
+        "UTC_ISO8601",
+        "UTC_ISO8601",
+        "UTC_ISO8601"
+      ],
+      "correlated_docker_json_has_utc_and_guest_attrs": true,
+      "result": "PASS"
+    },
+    "negative_final_swift_get_timeout": {
+      "result": "PASS",
+      "cases": [
+        {
+          "case": "auth",
+          "result": "PASS",
+          "failed_layer": "secrets",
+          "service_result": "exit-code",
+          "fixture_requests": 1,
+          "app_absent": true,
+          "ready_absent": true
+        },
+        {
+          "case": "missing-object",
+          "result": "PASS",
+          "failed_layer": "secrets",
+          "service_result": "exit-code",
+          "fixture_requests": 2,
+          "app_absent": true,
+          "ready_absent": true
+        },
+        {
+          "case": "bad-format",
+          "result": "PASS",
+          "failed_layer": "secrets",
+          "service_result": "exit-code",
+          "fixture_requests": 2,
+          "app_absent": true,
+          "ready_absent": true
+        },
+        {
+          "case": "timeout",
+          "result": "PASS",
+          "failed_layer": "secrets",
+          "service_result": "exit-code",
+          "fixture_requests": 2,
+          "app_absent": true,
+          "ready_absent": true,
+          "timeout_phase": "Swift-object-GET"
+        },
+        {
+          "case": "guard-unavailable",
+          "result": "PASS",
+          "failed_layer": "guard",
+          "service_result": "exit-code",
+          "app_absent": true,
+          "ready_absent": true
+        },
+        {
+          "case": "db-unreachable-local-override",
+          "result": "PASS",
+          "failed_layer": "shlink",
+          "service_result": "exit-code",
+          "app_absent": true,
+          "ready_absent": true
+        },
+        {
+          "case": "redis-unreachable-local-secret-override",
+          "result": "PASS",
+          "failed_layer": "shlink",
+          "service_result": "exit-code",
+          "app_absent": true,
+          "ready_absent": true
+        }
+      ],
+      "original_config_restored_and_ready": true
+    },
+    "negative_setup_failure": {
+      "result": "FAIL",
+      "cases": [
+        {
+          "case": "auth",
+          "result": "PASS",
+          "failed_layer": "secrets",
+          "service_result": "exit-code",
+          "fixture_requests": 1,
+          "app_absent": true,
+          "ready_absent": true
+        },
+        {
+          "case": "missing-object",
+          "result": "PASS",
+          "failed_layer": "secrets",
+          "service_result": "exit-code",
+          "fixture_requests": 2,
+          "app_absent": true,
+          "ready_absent": true
+        },
+        {
+          "case": "bad-format",
+          "result": "PASS",
+          "failed_layer": "secrets",
+          "service_result": "exit-code",
+          "fixture_requests": 2,
+          "app_absent": true,
+          "ready_absent": true
+        },
+        {
+          "case": "harness",
+          "result": "FAIL",
+          "failure_kind": "AssertionError",
+          "check": "start-docker"
+        }
+      ],
+      "original_config_restored_and_ready": false
+    },
+    "negative_prior_token_timeout": {
+      "result": "PASS",
+      "cases": [
+        {
+          "case": "auth",
+          "result": "PASS",
+          "failed_layer": "secrets",
+          "service_result": "exit-code",
+          "fixture_requests": 1,
+          "app_absent": true,
+          "ready_absent": true
+        },
+        {
+          "case": "missing-object",
+          "result": "PASS",
+          "failed_layer": "secrets",
+          "service_result": "exit-code",
+          "fixture_requests": 2,
+          "app_absent": true,
+          "ready_absent": true
+        },
+        {
+          "case": "bad-format",
+          "result": "PASS",
+          "failed_layer": "secrets",
+          "service_result": "exit-code",
+          "fixture_requests": 2,
+          "app_absent": true,
+          "ready_absent": true
+        },
+        {
+          "case": "timeout",
+          "result": "PASS",
+          "failed_layer": "secrets",
+          "service_result": "exit-code",
+          "fixture_requests": 1,
+          "app_absent": true,
+          "ready_absent": true
+        },
+        {
+          "case": "guard-unavailable",
+          "result": "PASS",
+          "failed_layer": "guard",
+          "service_result": "exit-code",
+          "app_absent": true,
+          "ready_absent": true
+        },
+        {
+          "case": "db-unreachable-local-override",
+          "result": "PASS",
+          "failed_layer": "shlink",
+          "service_result": "exit-code",
+          "app_absent": true,
+          "ready_absent": true
+        },
+        {
+          "case": "redis-unreachable-local-secret-override",
+          "result": "PASS",
+          "failed_layer": "shlink",
+          "service_result": "exit-code",
+          "app_absent": true,
+          "ready_absent": true
+        }
+      ],
+      "original_config_restored_and_ready": true
+    },
+    "link_create": {
+      "result": "PASS",
+      "slug": "tv2g4-20261111",
+      "destination": "https://example.org/campuslink-tv2-g4",
+      "method": "unmodified-Shlink-CLI",
+      "cli_exit": 0
+    },
+    "link_a": {
+      "result": "PASS",
+      "slug": "tv2g4-20261111",
+      "http_status": 302,
+      "location_is_expected": true
+    },
+    "link_b": {
+      "result": "PASS",
+      "slug": "tv2g4-20261111",
+      "http_status": 302,
+      "location_is_expected": true
+    }
+  },
+  "verification_programs": {
+    "observe": {
+      "sha256": "8e0200679e577aaaf6caa3e5c97a1fb1a036bf1e558f1d05cec52f26a45d0e7c",
+      "source": "import datetime\nimport http.client\nimport json\nfrom pathlib import Path\nimport re\nimport stat\nimport subprocess\nimport time\n\n\ndef run(args, timeout=15):\n    return subprocess.run(args, capture_output=True, timeout=timeout, check=False)\n\n\ndef counter():\n    result = run(['iptables', '-nvxL', 'DOCKER-USER'])\n    assert result.returncode == 0, 'iptables-list'\n    for line in result.stdout.decode().splitlines():\n        fields = line.split()\n        if len(fields) > 2 and fields[2] == 'DROP' and '169.254.169.254' in line:\n            return int(fields[0])\n    raise AssertionError('metadata-rule-missing')\n\n\ndef request(host, path):\n    conn = http.client.HTTPConnection(host, 8080 if host == '127.0.0.1' else 80, timeout=5)\n    try:\n        conn.request('GET', path)\n        response = conn.getresponse()\n        status = response.status\n        body = response.read(65536)\n        return status, body, dict(response.getheaders())\n    finally:\n        conn.close()\n\n\nresult = {'observed_utc': datetime.datetime.now(datetime.timezone.utc).isoformat()}\ntry:\n    ready = json.loads(Path('/run/campuslink/ready.json').read_text())\n    assert ready == json.loads(Path('/run/campuslink/secrets.json').read_text())\n    assert ready == json.loads(Path('/run/campuslink/guard.json').read_text())\n    assert ready['boot_id'] == Path('/proc/sys/kernel/random/boot_id').read_text().strip()\n    result['boot_id'] = ready['boot_id']\n    result['generation'] = ready['generation']\n    exit_time = int(run(['systemctl', 'show', 'campuslink-ready.service', '-p', 'ExecMainExitTimestampMonotonic', '--value']).stdout)\n    result['runtime_ready_seconds'] = round(exit_time / 1e6 - ready['started'], 3)\n    result['boot_ready_monotonic_seconds'] = round(exit_time / 1e6, 3)\n    assert 0 <= result['runtime_ready_seconds'] <= 180, 'readiness-deadline'\n    starts = {}\n    for name in ('secrets', 'guard', 'shlink', 'ready'):\n        assert run(['systemctl', 'is-active', '--quiet', 'campuslink-' + name + '.service']).returncode == 0, 'unit-inactive-' + name\n        starts[name] = int(run(['systemctl', 'show', 'campuslink-' + name + '.service', '-p', 'ExecMainStartTimestampMonotonic', '--value']).stdout)\n    assert starts['secrets'] < starts['guard'] < starts['shlink'] < starts['ready'], 'unit-order'\n    result['unit_start_monotonic_us'] = starts\n    inspected = run(['docker', 'inspect', 'shlink'])\n    assert inspected.returncode == 0, 'container-inspect'\n    container = json.loads(inspected.stdout)[0]\n    host = container['HostConfig']\n    assert host['RestartPolicy']['Name'] == 'no' and host['NetworkMode'] == 'bridge', 'container-policy'\n    assert container['RestartCount'] == 0 and container['State']['Status'] == 'running', 'container-state'\n    assert container['Config']['Image'] == 'shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee', 'image-pin'\n    result['image'] = container['Config']['Image']\n    result['restart_policy'] = host['RestartPolicy']['Name']\n    result['network_mode'] = host['NetworkMode']\n    assert run(['docker', 'exec', 'shlink', 'id', '-u']).stdout.strip() == b'1001', 'container-uid'\n    assert run(['docker', 'exec', 'shlink', '/bin/sh', '-c', 'test -r /run/secrets/db_password && test -r /run/secrets/redis_servers']).returncode == 0, 'uid1001-cannot-read'\n    assert stat.S_IMODE(Path('/run/secrets').stat().st_mode) == 0o700\n    for name in ('db_password', 'redis_servers'):\n        info = (Path('/run/secrets') / name).stat()\n        assert info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o444, 'secret-mode'\n        assert any(m['Destination'] == '/run/secrets/' + name and not m['RW'] for m in container['Mounts']), 'secret-bind'\n    result['secret_permissions_and_uid1001'] = 'PASS'\n    code, body, headers = request('127.0.0.1', '/rest/health')\n    health = json.loads(body)\n    assert code == 200 and health['status'] == 'pass', 'health'\n    result['health'] = dict(http_status=code, status=health['status'], version=health.get('version'))\n    result['health_request_id_header_present'] = any(k.lower() in ('x-request-id', 'x-requestid') for k in headers)\n    assert result['health_request_id_header_present'], 'request-id-header-missing'\n    probe = run(['/bin/sh', '/opt/campuslink/redis-probe.sh'])\n    assert probe.returncode == 0 and probe.stdout.strip() == b'PONG', 'redis'\n    result['redis'] = 'PONG'\n    code, _, _ = request('169.254.169.254', '/openstack/latest/meta_data.json')\n    assert code == 200, 'host-metadata-control'\n    assert run(['docker', 'exec', 'shlink', '/bin/sh', '-c', 'command -v wget >/dev/null']).returncode == 0, 'wget-missing'\n    before = counter()\n    attempted = run(['docker', 'exec', 'shlink', 'wget', '-T3', '-q', '-O', '/dev/null', 'http://169.254.169.254/openstack/latest/meta_data.json'])\n    after = counter()\n    assert attempted.returncode not in (0, 126, 127) and after > before, 'metadata-not-blocked-or-no-counter'\n    result['metadata'] = dict(host_http=code, container_rc=attempted.returncode, drop_packets_before=before, drop_packets_after=after)\n    instance = json.loads(Path('/run/cloud-init/instance-data.json').read_text())['v1']['instance_id']\n    labels = container['Config']['Labels']\n    assert labels['campuslink.guest_uuid'] == instance\n    result['guest_uuid'] = instance\n    result['guest_ip'] = labels['campuslink.guest_ip']\n    lines = Path(container['LogPath']).read_text().splitlines()[:1000]\n    attrs_count, app_json_count = 0, 0\n    for line in lines:\n        row = json.loads(line)\n        attrs = row.get('attrs', {})\n        attrs_count += attrs.get('campuslink.guest_uuid') == instance and attrs.get('campuslink.guest_ip') == result['guest_ip']\n        try:\n            app_json_count += isinstance(json.loads(row['log']), dict)\n        except (ValueError, KeyError):\n            pass\n    result['docker_log_entries_with_guest_attrs'] = attrs_count\n    result['application_json_log_entries_observed'] = app_json_count\n    assert attrs_count > 0 and app_json_count > 0, 'missing-json-log-or-guest-attrs'\n    since = str(int(time.time() - time.monotonic()))\n    events = run(['docker', 'events', '--since', since, '--until', str(int(time.time())), '--filter', 'type=image', '--filter', 'event=pull', '--format', '{{json .}}'])\n    assert events.returncode == 0 and not events.stdout.strip(), 'pull-event-since-boot'\n    result['image_pull_events_since_boot'] = 0\n    result['result'] = 'PASS'\nexcept Exception as exc:\n    result['result'] = 'FAIL'\n    # Chi assertion hardcoded; khong trich remote response/exception co the chua secret.\n    result['failure_kind'] = type(exc).__name__\n    if isinstance(exc, AssertionError):\n        result['check'] = str(exc)\nprint(json.dumps(result, sort_keys=True))\nraise SystemExit(0 if result['result'] == 'PASS' else 1)\n",
+      "scope": "Executed only on disposable TV2 app clones with explicit G4 authorization; source is an audit record, not an installer or instruction to run on A/B hosts."
+    },
+    "negative": {
+      "sha256": "6ee9497f6e636cd17980dc132fd8a9c60cef0cfb2f117600139ae16eb4c39712",
+      "source": "import json\nimport os\nfrom pathlib import Path\nimport subprocess\nimport threading\nimport time\nfrom http.server import BaseHTTPRequestHandler, ThreadingHTTPServer\n\nWORK = Path('/run/campuslink-g4-negative')\nCONFIG = Path('/etc/campuslink/bootstrap.json')\nENV = Path('/opt/campuslink/shlink.env')\nGUARD = Path('/opt/campuslink/bootstrap/metadata-guard.sh')\nDISABLED = GUARD.with_name('metadata-guard.sh.g4-disabled')\nDROPIN_DIR = Path('/etc/systemd/system/campuslink-secrets.service.d')\nDROPIN = DROPIN_DIR / 'g4-negative.conf'\nos.umask(0o077)\nWORK.mkdir(mode=0o700)\noriginal_config = CONFIG.read_bytes()\noriginal_env = ENV.read_bytes()\n(WORK / 'bootstrap-good.json').write_bytes(original_config)\n(WORK / 'shlink-good.env').write_bytes(original_env)\nmode = 'auth'\nrequests = []\n\n\ndef run(args, timeout=100):\n    return subprocess.run(args, capture_output=True, timeout=timeout, check=False)\n\n\ndef stop():\n    assert run(['systemctl', 'stop', 'docker.service', 'docker.socket']).returncode == 0, 'stop-docker'\n\n\ndef start():\n    # Moi case la mot lan khoi dong doc lap; khong de burst tests cham rate-limit\n    # Docker dong goi 3 starts/60s. Khong doi unit/policy trong candidate image.\n    assert run(['systemctl', 'reset-failed', 'docker.service', 'docker.socket',\n                'campuslink-secrets.service', 'campuslink-guard.service',\n                'campuslink-shlink.service', 'campuslink-ready.service']).returncode == 0, 'reset-test-counters'\n    assert run(['systemctl', 'start', 'docker.service']).returncode == 0, 'start-docker'\n\n\ndef service(name):\n    data = run(['systemctl', 'show', 'campuslink-' + name + '.service', '-p', 'ActiveState', '-p', 'Result', '-p', 'ExecMainStartTimestampMonotonic']).stdout.decode()\n    return dict(line.split('=', 1) for line in data.splitlines() if '=' in line)\n\n\ndef wait_failed(layer, since):\n    until = time.monotonic() + 45\n    while time.monotonic() < until:\n        state = service(layer)\n        if (state['ActiveState'] == 'failed' and state['Result'] != 'success'\n                and int(state['ExecMainStartTimestampMonotonic']) >= since * 1e6):\n            assert not Path('/run/campuslink/ready.json').exists(), 'stale-ready-marker'\n            assert service('shlink')['ActiveState'] != 'active', 'app-active-after-failure'\n            containers = run(['docker', 'ps', '-aq', '--filter', 'name=^/shlink$'])\n            if containers.returncode == 0 and not containers.stdout.strip():\n                return state['Result']\n        time.sleep(0.5)\n    raise AssertionError('expected-layer-did-not-fail-' + layer)\n\n\nclass Fixture(BaseHTTPRequestHandler):\n    def log_message(self, *args):\n        pass\n\n    def do_POST(self):\n        self.rfile.read(int(self.headers.get('Content-Length', 0)))\n        selected = mode\n        requests.append(('POST', selected))\n        self.reply(401 if selected == 'auth' else 201, b'{\"token\": {}}', token=True)\n\n    def do_GET(self):\n        selected = mode\n        requests.append(('GET', selected))\n        if selected == 'timeout':\n            time.sleep(7)\n        if selected == 'missing-object':\n            self.reply(404, b'')\n        else:\n            self.reply(200, b'not-a-hex-password' if selected == 'bad-format' else b'a' * 48)\n\n    def reply(self, code, data, token=False):\n        try:\n            self.send_response(code)\n            if token:\n                self.send_header('X-Subject-Token', 'fake-negative-token-only')\n            self.send_header('Content-Length', str(len(data)))\n            self.end_headers()\n            self.wfile.write(data)\n        except (BrokenPipeError, ConnectionResetError):\n            pass\n\n\nfixture = ThreadingHTTPServer(('127.0.0.1', 18090), Fixture)\nthreading.Thread(target=fixture.serve_forever, daemon=True).start()\nresults = []\nrestored = False\ntry:\n    for selected in ('auth', 'missing-object', 'bad-format', 'timeout'):\n        stop()\n        mode = selected\n        CONFIG.write_text(json.dumps(dict(keystone_url='http://127.0.0.1:18090/identity/v3/auth/tokens',\n            swift_account_url='http://127.0.0.1:18090/v1/AUTH_test', credential_id='f' * 32,\n            credential_secret='fake-negative-credential-only')))\n        before = len(requests)\n        since = time.monotonic()\n        start()\n        outcome = wait_failed('secrets', since)\n        assert len(requests) > before, 'fixture-not-contacted'\n        assert not Path('/run/secrets').exists(), 'partial-or-stale-secret-set'\n        results.append(dict(case=selected, result='PASS', failed_layer='secrets', service_result=outcome,\n                            fixture_requests=len(requests) - before, app_absent=True, ready_absent=True))\n        if selected == 'timeout':\n            results[-1]['timeout_phase'] = 'Swift-object-GET'\n    stop()\n    CONFIG.write_bytes(original_config)\n    GUARD.rename(DISABLED)\n    since = time.monotonic()\n    start()\n    outcome = wait_failed('guard', since)\n    results.append(dict(case='guard-unavailable', result='PASS', failed_layer='guard', service_result=outcome, app_absent=True, ready_absent=True))\n    stop()\n    DISABLED.rename(GUARD)\n    assert 'DB_HOST=10.20.0.10' in original_env.decode()\n    ENV.write_bytes(original_env.replace(b'DB_HOST=10.20.0.10', b'DB_HOST=127.0.0.1'))\n    since = time.monotonic()\n    start()\n    outcome = wait_failed('shlink', since)\n    results.append(dict(case='db-unreachable-local-override', result='PASS', failed_layer='shlink', service_result=outcome, app_absent=True, ready_absent=True))\n    stop()\n    ENV.write_bytes(original_env)\n    (WORK / 'redis-unreachable.py').write_text(\"from pathlib import Path\\nPath('/run/secrets/redis_servers').write_text('tcp://default:' + 'f' * 48 + '@127.0.0.1:6379\\\\n')\\n\")\n    DROPIN_DIR.mkdir(mode=0o755, exist_ok=True)\n    DROPIN.write_text('[Service]\\nExecStartPost=/usr/bin/python3 /run/campuslink-g4-negative/redis-unreachable.py\\n')\n    assert run(['systemctl', 'daemon-reload']).returncode == 0\n    since = time.monotonic()\n    start()\n    outcome = wait_failed('shlink', since)\n    results.append(dict(case='redis-unreachable-local-secret-override', result='PASS', failed_layer='shlink', service_result=outcome, app_absent=True, ready_absent=True))\nexcept Exception as exc:\n    results.append(dict(case='harness', result='FAIL', failure_kind=type(exc).__name__,\n                        check=str(exc) if isinstance(exc, AssertionError) else 'operation-failed-details-not-printed'))\nfinally:\n    try:\n        stop()\n        CONFIG.write_bytes(original_config)\n        CONFIG.chmod(0o600)\n        ENV.write_bytes(original_env)\n        if DISABLED.exists():\n            DISABLED.rename(GUARD)\n        DROPIN.unlink(missing_ok=True)\n        run(['systemctl', 'daemon-reload'])\n        since = time.monotonic()\n        start()\n        while time.monotonic() - since < 185:\n            if (Path('/run/campuslink/ready.json').exists()\n                    and service('ready')['ActiveState'] == 'active' and service('shlink')['ActiveState'] == 'active'):\n                restored = True\n                break\n            time.sleep(1)\n        for file in WORK.iterdir():\n            file.unlink()\n        WORK.rmdir()\n    except Exception:\n        restored = False\n    fixture.shutdown()\n    fixture.server_close()\nsuccess = len(results) == 7 and all(r['result'] == 'PASS' for r in results) and restored\nprint(json.dumps(dict(result='PASS' if success else 'FAIL', cases=results, original_config_restored_and_ready=restored)))\nraise SystemExit(0 if success else 1)\n",
+      "scope": "Executed only on disposable TV2 app clones with explicit G4 authorization; source is an audit record, not an installer or instruction to run on A/B hosts."
+    },
+    "docker-restart": {
+      "sha256": "dbe769507748f0c2c7225e9baa023d62a2a32a8a6ea3a28e9af826b6e10a39e7",
+      "source": "import json\nfrom pathlib import Path\nimport subprocess\nimport time\n\nmarker = Path('/run/campuslink/ready.json')\nbefore = json.loads(marker.read_text())\nstarted = time.monotonic()\noperation = subprocess.run(['systemctl', 'restart', 'docker'], capture_output=True, timeout=100)\nresult = dict(operation='docker-restart-automatic-dependencies', previous_generation=before['generation'])\nif operation.returncode == 0:\n    while time.monotonic() - started < 190:\n        try:\n            after = json.loads(marker.read_text())\n            active = subprocess.run(['systemctl', 'is-active', '--quiet', 'campuslink-ready.service', 'campuslink-shlink.service'], capture_output=True)\n            if after['generation'] != before['generation'] and after['boot_id'] == before['boot_id'] and active.returncode == 0:\n                result.update(result='PASS', new_generation=after['generation'], elapsed_seconds=round(time.monotonic() - started, 3))\n                break\n        except (OSError, ValueError, KeyError):\n            pass\n        time.sleep(1)\nresult.setdefault('result', 'FAIL')\nprint(json.dumps(result))\nraise SystemExit(0 if result['result'] == 'PASS' else 1)\n",
+      "scope": "Executed only on disposable TV2 app clones with explicit G4 authorization; source is an audit record, not an installer or instruction to run on A/B hosts."
+    },
+    "log-check": {
+      "sha256": "b95950223ead115e611555b663c8a934455e14fb5290a056b195efe6cd3d70ba",
+      "source": "import http.client\nimport json\nfrom pathlib import Path\nimport re\nimport subprocess\nimport time\n\ncontainer = json.loads(subprocess.check_output(['docker', 'inspect', 'shlink']))[0]\nconn = http.client.HTTPConnection('127.0.0.1', 8080, timeout=5)\nconn.request('GET', '/rest/v3/short-urls')\nresponse = conn.getresponse()\nstatus = response.status\nrequest_id = next((v for k, v in response.getheaders() if k.lower() == 'x-request-id'), None)\nresponse.read(65536)\nconn.close()\ntime.sleep(0.2)\ntimestamps = []\nkeys = []\nmatched = False\nmatched_utc_attrs = False\nfor line in Path(container['LogPath']).read_text().splitlines()[-1000:]:\n    row = json.loads(line)\n    matched |= bool(request_id and request_id in row.get('log', ''))\n    if request_id and request_id in row.get('log', ''):\n        attrs = row.get('attrs', {})\n        matched_utc_attrs |= (str(row.get('time', '')).endswith('Z')\n            and attrs.get('campuslink.guest_uuid') == container['Config']['Labels']['campuslink.guest_uuid']\n            and attrs.get('campuslink.guest_ip') == container['Config']['Labels']['campuslink.guest_ip'])\n    try:\n        data = json.loads(row['log'])\n    except (ValueError, KeyError):\n        continue\n    if not isinstance(data, dict):\n        continue\n    keys.append(sorted(data))\n    for name in ('time', 'datetime', 'timestamp', 'ts'):\n        value = data.get(name)\n        if isinstance(value, str) and re.fullmatch(r'\\d{4}-\\d\\d-\\d\\d[T ][\\d:.]+(?:Z|[+]00:?00)', value):\n            timestamps.append('UTC_ISO8601')\n        elif isinstance(value, (float, int)) and 1_000_000_000 < value < 2_000_000_000:\n            timestamps.append('UNIX_EPOCH_SECONDS')\nprint(json.dumps(dict(guest_uuid=container['Config']['Labels']['campuslink.guest_uuid'],\n    unauthenticated_api_http=status, response_request_id_present=bool(request_id),\n    same_request_id_observed_in_application_log=matched, application_json_keys=keys,\n    timestamp_encodings_observed=timestamps, correlated_docker_json_has_utc_and_guest_attrs=matched_utc_attrs,\n    result='PASS' if status == 401 and request_id and matched and matched_utc_attrs and timestamps else 'FAIL')))\nraise SystemExit(0 if status == 401 and request_id and matched and matched_utc_attrs and timestamps else 1)\n",
+      "scope": "Executed only on disposable TV2 app clones with explicit G4 authorization; source is an audit record, not an installer or instruction to run on A/B hosts."
+    },
+    "create-link": {
+      "sha256": "d4c96d1cf0f5bef9ed9fa93ea2abe85ce8842973abd446d484624c288c0550de",
+      "source": "import json\nimport subprocess\nslug = 'tv2g4-20261111'\ndestination = 'https://example.org/campuslink-tv2-g4'\ncreated = subprocess.run(['docker', 'exec', 'shlink', 'shlink', 'short-url:create', '--find-if-exists',\n    '--custom-slug=' + slug, destination], capture_output=True, timeout=25)\nprint(json.dumps(dict(result='PASS' if created.returncode == 0 else 'FAIL', slug=slug,\n                      destination=destination, method='unmodified-Shlink-CLI', cli_exit=created.returncode)))\nraise SystemExit(0 if created.returncode == 0 else 1)\n",
+      "scope": "Executed only on disposable TV2 app clones with explicit G4 authorization; source is an audit record, not an installer or instruction to run on A/B hosts."
+    },
+    "check-link": {
+      "sha256": "d7d2c05e647c41d945812d7e0e836bd1c28af2b9070cb5808dd19b1cc0eb11e0",
+      "source": "import http.client\nimport json\nconn = http.client.HTTPConnection('127.0.0.1', 8080, timeout=5)\nconn.request('GET', '/tv2g4-20261111', headers={'Host': 's.44-198-215-187.sslip.io'})\nresponse = conn.getresponse()\ncode, location = response.status, response.getheader('Location')\nresponse.read(65536)\nconn.close()\nsuccess = code == 302 and location == 'https://example.org/campuslink-tv2-g4'\nprint(json.dumps(dict(result='PASS' if success else 'FAIL', slug='tv2g4-20261111', http_status=code,\n                     location_is_expected=location == 'https://example.org/campuslink-tv2-g4')))\nraise SystemExit(0 if success else 1)\n",
+      "scope": "Executed only on disposable TV2 app clones with explicit G4 authorization; source is an audit record, not an installer or instruction to run on A/B hosts."
+    }
+  },
+  "cleanup_output": "cleanup_started=2026-11-11T11:42:10Z\n2026-11-11 11:42:14Z [tv2-g4-clone-a-20261111]: DELETE_IN_PROGRESS  Stack DELETE started\n2026-11-11 11:42:14Z [tv2-g4-clone-a-20261111.server]: DELETE_IN_PROGRESS  state changed\n2026-11-11 11:42:19Z [tv2-g4-clone-a-20261111.server]: DELETE_COMPLETE  state changed\n2026-11-11 11:42:19Z [tv2-g4-clone-a-20261111.config]: DELETE_IN_PROGRESS  state changed\n2026-11-11 11:42:19Z [tv2-g4-clone-a-20261111.port]: DELETE_IN_PROGRESS  state changed\n2026-11-11 11:42:19Z [tv2-g4-clone-a-20261111.port]: DELETE_COMPLETE  state changed\n2026-11-11 11:42:20Z [tv2-g4-clone-a-20261111.config]: DELETE_COMPLETE  state changed\n2026-11-11 11:42:20Z [tv2-g4-clone-a-20261111]: DELETE_COMPLETE  Stack DELETE completed successfully\nDELETED_CLONE_A_STACK\n2026-11-11 11:42:38Z [tv2-g4-clone-b-20261111]: DELETE_IN_PROGRESS  Stack DELETE started\n2026-11-11 11:42:38Z [tv2-g4-clone-b-20261111.server]: DELETE_IN_PROGRESS  state changed\n2026-11-11 11:42:42Z [tv2-g4-clone-b-20261111.server]: DELETE_COMPLETE  state changed\n2026-11-11 11:42:42Z [tv2-g4-clone-b-20261111.config]: DELETE_IN_PROGRESS  state changed\n2026-11-11 11:42:42Z [tv2-g4-clone-b-20261111.port]: DELETE_IN_PROGRESS  state changed\n2026-11-11 11:42:43Z [tv2-g4-clone-b-20261111.port]: DELETE_COMPLETE  state changed\n2026-11-11 11:42:43Z [tv2-g4-clone-b-20261111.config]: DELETE_COMPLETE  state changed\n2026-11-11 11:42:43Z [tv2-g4-clone-b-20261111]: DELETE_COMPLETE  Stack DELETE completed successfully\nDELETED_CLONE_B_STACK\nDELETED_JUMP_AND_FIP\nDELETED_BOTH_TEMP_SSH_SGS\nREMOVED_PRIVATE_GENERATED_HEAT_ENVS\ncleanup_completed=2026-11-11T11:43:07Z\nBASELINE_SERVERS\n[\n  {\n    \"ID\": \"6d17a9e8-4975-4c46-afd6-be1017e2a251\",\n    \"Name\": \"campus-db\",\n    \"Status\": \"ACTIVE\",\n    \"Networks\": {\n      \"campus-net\": [\n        \"10.20.0.10\"\n      ]\n    },\n    \"Image\": \"ubuntu-noble-base\",\n    \"Flavor\": \"campus.db\"\n  }\n]\nREMAINING_STACKS\n[]\nREMAINING_FIPS\n[]\nBASELINE_DB_VOLUME\n{\n  \"attachments\": [\n    {\n      \"id\": \"f43fbbd2-b85f-4bb1-b403-ba54a2f84189\",\n      \"attachment_id\": \"a3de4586-a466-4140-8282-b6f5a951a4fc\",\n      \"volume_id\": \"f43fbbd2-b85f-4bb1-b403-ba54a2f84189\",\n      \"server_id\": \"6d17a9e8-4975-4c46-afd6-be1017e2a251\",\n      \"host_name\": null,\n      \"device\": \"/dev/vdb\",\n      \"attached_at\": \"2026-11-08T16:11:37.000000\"\n    }\n  ],\n  \"id\": \"f43fbbd2-b85f-4bb1-b403-ba54a2f84189\",\n  \"status\": \"in-use\"\n}\nBASELINE_DB_PORT\n{\n  \"device_id\": \"6d17a9e8-4975-4c46-afd6-be1017e2a251\",\n  \"fixed_ips\": [\n    {\n      \"subnet_id\": \"59399337-e22b-4237-87dd-bf4ac035bcfa\",\n      \"ip_address\": \"10.20.0.10\"\n    }\n  ],\n  \"id\": \"7df6ea1d-2e8c-46d5-99b9-e121855d81b5\",\n  \"security_group_ids\": [\n    \"15d5d84d-f71a-4595-a5b2-ac75f818c040\"\n  ]\n}\nBASELINE_SGS\n[\n  {\n    \"ID\": \"15d5d84d-f71a-4595-a5b2-ac75f818c040\",\n    \"Name\": \"campus-db-sg\",\n    \"Description\": \"CampusLink DB VM\",\n    \"Project\": \"07af3a3dd4c24d1ba028efcb6d28ef84\",\n    \"Tags\": [],\n    \"Shared\": false\n  },\n  {\n    \"ID\": \"b3eb3225-3e50-4c38-b43f-3823b6022d05\",\n    \"Name\": \"campus-app-sg\",\n    \"Description\": \"CampusLink app VM\",\n    \"Project\": \"07af3a3dd4c24d1ba028efcb6d28ef84\",\n    \"Tags\": [],\n    \"Shared\": false\n  },\n  {\n    \"ID\": \"dac9eeec-d02c-4ccc-8297-e510330a39aa\",\n    \"Name\": \"default\",\n    \"Description\": \"Default security group\",\n    \"Project\": \"07af3a3dd4c24d1ba028efcb6d28ef84\",\n    \"Tags\": [],\n    \"Shared\": false\n  }\n]\nRETAINED_CANDIDATE\n{\n  \"id\": \"2c43a06d-1db8-4c01-bd31-98803325d932\",\n  \"min_disk\": 10,\n  \"size\": 3236757504,\n  \"status\": \"active\"\n}\nDB_HEALTH\ncampus-db login: [   17.254038] campus-db-check[933]: campus-db-check: OK mount /var/lib/postgresql /dev/vdb ext4\n[   17.468959] campus-db-check[933]: campus-db-check: OK postgresql 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) max_connections=50 data=/var/lib/postgresql/16/main\n[   17.632978] campus-db-check[933]: campus-db-check: role shlink connlimit=15 db_shlink=1\n[   17.729405] campus-db-check[933]: campus-db-check: short_urls: chua co bang (Shlink chua chay migration)\n[   17.748960] campus-db-check[933]: campus-db-check: listen 0.0.0.0:5432 0.0.0.0:6379 [::]:5432\n[   17.772885] campus-db-check[933]: campus-db-check: OK redis v=7.0.15 PING=PONG\n[   17.779168] campus-db-check[933]: campus-db-check: OK redis khong mat khau bi tu choi\n[   17.783131] campus-db-check[933]: campus-db-check: OK chan metadata cho non-root\nBASELINE_LIMITS\n[\n  {\n    \"Name\": \"floating_ips\",\n    \"Value\": -1\n  },\n  {\n    \"Name\": \"floating_ips_used\",\n    \"Value\": 0\n  },\n  {\n    \"Name\": \"image_meta\",\n    \"Value\": 128\n  },\n  {\n    \"Name\": \"instances\",\n    \"Value\": 6\n  },\n  {\n    \"Name\": \"instances_used\",\n    \"Value\": 1\n  },\n  {\n    \"Name\": \"keypairs\",\n    \"Value\": 100\n  },\n  {\n    \"Name\": \"max_image_meta\",\n    \"Value\": 128\n  },\n  {\n    \"Name\": \"max_security_group_rules\",\n    \"Value\": -1\n  },\n  {\n    \"Name\": \"max_security_groups\",\n    \"Value\": -1\n  },\n  {\n    \"Name\": \"max_server_group_members\",\n    \"Value\": 10\n  },\n  {\n    \"Name\": \"max_server_groups\",\n    \"Value\": 10\n  },\n  {\n    \"Name\": \"max_server_meta\",\n    \"Value\": 128\n  },\n  {\n    \"Name\": \"max_total_backup_gigabytes\",\n    \"Value\": 1000\n  },\n  {\n    \"Name\": \"max_total_backups\",\n    \"Value\": 10\n  },\n  {\n    \"Name\": \"max_total_cores\",\n    \"Value\": 8\n  },\n  {\n    \"Name\": \"max_total_floating_ips\",\n    \"Value\": -1\n  },\n  {\n    \"Name\": \"max_total_instances\",\n    \"Value\": 6\n  },\n  {\n    \"Name\": \"max_total_keypairs\",\n    \"Value\": 100\n  },\n  {\n    \"Name\": \"max_total_ram_size\",\n    \"Value\": 12288\n  },\n  {\n    \"Name\": \"max_total_snapshots\",\n    \"Value\": 10\n  },\n  {\n    \"Name\": \"max_total_volume_gigabytes\",\n    \"Value\": 30\n  },\n  {\n    \"Name\": \"max_total_volumes\",\n    \"Value\": 5\n  },\n  {\n    \"Name\": \"personality\",\n    \"Value\": 5\n  },\n  {\n    \"Name\": \"personality_size\",\n    \"Value\": 10240\n  },\n  {\n    \"Name\": \"security_group_rules\",\n    \"Value\": -1\n  },\n  {\n    \"Name\": \"security_groups\",\n    \"Value\": -1\n  },\n  {\n    \"Name\": \"security_groups_used\",\n    \"Value\": 0\n  },\n  {\n    \"Name\": \"server_group_members\",\n    \"Value\": 10\n  },\n  {\n    \"Name\": \"server_groups\",\n    \"Value\": 10\n  },\n  {\n    \"Name\": \"server_groups_used\",\n    \"Value\": 0\n  },\n  {\n    \"Name\": \"server_meta\",\n    \"Value\": 128\n  },\n  {\n    \"Name\": \"total_backup_gigabytes_used\",\n    \"Value\": 0\n  },\n  {\n    \"Name\": \"total_backups_used\",\n    \"Value\": 0\n  },\n  {\n    \"Name\": \"total_cores\",\n    \"Value\": 8\n  },\n  {\n    \"Name\": \"total_cores_used\",\n    \"Value\": 1\n  },\n  {\n    \"Name\": \"total_floating_ips_used\",\n    \"Value\": 0\n  },\n  {\n    \"Name\": \"total_gigabytes_used\",\n    \"Value\": 10\n  },\n  {\n    \"Name\": \"total_instances_used\",\n    \"Value\": 1\n  },\n  {\n    \"Name\": \"total_ram\",\n    \"Value\": 12288\n  },\n  {\n    \"Name\": \"total_ram_used\",\n    \"Value\": 2048\n  },\n  {\n    \"Name\": \"total_security_groups_used\",\n    \"Value\": 0\n  },\n  {\n    \"Name\": \"total_server_groups_used\",\n    \"Value\": 0\n  },\n  {\n    \"Name\": \"total_snapshots_used\",\n    \"Value\": 0\n  },\n  {\n    \"Name\": \"total_volumes_used\",\n    \"Value\": 1\n  }\n]\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/root        58G   32G   26G  56% /\n",
+  "before_stop_output": "Wed Nov 11 11:45:11 UTC 2026\nOK: khong con ai dung. Tat duoc: B truoc, A sau.\n",
+  "limitations": [
+    "Negative HTTP failures use fake credentials/HTTP fixture inside clone, not outages of shared Swift/Keystone.",
+    "Secret absence scan checks known paths and controlled bake inputs, not every disk byte.",
+    "Docker no-pull proof covers the observed daemon intervals plus --pull=never; not a claim about all historical events.",
+    "DB console in cleanup is cached boot output before Shlink migration; actual link/302 tests prove the later schema. No DB reboot was performed.",
+    "Guest labels/UTC/request correlation passed for sampled records; no full monitoring/metric/alarm acceptance.",
+    "Platform child manifest digest is source lock from H1; index descriptor/amd64 architecture observed on guest."
+  ]
+}

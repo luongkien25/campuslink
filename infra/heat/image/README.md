@@ -2,6 +2,8 @@
 
 Bộ công cụ của TV2 cho FR-INF-22, NFR-08/15 và metadata guard #21. Đầu vào là [H1](../../../docs/handoffs/H1-shlink.md), [ADR-10](../../../docs/decisions/ADR-10-cap-secret-swift-va-credential-hep.md) và [hợp đồng tích hợp](../app-integration.md). Không thay mã, entrypoint hoặc migration của Shlink.
 
+Đã kiểm trên cụm ngày 11/11/2026: image `campus-app-tv2-g4-20261111` (`2c43a06d-1db8-4c01-bd31-98803325d932`), clone private `campus.app` ở cả hai AZ, health/Redis, metadata DROP, reboot và Docker restart. Xem [manifest](../../../evidence/G4/20261111-image-manifest.json) và [evidence](../../../evidence/G4/20261111-FR-INF-22-image-clone.txt). Đây là image Shlink core; ASG/WaitCondition, stack chính, portal và worker chưa được triển khai bằng bộ công cụ này.
+
 ## Kiểm offline
 
 Từ gốc repo, dùng Python có PyYAML của môi trường hiện có:
@@ -42,7 +44,7 @@ Docker json-file thêm `attrs` chứa `campuslink.guest_uuid` và `campuslink.gu
 
 ## Chuẩn bị builder và candidate
 
-Đây là recipe **chưa chạy trên guest**. Trước thao tác cloud: xác nhận Zalo/nhật ký, kiểm A/B, quota, CLI/schema 2026.1 và quyền member. Không chạy scripts này trên laptop hoặc EC2 A/B.
+Recipe đã chạy trên builder Ubuntu 24.04.5/amd64, Docker 29.1.3; package và file hash nằm trong manifest. Trước mỗi phiên cloud: xác nhận Zalo/nhật ký, kiểm A/B, quota, CLI/schema 2026.1 và quyền member. Không chạy scripts này trên laptop hoặc EC2 A/B.
 
 1. Tạo builder Nova private từ `ubuntu-noble-base`, flavor `campus.app`, root 10 GiB. Dùng đường SSH đã xác minh qua jump; private key giữ trên laptop, không copy key hoặc forward agent. Chỉ jump có FIP. Không đụng DB port/volume nền.
 2. Sau khi thay đổi được review và commit, tạo archive từ **commit sạch**, chỉ chứa `infra/heat/bootstrap`, `infra/heat/image`, `app/shlink.env.example`, `app/smoke/redis-probe.sh`. Không copy workspace, `.git`, file ignored, credential hoặc SSH key. Giữ cấu trúc thư mục khi giải nén trong builder.
@@ -58,7 +60,20 @@ Docker json-file thêm `attrs` chứa `campuslink.guest_uuid` và `campuslink.gu
 
 [clone-check.yaml](clone-check.yaml) chỉ sở hữu một VM và port private. Không LB, ASG, floating IP, DB hoặc data volume. [clone-env.example.yaml](clone-env.example.yaml) là mẫu riêng, không dùng `infra/heat/env.example.yaml` của stack chính. Hai bootstrap parameters `hidden: true`; constraint giới hạn ký tự để nội suy JSON an toàn. Giá trị thật chỉ ở env file 0600 trên A theo kênh bàn giao TV1; không truyền giá trị trực tiếp qua CLI.
 
-Trước khi dùng template, kiểm `OS::Nova::Server`, `OS::Neutron::Port`, `OS::Heat::CloudConfig` bằng schema Heat 2026.1 thật và validate với giá trị giả. **Chưa kiểm CLI/schema clone trên cloud.** Không dump parameters, config hoặc user-data khi dùng credential thật; hidden không thay quyền admin/metadata guard.
+Schema `OS::Nova::Server`, `OS::Neutron::Port`, `OS::Heat::CloudConfig` và template đã được kiểm với Heat 2026.1 thật; validate dùng giá trị giả trước khi tạo hai clone thật. Kiểm lại khi đổi template hoặc phiên bản. Không dump parameters, config hoặc user-data khi dùng credential thật; hidden không thay quyền admin/metadata guard.
+
+Helper `make_clone_env.py` chạy trên A bằng user `tv2`, đọc file hai dòng `id=`/`secret=` ở `~/.config/openstack/campus-boot.cred` theo bàn giao #26. Helper không `source` hay thực thi nội dung file; kiểm owner/mode 0600 và thư mục cha 0700, từ chối symlink/field lạ/giá trị ngoài constraint HOT. Các tham số CLI chỉ là UUID, tên keypair/AZ và đường dẫn; credential chỉ đi từ file vào Heat env JSON 0600 trong thư mục riêng 0700. JSON là định dạng environment được Heat nhận, không cần cài PyYAML trên A. Helper không ghi đè output đã tồn tại.
+
+Ví dụ giao diện (thay toàn bộ placeholder UUID bằng inventory và candidate đã kiểm; không truyền credential vào argv):
+
+```sh
+python3 make_clone_env.py --out /home/tv2/campus-tv2-g4/clone-a-env.json \
+  --image REPLACE_IMAGE_UUID --network REPLACE_NETWORK_UUID --subnet REPLACE_SUBNET_UUID \
+  --app-sg REPLACE_APP_SG_UUID --ssh-sg REPLACE_PRIVATE_SSH_SG_UUID \
+  --key-name campus-tv2 --az campus-az-a
+```
+
+Thư mục output phải được tạo trước với mode 0700. Không đọc/in env thật, không đưa vào Git, archive image hoặc evidence; CLI Heat chỉ nhận `-e <đường-dẫn-file>`. Validate dùng credential giả; kết quả integration thật được ghi riêng trong evidence/G4.
 
 Sau khi có credential campus-boot hợp lệ và DB/Redis/objects thật:
 
@@ -68,4 +83,4 @@ Sau khi có credential campus-boot hợp lệ và DB/Redis/objects thật:
 4. Negative tests trên clone/config thử riêng: auth sai, object thiếu/sai, timeout, guard lỗi, DB/Redis không reachable. Không dừng DB chung hay sửa SG nền để gây lỗi. Mỗi lỗi phải không ready; guard/fetch lỗi phải không app.
 5. Lưu manifest/evidence thật rồi đề nghị review #21. Chỉ dọn tài nguyên thử theo UUID đã ghi và được duyệt; không xóa DB volume/port, base image, network hay SG dùng chung.
 
-Chưa có image UUID, build thật, clone A/B, reboot hoặc packet test thì FR-INF-22 và #21 vẫn chưa nghiệm thu. Phần ASG/WaitCondition/policy thuộc bước tích hợp tiếp theo.
+Chỉ nhận image mới khi có UUID/manifest thật và kiểm lại các bước trên; không lấy kết quả của candidate cũ thay cho image mới. Evidence 11/11 chỉ chứng minh Shlink core trên hai clone; ASG/WaitCondition/policy thuộc bước tích hợp tiếp theo. Phép "DB reboot còn link" của FR-INF-12 phải phối hợp TV3, không suy từ reboot app VM.
