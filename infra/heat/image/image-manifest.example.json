@@ -1,0 +1,19 @@
+{
+  "status": "NOT_BUILT_NOT_VALIDATED",
+  "source_commit": "REPLACE_REVIEWED_COMMIT",
+  "builder_manifest": "REPLACE_NON_SECRET_BUILD_MANIFEST_PATH",
+  "glance": {
+    "id": null,
+    "checksum": null,
+    "min_disk": null,
+    "min_ram": null,
+    "virtual_size": null,
+    "size": null
+  },
+  "scan_scope": null,
+  "scan_result": null,
+  "clone_a": null,
+  "clone_b": null,
+  "reboot_and_docker_restart": null,
+  "metadata_guard_evidence": null
+}

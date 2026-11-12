@@ -16,6 +16,11 @@ parameters:
     constraints:
       - allowed_pattern: '[A-Za-z0-9][A-Za-z0-9_.-]{0,63}'
   pool: {type: string}
+  portal_backend:
+    type: string
+    constraints:
+      - allowed_pattern: '[A-Za-z0-9][A-Za-z0-9_.-]{0,63}'
+  portal_pool: {type: string}
 
 resources:
   port:
@@ -58,9 +63,33 @@ resources:
                   WantedBy=multi-user.target
                 params:
                   BACKEND: {get_param: backend}
+          - path: /etc/systemd/system/campuslink-portal-stub.service
+            owner: root:root
+            permissions: '0644'
+            content:
+              str_replace:
+                template: |
+                  [Unit]
+                  Description=CampusLink portal HTTP stub
+                  After=network.target
+
+                  [Service]
+                  ExecStart=/usr/bin/python3 /opt/campuslink/stub.py --backend BACKEND --port 8081
+                  DynamicUser=yes
+                  Restart=on-failure
+                  RestartSec=2
+                  NoNewPrivileges=yes
+                  ProtectSystem=strict
+                  ProtectHome=yes
+
+                  [Install]
+                  WantedBy=multi-user.target
+                params:
+                  BACKEND: {get_param: portal_backend}
         runcmd:
           - [systemctl, daemon-reload]
           - [systemctl, enable, --now, campuslink-stub.service]
+          - [systemctl, enable, --now, campuslink-portal-stub.service]
   server:
     type: OS::Nova::Server
     properties:
@@ -82,6 +111,14 @@ resources:
       address: {get_attr: [port, fixed_ips, 0, ip_address]}
       subnet: {get_param: subnet}
       protocol_port: 8080
+  portal_member:
+    type: OS::Octavia::PoolMember
+    depends_on: member
+    properties:
+      pool: {get_param: portal_pool}
+      address: {get_attr: [port, fixed_ips, 0, ip_address]}
+      subnet: {get_param: subnet}
+      protocol_port: 8081
 
 outputs:
   server_id:
@@ -90,3 +127,5 @@ outputs:
     value: {get_attr: [port, fixed_ips, 0, ip_address]}
   member_id:
     value: {get_resource: member}
+  portal_member_id:
+    value: {get_resource: portal_member}

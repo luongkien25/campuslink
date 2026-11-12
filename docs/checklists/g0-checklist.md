@@ -121,8 +121,12 @@ Chạy cả A và B khoảng 0,6 USD/giờ. Đơn giá B (0,2016) suy ra bằng 
 | 24/10 | 129,57 | −1,81 | 23/10: A 2,45 giờ + B 1,67 giờ (bảng trên) |
 | 26/10 | 125,58 | −3,99 | 24/10 (giờ chạy chưa có trong issue) và 25/10 (A từ 07:50Z, Stop khoảng 09:23Z theo TV1 báo). Phiên 26/10 chưa được tính |
 | 27/10 (cuối phiên, ~22:00 giờ VN) | 123,79 | −1,79 | 26/10 (A từ 01:49Z, Stop sau 03:05Z, B nhiều khả năng không bật). Chưa tính phiên TV2 sáng 27/10 (A từ 07:27Z, B đến khoảng 07:49Z) và phiên TV1 tối 27/10 (A 13:00Z đến 13:57Z) vì số cập nhật khoảng 24 giờ một lần |
+| 07/11 (TV1 đọc, khoảng, làm tròn; chưa có ảnh) | ≈115 | ≈−8,8 | Từ 27/10: phiên TV2 sáng 27/10 (A từ 07:27Z, B đến khoảng 07:49Z) và phiên TV1 tối 27/10 (A 13:00Z–13:57Z) chưa được tính ở lần đọc 27/10; issue "Nhật ký cloud" không có phiên nào từ 28/10 đến 06/11. Phiên 07/11 (A 05:44Z–06:30Z, khoảng 46 phút) nhiều khả năng chưa được tính vì số cập nhật khoảng 24 giờ một lần. Chưa tách phần chi phí khi tắt máy (EBS, snapshot, EIP) ⚠️ |
+| 09/11 (TV1 đọc, có ảnh) | 112,38 | ≈−2,6 | Từ lần đọc ≈115 ngày 07/11 (số đó đã làm tròn nên chênh chỉ gần đúng). Phiên cloud nằm giữa: TV1 07/11 A 05:44Z–06:30Z (TV2 dùng tiếp, tắt khoảng 07:00Z theo TV2); TV1 07/11 A và B 13:15Z–13:25Z; TV1 A 23:18Z–23:55Z (đêm 07 sang 08/11); TV3 08/11 A 15:45Z–16:16Z. Phiên cuối có thể chưa được tính vì số cập nhật khoảng 24 giờ một lần. `campus-db` (TV3) để chạy nên mỗi lần Start A sẽ tính thêm 1 vCPU / 2048 MiB |
 
 Cùng ngày 26/10, cột đã chốt hóa đơn: còn 135,33, đã dùng 4,67 (chỉ cập nhật khi hóa đơn tháng chốt). Ngày 27/10 vẫn còn 135,33, đã dùng 4,67; cột ước tính đã dùng 16,21. ⚠️ Hai lần đọc đầu (22/10, 24/10) được suy ra là cột ước tính, chưa kiểm.
+
+Ngày 09/11, cột đã chốt hóa đơn: còn 119,19, đã dùng 20,81 (hóa đơn tháng 10 đã chốt; trước đó 135,33 và 4,67); tổng 140,00 không đổi. Cột ước tính đã dùng 27,62. ⚠️ Suy ra, chưa đối chiếu Cost Explorer: chi phí tháng 11 đến lần cập nhật này khoảng 27,62 − 20,81 = 6,81 USD (khoảng 0,85 USD mỗi ngày nếu tính 8 ngày), gồm cả phần khi tắt máy (EBS, snapshot, EIP) lẫn giờ chạy.
 
 Còn thiếu (điền tay, không suy ra): số liệu thực tế từ Cost Explorer sau khoảng 24 giờ để đối chiếu bảng này.
 

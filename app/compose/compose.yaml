@@ -1,0 +1,81 @@
+# CampusLink - Compose LOCAL de phat trien va smoke H1 (TV3). Khong dung cho cum that.
+# Tren cum: Shlink chay tren app VM, PostgreSQL 16 + Redis cai bang apt tren DB VM 10.20.0.10 (FR-INF-12).
+# Dung:
+#   ./gen-secrets.sh            # lan dau, sinh secret ngau nhien vao secrets/
+#   docker compose up -d
+#   curl -sS http://127.0.0.1:18080/rest/health   # cong may local; trong container van la 8080
+# Shlink doc chung hop dong ../shlink.env.example; khoi environment ben duoi chi de ghi de gia tri rieng cho local.
+
+name: campuslink-local
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: shlink
+      POSTGRES_USER: shlink
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets: [db_password]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shlink -d shlink"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    # Ubuntu 24.04 (DB VM) co redis 7.0.x qua apt (chua kiem ban patch); can >= 6.2 cho XAUTOCLAIM (O-17)
+    image: redis:7.0
+    # redis.conf chi chua requirepass; bat AOF theo O-17
+    command: ["redis-server", "/run/secrets/redis.conf", "--appendonly", "yes"]
+    secrets: [redis.conf, redis_password]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      # Chinh la probe "Redis PING co xac thuc" cua FR-INF-09
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$(cat /run/secrets/redis_password)\" redis-cli ping | grep -qx PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  shlink: &shlink
+    # Khoa bang digest trong docs/versions.lock (tag 5.1.8)
+    image: ${SHLINK_IMAGE:-shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee}
+    env_file: ../shlink.env.example
+    environment:
+      DEFAULT_DOMAIN: localhost:${SHLINK_HOST_PORT:-18080}
+      IS_HTTPS_ENABLED: "false"
+      DB_HOST: postgres
+    secrets: [db_password, redis_servers]
+    ports:
+      - "127.0.0.1:${SHLINK_HOST_PORT:-18080}:8080"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8080/rest/health | grep -q pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 18   # ~180 s, bang timeout khoi dong pilot (SRS 4.3)
+
+  # Replica thu hai de thu NFR-12/FR-APP-03 (sua qua A, doc qua B). Chi chay khi can:
+  #   docker compose --profile hai-replica up -d
+  # Chi khoi dong sau khi replica dau da healthy (migration xong), dung thu tu SRS 4.3.
+  shlink-b:
+    <<: *shlink
+    profiles: [hai-replica]
+    ports:
+      - "127.0.0.1:${SHLINK_B_HOST_PORT:-18081}:8080"
+    depends_on:
+      shlink: { condition: service_healthy }
+
+secrets:
+  db_password:    { file: ./secrets/db_password }
+  redis_servers:  { file: ./secrets/redis_servers }
+  redis_password: { file: ./secrets/redis_password }
+  redis.conf:     { file: ./secrets/redis.conf }
+
+volumes:
+  pgdata:
+  redisdata:

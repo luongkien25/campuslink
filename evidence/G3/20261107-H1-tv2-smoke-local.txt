@@ -1,0 +1,319 @@
+H1 / FR-INF-09 / FR-INF-22 (G3) - TV2 tiep nhan H1 bang Compose LOCAL
+Ngay: 07/11/2026. Run ID: 20261107T140915Z.
+Output that duoc luu bo whitespace cuoi dong, khong doi gia tri.
+Nguoi chay: agent tren may ca nhan cua TV2, KHONG SSH/cloud.
+Nhanh: tv2/h1-local-receipt, base main474c6d5dadc2876ebd3ad24e4b282e799ba4cf8f.
+Khong sua code/script/Compose cua TV3; chi dung contract va scripts da merge.
+Nguon: docs/handoffs/H1-shlink.md muc3/3.1, app/compose/, app/smoke/.
+Day la lan chay cua TV2, khong sao chep ket qua TV3 lam evidence moi.
+
+KET QUA
+27 PASS, 0 FAIL, h1-smoke.sh exit0.
+Co FR-INF-09 Redis PING co xac thuc PONG.
+Hai replica healthy; PATCH quaA, GET quaB thay thay doi.
+DB stop/start CHI tren project thu: health503 fail, phuc hoi200 va redirect302.
+VISITS_N mac dinh20, cong4GET truoc do =24 visit nhu expected.
+Khong doi so luongcheck, khong bo qua Redis/DB check de layPASS.
+
+MOI TRUONG VA PHAM VI
+Docker Engine29.9.2 / Compose5.6.1, contextdefault, Linuxamd64.
+PostgreSQL16.15, Redis7.0.15; Shlink5.1.8 dung indexdigest khoa trongversions.lock.
+Project rieng: campuslink-tv2-h1-20261107; preflight khong co container/volume/network cua project.
+Ports127.0.0.1:18080/18081 da kiem trong truoc tao.
+DB/Redis khong publish hostports; haiShlink chi bind127.0.0.1.
+Docker socket va loopback can escalation sandbox; khong doi quyen socket/group hoac cau hinh daemon.
+Images duoc pull/cache de chaylocal; khong dung cache cua project khac lam du lieu dau vao.
+
+SECRET
+app/compose/secrets chua ton tai truoc test, duoc gen-secrets.sh sinh moi.
+Chi secret gia/local, khong credential cloud; Git ignore da kiem.
+Ba API key test tao trong DB local, save truc tiep file ignored mode600, khong in gia tri.
+Ten file: api_key_tv2-admin, api_key_tv2-donvi-a, api_key_tv2-donvi-b; hai keydonvi co --author-only.
+Coresecret mount rieng theo Compose; khong dung lanlocal nay de ket luan owner/quyen tren guest OpenStack.
+Chi ghi tenfile, metadata vaPASS/FAIL; khong ghi noidung secret/APIkey/Redis URI co matkhau.
+
+SOURCE CHECKSUM
+Sat Nov  7 14:11:25 UTC 2026
+474c6d5dadc2876ebd3ad24e4b282e799ba4cf8f
+8cb71e48c91cb3a4ce31e7cf891522a811b6f920c55cbc009e317e330b8109f2  app/compose/compose.yaml
+338100a255bdb0db4877a3c10bcf890a6defcc934981c4843e0c728f5f17855c  app/compose/gen-secrets.sh
+0535664aba42b2a21a618482da7140c505233a1e45697f04c17630e73c0dc78a  app/shlink.env.example
+be3234389f73f10d75cb98d0eae7c0656e30677203ed72a8bb893bbe4a0302cd  app/smoke/h1-smoke.sh
+a889c255b5a5ac32e95db18e33a514c677b03d55c448755a15b762a578f80958  app/smoke/redis-probe.sh
+886f8913a27858b484be50c45c3bb1c88a68451145e7b0199a289fc6f912b44e  docs/versions.lock
+
+IMAGE DIGEST/PHIEN BAN THAT (tu imageinspect/CLI)
+["shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee"] sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee amd64/linux
+["postgres:16"] ["postgres@sha256:f9a7b9ebf6f56201f949db745e47bc423c0f0f8294bafe991cc10bf74b029657"] sha256:f9a7b9ebf6f56201f949db745e47bc423c0f0f8294bafe991cc10bf74b029657
+["redis:7.0"] ["redis@sha256:352c1fdadc91926edda08f45aeb3f27f37194c2f14101229c0523a11195c96e3"] sha256:352c1fdadc91926edda08f45aeb3f27f37194c2f14101229c0523a11195c96e3
+postgres (PostgreSQL) 16.15 (Debian 16.15-1.pgdg13+2)
+Redis server v=7.0.15 sha=00000000:0 malloc=jemalloc-5.2.1 bits=64 build=b8bac26a1c037198
+
+LENH TAO MOI TRUONG
+bash -n app/compose/gen-secrets.sh app/smoke/h1-smoke.sh app/smoke/redis-probe.sh
+bash app/compose/gen-secrets.sh
+docker compose -p campuslink-tv2-h1-20261107 -f app/compose/compose.yaml --profile hai-replica config --quiet
+docker compose -p campuslink-tv2-h1-20261107 -f app/compose/compose.yaml --profile hai-replica up -d --wait --wait-timeout 240 --quiet-pull
+up exit0; thu tu da quan sat: postgres/redis healthy, ShlinkA healthy, sau do ShlinkB start/healthy.
+BaAPIkey tao theo H1 bang api-key:generate --name=tv2-... [--author-only] --no-ansi,
+stdoutUUID ghi thang vao file ignored, khong dua gia tri vao lenh/evidence.
+
+TRANG THAI TRUOC SMOKE (trich truong khongnhaycam tu compose ps --format json)
+[
+  {
+    "Service": "postgres",
+    "Name": "campuslink-tv2-h1-20261107-postgres-1",
+    "ID": "acd5bb9f6928",
+    "Image": "postgres:16",
+    "Project": "campuslink-tv2-h1-20261107",
+    "Health": "healthy",
+    "State": "running",
+    "Publishers": [
+      {
+        "URL": "",
+        "TargetPort": 5432,
+        "PublishedPort": 0,
+        "Protocol": "tcp"
+      }
+    ]
+  },
+  {
+    "Service": "redis",
+    "Name": "campuslink-tv2-h1-20261107-redis-1",
+    "ID": "96cd9b8b7c45",
+    "Image": "redis:7.0",
+    "Project": "campuslink-tv2-h1-20261107",
+    "Health": "healthy",
+    "State": "running",
+    "Publishers": [
+      {
+        "URL": "",
+        "TargetPort": 6379,
+        "PublishedPort": 0,
+        "Protocol": "tcp"
+      }
+    ]
+  },
+  {
+    "Service": "shlink",
+    "Name": "campuslink-tv2-h1-20261107-shlink-1",
+    "ID": "37fc644a7024",
+    "Image": "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+    "Project": "campuslink-tv2-h1-20261107",
+    "Health": "healthy",
+    "State": "running",
+    "Publishers": [
+      {
+        "URL": "127.0.0.1",
+        "TargetPort": 8080,
+        "PublishedPort": 18080,
+        "Protocol": "tcp"
+      }
+    ]
+  },
+  {
+    "Service": "shlink-b",
+    "Name": "campuslink-tv2-h1-20261107-shlink-b-1",
+    "ID": "cd2b889a31db",
+    "Image": "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+    "Project": "campuslink-tv2-h1-20261107",
+    "Health": "healthy",
+    "State": "running",
+    "Publishers": [
+      {
+        "URL": "127.0.0.1",
+        "TargetPort": 8080,
+        "PublishedPort": 18081,
+        "Protocol": "tcp"
+      }
+    ]
+  }
+]
+
+LENH SMOKE (chay tu thu muc app/)
+COMPOSE_PROJECT_NAME=campuslink-tv2-h1-20261107
+KEY_ADMIN_FILE="$PWD/compose/secrets/api_key_tv2-admin"
+KEY_UA_FILE="$PWD/compose/secrets/api_key_tv2-donvi-a"
+KEY_UB_FILE="$PWD/compose/secrets/api_key_tv2-donvi-b"
+REDIS_PING_CMD='cd compose && docker compose -p campuslink-tv2-h1-20261107 run --rm --no-deps -T -v "$PWD/secrets/redis_servers:/run/secrets/redis_servers:ro" -v "$PWD/../smoke/redis-probe.sh:/probe.sh:ro" --entrypoint sh redis /probe.sh 2>/dev/null'
+DB_STOP_CMD='cd compose && docker compose -p campuslink-tv2-h1-20261107 stop postgres'
+DB_START_CMD='cd compose && docker compose -p campuslink-tv2-h1-20261107 start postgres'
+Cac bien tren duoc truyen trong environment cua lenh:
+timeout 180 bash smoke/h1-smoke.sh
+
+OUTPUT SMOKE THAT
+run_id=20261107T140915Z A=http://127.0.0.1:18080 B=http://127.0.0.1:18081 slug=tv3-smoke-20261107t140915z
+== health
+PASS  FR-APP-11  health A  (=200 pass)
+PASS  FR-APP-11  health B  (=200 pass)
+PASS  FR-INF-09  Redis PING co xac thuc  (=PONG)
+== API key
+PASS  FR-APP-07  POST khong key  (=401)
+PASS  FR-APP-07  POST key sai  (=401)
+== tao, trung slug, 404
+PASS  FR-APP-01  POST tao link  (=200)
+PASS  FR-APP-01  shortUrl dung domain  (=http://localhost:18080/tv3-smoke-20261107t140915z)
+PASS  FR-APP-12  tao trung slug  (=400 non-unique-slug)
+PASS  FR-APP-12  slug khong ton tai  (=404)
+== redirect, sua, nhat quan 2 replica
+PASS  FR-APP-02  GET qua A  (=302 https://example.org/?campus=20261107T140915Z)
+PASS  FR-APP-02  GET qua B (cache truoc khi sua)  (=302 https://example.org/?campus=20261107T140915Z)
+PASS  FR-APP-03  PATCH qua A  (=200)
+PASS  NFR-12  GET qua B sau PATCH o A  (=302 https://example.org/?campus=updated-20261107T140915Z)
+PASS  NFR-12  GET qua A sau PATCH  (=302 https://example.org/?campus=updated-20261107T140915Z)
+== visit (task nen ghi bat dong bo)
+PASS  FR-APP-04  so visit = so GET  (=24)
+INFO  FR-APP-04  visit du sau .048025284s ke tu GET cuoi
+== tag
+PASS  FR-APP-05  tags/stats co campus-smoke, co link va visit  (=true true)
+== author-only
+PASS  FR-APP-08  key don vi A tao link  (=200)
+PASS  FR-APP-08  key A doc link cua A  (=200)
+PASS  FR-APP-08  key B doc link cua A  (=404)
+PASS  FR-APP-08  danh sach cua key B khong co link A  (=0)
+PASS  FR-APP-08  key B sua link cua A  (=404)
+== CORS
+PASS  FR-APP-10  preflight allow-origin  (=https://admin.44-198-215-187.sslip.io)
+PASS  FR-APP-10  preflight cho x-api-key  (=yes)
+PASS  FR-APP-10  origin la khong duoc allow  (=none)
+== DB loi
+PASS  FR-APP-11  health khi DB dung  (=503 fail)
+PASS  FR-APP-11  health sau khi bat lai DB  (=200)
+PASS  FR-APP-02  redirect sau khi DB len lai  (=302 https://example.org/?campus=updated-20261107T140915Z)
+== ket qua: 0 FAIL
+
+Smoke exit_code=0.
+
+TRANG THAI SAU DB PHUC HOI / TRUOC DON (compose ps)
+[
+  {
+    "Service": "postgres",
+    "Name": "campuslink-tv2-h1-20261107-postgres-1",
+    "ID": "acd5bb9f6928",
+    "Image": "postgres:16",
+    "Project": "campuslink-tv2-h1-20261107",
+    "Health": "healthy",
+    "State": "running",
+    "Publishers": [
+      {
+        "URL": "",
+        "TargetPort": 5432,
+        "PublishedPort": 0,
+        "Protocol": "tcp"
+      }
+    ]
+  },
+  {
+    "Service": "redis",
+    "Name": "campuslink-tv2-h1-20261107-redis-1",
+    "ID": "96cd9b8b7c45",
+    "Image": "redis:7.0",
+    "Project": "campuslink-tv2-h1-20261107",
+    "Health": "healthy",
+    "State": "running",
+    "Publishers": [
+      {
+        "URL": "",
+        "TargetPort": 6379,
+        "PublishedPort": 0,
+        "Protocol": "tcp"
+      }
+    ]
+  },
+  {
+    "Service": "shlink",
+    "Name": "campuslink-tv2-h1-20261107-shlink-1",
+    "ID": "37fc644a7024",
+    "Image": "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+    "Project": "campuslink-tv2-h1-20261107",
+    "Health": "healthy",
+    "State": "running",
+    "Publishers": [
+      {
+        "URL": "127.0.0.1",
+        "TargetPort": 8080,
+        "PublishedPort": 18080,
+        "Protocol": "tcp"
+      }
+    ]
+  },
+  {
+    "Service": "shlink-b",
+    "Name": "campuslink-tv2-h1-20261107-shlink-b-1",
+    "ID": "cd2b889a31db",
+    "Image": "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+    "Project": "campuslink-tv2-h1-20261107",
+    "Health": "healthy",
+    "State": "running",
+    "Publishers": [
+      {
+        "URL": "127.0.0.1",
+        "TargetPort": 8080,
+        "PublishedPort": 18081,
+        "Protocol": "tcp"
+      }
+    ]
+  }
+]
+Observed time: Sat Nov7 14:09:39UTC2026.
+
+CLEANUP
+docker compose -p campuslink-tv2-h1-20261107 -f app/compose/compose.yaml --profile hai-replica down --volumes --timeout 30
+Lenh gom down va date ket thuc exit_code=0; khong ghi exitcode rieng cua down.
+Ket qua don duoc xac nhan bang haukiem theo project label ben duoi.
+Output that:
+ Container campuslink-tv2-h1-20261107-shlink-b-1 Stopping
+ Container campuslink-tv2-h1-20261107-shlink-b-1 Stopped
+ Container campuslink-tv2-h1-20261107-shlink-b-1 Removing
+ Container campuslink-tv2-h1-20261107-shlink-b-1 Removed
+ Container campuslink-tv2-h1-20261107-shlink-1 Stopping
+ Container campuslink-tv2-h1-20261107-shlink-1 Stopped
+ Container campuslink-tv2-h1-20261107-shlink-1 Removing
+ Container campuslink-tv2-h1-20261107-shlink-1 Removed
+ Container campuslink-tv2-h1-20261107-redis-1 Stopping
+ Container campuslink-tv2-h1-20261107-postgres-1 Stopping
+ Container campuslink-tv2-h1-20261107-redis-1 Stopped
+ Container campuslink-tv2-h1-20261107-redis-1 Removing
+ Container campuslink-tv2-h1-20261107-postgres-1 Stopped
+ Container campuslink-tv2-h1-20261107-postgres-1 Removing
+ Container campuslink-tv2-h1-20261107-redis-1 Removed
+ Container campuslink-tv2-h1-20261107-postgres-1 Removed
+ Volume campuslink-tv2-h1-20261107_pgdata Removing
+ Volume campuslink-tv2-h1-20261107_redisdata Removing
+ Network campuslink-tv2-h1-20261107_default Removing
+ Volume campuslink-tv2-h1-20261107_pgdata Removed
+ Volume campuslink-tv2-h1-20261107_redisdata Removed
+ Network campuslink-tv2-h1-20261107_default Removed
+Sat Nov  7 14:11:53 UTC 2026
+
+Sau khi down, chi xoa7file da sinh theo allowlist (4coresecret,3APIkey) va thu mucsecrets;
+khong doc/in noi dung, dung lai neu gapfilela/symlink. Khong xoa file nguoi dung co tu truoc.
+
+HAU KIEM
+Ba lenh duoi co output rong; exitcode rieng duoc kiem lai trong muc HAUKIEMJSON:
+docker ps -a --filter label=com.docker.compose.project=campuslink-tv2-h1-20261107 --format '{{.ID}} {{.Names}}'
+docker volume ls --filter label=com.docker.compose.project=campuslink-tv2-h1-20261107 --format '{{.Name}}'
+docker network ls --filter label=com.docker.compose.project=campuslink-tv2-h1-20261107 --format '{{.ID}} {{.Name}}'
+Kiem bind loopback va thu mucsecret:
+127.0.0.1:18080 available after cleanup
+127.0.0.1:18081 available after cleanup
+Local generated secrets directory absent
+Sat Nov  7 14:13:04 UTC 2026
+
+Cleanup verification exit_code=0. Projectcontainer/volume/network khong con, hai cong duoc giai phong,
+thu mucsecrettest khong con. Khong dockerprune/xoaimage.
+
+HAUKIEMJSON - tung lenh duoc kiem returncode va stdout rieng, gia tri output that
+{"resource": "containers", "returncode": 0, "remaining": []}
+{"resource": "volumes", "returncode": 0, "remaining": []}
+{"resource": "networks", "returncode": 0, "remaining": []}
+{"loopback_port": 18080, "available": true}
+{"loopback_port": 18081, "available": true}
+{"generated_secrets_directory_exists": false, "finished_utc": "2026-11-07T14:15:50.586834+00:00", "verification_exit": 0}
+
+GIOI HAN
+Day la IntegrationLOCAL, khong DeploymentOpenStack. Khong proofbootstrapSwift, metadata guard#21,
+image bake/clone, guest1vCPU2GiB, in-flightdrain, connectionbudget thuc, Heatreadiness/ASG,
+ingress/TLS/Octavia, portal/worker/stats hoacH4b.
+Khong suaH1cuaTV3, SRS/ADR, khong taoAPIkeyShlink tren cloud, khong bat/tatEC2.
+Imagecache duoc giu, khong dockerprune, khong xoa image projectkhac.

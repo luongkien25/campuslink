@@ -1,0 +1,16 @@
+[Unit]
+Description=CampusLink Shlink (cached digest, bridge)
+Requires=campuslink-guard.service
+After=campuslink-guard.service
+BindsTo=campuslink-guard.service docker.service
+PartOf=docker.service
+ConditionPathExists=/etc/campuslink/bootstrap.json
+
+[Service]
+Type=exec
+UMask=0077
+ExecStart=/bin/sh /opt/campuslink/bootstrap/start-shlink.sh
+ExecStop=-/usr/bin/docker stop --time 30 shlink
+TimeoutStartSec=180
+TimeoutStopSec=40
+Restart=no

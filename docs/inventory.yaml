@@ -100,31 +100,37 @@ openstack:
     campus_net: { cidr: 10.20.0.0/24, gateway: 10.20.0.1, pool: "10.20.0.100-10.20.0.220", mtu: 1400, id: "18ecc898-663f-4440-9782-bdf1675ba5c9", subnet_id: "59399337-e22b-4237-87dd-bf4ac035bcfa" }
     campus_router: { id: "971a03cd-406c-41ca-a395-a7637cc0f1f2" }
   security_groups:
-    campus-app-sg:  { id: "b3eb3225-3e50-4c38-b43f-3823b6022d05" }    # 8080 tu 10.20.0.0/24 va 172.24.4.0/24 (25/10/2026); SRS 1.3 can them 8081 (portal), CHUA mo
+    campus-app-sg:  { id: "b3eb3225-3e50-4c38-b43f-3823b6022d05" }    # 8080 (25/10/2026) va 8081 portal (07/11/2026, issue #19) tu 10.20.0.0/24 va 172.24.4.0/24; evidence/G2/20261107-O-13-sg-8081.txt
     campus-db-sg:   { id: "15d5d84d-f71a-4595-a5b2-ac75f818c040" }    # 5432 + 6379 chi tu campus-app-sg (25/10/2026)
     campus-diag-sg: { id: "14722bc6-5903-4951-82c0-bdb884877783" }    # tam thoi
   project:
     name: campuslink
     id: "07af3a3dd4c24d1ba028efcb6d28ef84"
     users: { campus-tv2: member, campus-tv3: member, campus-tv4: reader }
-    service_users_planned:      # SRS 1.3 (H3b, O-14), CHUA tao; TV1 tao 10-14/11. Khong ghi secret o day
-      campus-svc: { role: member, app_credential: "access rules chi GET/PUT/HEAD tren campus-qr, campus-reports", id: "REPLACE" }
+    service_users:      # ADR-10, H3b (07/11/2026). Khong ghi secret o day
+      campus-boot: { role: reader, id: "ad816112e45648cbb00fcc0b23fa536e", app_credential: { name: campus-boot-20261107, id: "327abbcdd80e4ce68e39ff24f4028649", rules: "1 rule: GET campus-secrets/app/* (object-store); khong dat han" }, secret_file: "/home/tv2/.config/openstack/campus-boot.cred (tv2:tv2 0600, tren A; 2 dong id= va secret=)" }    # tao 08/11/2026 theo issue #26; mat khau user da dat ngau nhien va bo; secret cua credential chi nam trong file nay
+      campus-svc: { role: reader, id: "563767a155544f4daa40e9c40c8306cd", app_credential: { name: campus-svc, id: "2db59df23dec440590138da7106b1af0", rules: "10 rule: GET/HEAD/PUT tren campus-qr/** va campus-reports/**; GET/HEAD tren hai container" }, secret_object: "campus-secrets/app/swift_app_cred" }    # reader + ACL doc+ghi 2 container (khac ban dau ghi member); secret cua credential chi nam trong object nay
     quota: { instances: 6, cores: 8, ram_mib: 12288, volumes: 5, gigabytes: 30, floating_ips: 3 }
   flavors:
     campus.app:     { id: "a9083cf8-24ab-4a7a-8b5c-6ba44ed1b6de", vcpus: 1, ram_mib: 2048, disk_gib: 10 }
     campus.db:      { id: "9ae2d463-8202-4575-a4f3-e32c4800d02c", vcpus: 1, ram_mib: 2048, disk_gib: 10 }
     campus.builder: { id: "ee0a0c60-54c7-4488-896d-5081c1b098cf", vcpus: 2, ram_mib: 4096, disk_gib: 20 }
   images:
+    campus-app-tv2-g4-20261111: { id: "2c43a06d-1db8-4c01-bd31-98803325d932", min_disk_gib: 10, min_ram_mib: 0, virtual_size_bytes: 10737418240, size_bytes: 3236757504, source_commit: "e703fe6990a617ac347084b1a9a90c8c7112c666", manifest: "evidence/G4/20261111-image-manifest.json" }   # TV2: clone A/B campus.app PASS, reboot/Docker restart/metadata guard, 11/11/2026; khong phai stack ASG chinh
     ubuntu-noble-base: { id: "b915f809-b352-4d03-a14a-ec9c294e85d8", source_url: "https://cloud-images.ubuntu.com/releases/noble/release-20261017/ubuntu-24.04-server-cloudimg-amd64.img", sha256: "04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94", date: "2026-10-17" }    # release-20261017, qcow2 3.5 GiB, nap Glance 25/10/2026 (public, owner campuslink); chua kiem chu ky GPG
   storage:
     cinder_vg: stack-volumes-lvmdriver-1
     cinder_target: "lioadm"    # xac nhan 25/10/2026 trong /etc/cinder/cinder.conf: target_helper=lioadm, target_protocol=iscsi, target_port=3260, backend lvmdriver-1
     db_port: { ip: 10.20.0.10, id: "7df6ea1d-2e8c-46d5-99b9-e121855d81b5", name: campus-db-port, sg: campus-db-sg }    # tao 25/10/2026; TV3 tao DB VM bang --port campus-db-port
-    db_volume: { name: campus-db-data, size_gib: 10, id: "f43fbbd2-b85f-4bb1-b403-ba54a2f84189", type: "lvmdriver-1", az: "nova" }    # tao 25/10/2026 bang credential campus-tv3; chua gan VM nao
+    db_volume: { name: campus-db-data, size_gib: 10, id: "f43fbbd2-b85f-4bb1-b403-ba54a2f84189", type: "lvmdriver-1", az: "nova" }    # tao 25/10/2026 bang credential campus-tv3; gan campus-db (/dev/vdb, ext4, mount /var/lib/postgresql) tu 08/11/2026
     swift:
       endpoint: "http://10.11.0.10:8080/v1/AUTH_07af3a3dd4c24d1ba028efcb6d28ef84"    # public, khong token tra 401; campus-tv3 (member) tao/ghi/doc duoc (25/10/2026)
       container: campus-backups
-      containers_planned: [campus-qr, campus-reports]   # SRS 1.3 FR-APP-16, 19; private; CHUA tao, TV1 tao 10-14/11 (H3b)
+      containers_app:    # tao 07/11/2026, tat ca private
+        campus-secrets: "ADR-10; ACL doc cho campus-boot (<project_id>:<user_id>); chi chua secret VM app can luc boot"
+        campus-qr: "H3b, SRS 4.6 FR-APP-16; ACL doc+ghi cho campus-svc"
+        campus-reports: "H3b, SRS 4.6 FR-APP-19; ACL doc+ghi cho campus-svc"
+      cau_hinh_ngoai_repo: "/etc/swift/proxy-server.conf muc [filter:authtoken]: service_type = object-store va include_service_catalog = True (07/11/2026; can cho access rules, xem ADR-10 muc 6, troubleshooting)"
       disk_image: /opt/stack/data/swift/drives/images/swift.img
       mountpoint: /opt/stack/data/swift/drives/sdb1
       loopback_size: 5G
@@ -134,15 +140,17 @@ shlink:                         # Lab 9.5
   campus_domain: "44-198-215-187.sslip.io"   # EIP 44.198.215.187 (23/10/2026)
   short_domain: "s.44-198-215-187.sslip.io"
   admin_domain: "admin.44-198-215-187.sslip.io"
-  app_domain: "app.44-198-215-187.sslip.io"   # SRS 1.3 (campus-portal); CHUA co trong cert campus, cap lai --expand 10-14/11
-  tls: { issuer: "Let's Encrypt", tool: certbot, challenge: http-01, webroot: /var/www/html, cert_name: campus, key_type: ECDSA, issued: "2026-10-27", expires: "2027-01-25", renew: "khong can truoc khi het du an (certbot.timer se loi vi SG 80 dong)" }  # khong commit /etc/letsencrypt
+  app_domain: "app.44-198-215-187.sslip.io"   # SRS 1.3 (campus-portal); cert campus co app. tu 08/11/2026 (het han 2027-02-05); vhost app. CHUA bat (chua co portal)
+  tls: { issuer: "Let's Encrypt", tool: certbot, challenge: http-01, webroot: /var/www/html, cert_name: campus, key_type: ECDSA, domains: "s., admin., app.", issued: "2026-11-08 (cap lai --expand; lan dau 2026-10-27)", expires: "2027-02-05", renew: "khong can truoc khi het du an (certbot.timer se loi vi SG 80 dong)" }  # khong commit /etc/letsencrypt
   ingress:                      # 27/10/2026, mau cau hinh: infra/nginx/campus.conf.example, infra/apache/campus-acme.conf.example
     nginx: { version: "1.24.0", listen: 443, conf: /etc/nginx/conf.d/campus.conf, admin_root: /var/www/campus-admin/shlink-web-client_4.8.1_dist }
     apache_acme_alias: /etc/apache2/conf-available/campus-acme.conf   # Alias /.well-known/acme-challenge/ -> /var/www/html
   vip_lab_fip: "REPLACE"        # FIP cua VIP do Heat tao, khong phai LB smoke
-  db: { host: 10.20.0.10, name: shlink, engine: "PostgreSQL 16" }   # SRS 1.3 them DB campus_portal + user rieng (TV3)
-  redis: { endpoint: "10.20.0.10:6379", auth: required }
-  image: { tag: "shlinkio/shlink:5.1.8", repo_digest: "REPLACE" }
+  db: { host: 10.20.0.10, name: shlink, engine: "PostgreSQL 16", version: "16.15 (apt Ubuntu 24.04)", max_connections: 50, role_shlink_conn_limit: 15 }   # SRS 1.3 them DB campus_portal + user rieng (TV3)
+  db_vm: { name: campus-db, uuid: "6d17a9e8-4975-4c46-afd6-be1017e2a251", flavor: campus.db, az: campus-az-a, port: campus-db-port, volume: campus-db-data, key_name: tv3, created: "2026-11-08" }   # FR-INF-12, TV3; cloud-init app/db/user-data.tmpl.yaml, runbook docs/runbooks/db-vm.md
+  redis: { endpoint: "10.20.0.10:6379", auth: required, version: "7.0.15 (apt)", appendonly: true, maxmemory: 256mb, policy: noeviction }   # policy de xuat, chot cung TV4
+  secrets_core: [ "campus-secrets/app/db_password", "campus-secrets/app/redis_servers" ]   # TV3 ghi 08/11/2026 (ADR-10, H1 muc 6); chi ghi ten, khong ghi gia tri
+  image: { tag: "shlinkio/shlink:5.1.8", repo_digest: "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee" }   # cached trong Glance image app, clone A/B da kiem 11/11/2026
   webclient_dist:
     file: shlink-web-client_4.8.1_dist.zip
     sha256: 85c96539fd609ef80ea7d366cced743a1c0af1d9987d9f8d4517e969d519a120
@@ -160,12 +168,7 @@ load_balancer:                  # TV2 dien sau Heat (H4)
   pool: { algorithm: SOURCE_IP_PORT, id: "REPLACE" }
   health_monitor: { type: TCP, delay: 5, timeout: 3, max_retries: 3 }
 
-temporary_resources:            # diag-a/diag-b, LB smoke, FIP tam... ghi de xoa sau
-  # 31/10/2026 (TV1 ghi tu evidence/G2/20261027-FR-INF-07-tv2-lb-cloud.txt; chua kiem tren cum tu 27/10)
-  - name: tv2-lb-lab                         # Heat stack lab LB OVN tren 2 HTTP stub (infra/heat/lab/)
-    stack_id: "88dabbc1-f487-4f26-9554-ced5c1fdb69b"
-    owner: TV2
-    holds: "2 VM campus.app (1 o campus-az-a, 1 o campus-az-b) = 2 vCPU, 4096 MiB; 1 LB ovn; 1 FIP 172.24.4.199 cho VIP"
-    delete_before: "khi tao Heat stack Shlink chinh (Lab TV1 v1.2 muc 9.4: xoa LB smoke, tranh hai bo cung chay), cham nhat truoc G4"
-    why: "quota project 6 VM / 8 vCPU / 12288 MiB / 3 FIP: DB + 2 app + lab = 5 VM, 10240 MiB; scale-out len app thu 3 la cham tran RAM, them builder (4096 MiB) thi vuot; FIP: lab + VIP chinh + VM nhay = 3/3"
-    delete_cmd: "OS_CLOUD=campus-tv2 openstack stack delete --wait 88dabbc1-f487-4f26-9554-ced5c1fdb69b (TV2 chay, xem infra/heat/lab/README.md muc Don lab)"
+# 07/11/2026: tv2-lb-lab 88dabbc1-f487-4f26-9554-ced5c1fdb69b da xoa qua Heat.
+# DELETE_COMPLETE 06:43:02 UTC; hau kiem 06:43:52 UTC, giu volume/port DB va mang nen.
+# Evidence: evidence/G2/20261107-FR-INF-07-tv2-lb-cleanup.txt
+temporary_resources: []         # diag-a/diag-b, LB smoke, FIP tam... ghi de xoa sau

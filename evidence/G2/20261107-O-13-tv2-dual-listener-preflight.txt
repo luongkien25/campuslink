@@ -1,0 +1,312 @@
+O-13 / FR-INF-07 / H4b - Preflight va validate lab hai listener
+Ngay: 07/11/2026. Nguoi thuc hien: agent qua SSH user tv2, OS_CLOUD=campus-tv2.
+Nhanh: tv2/lb-dual-listener, base main 1c63d485f1ac34bea0f8c9d407dcd06ba4054313.
+Trang thai: VALIDATE PASS; KIEM TRAFFIC O-13 CHUA CHAY, CHO TV1 BO SUNG SG.
+Issue: https://github.com/luongkien25/campuslink/issues/19
+Khong tao stack/VM/LB, khong thay SG/network, khong dung admin/sudo.
+
+KIEM TRA QUYEN VA NEN - 06:48:39 UTC
+OS_CLOUD=campus-tv2 openstack security group rule list campus-app-sg -f json
+Ingress IPv4 trong output that:
+ID 6e5bfdc9-0409-4521-8367-008c4e12bd1a, tcp 8080:8080, source 10.20.0.0/24.
+ID a78cdf96-73b8-476d-9e43-9a32f9ce9c6b, tcp 8080:8080, source 172.24.4.0/24.
+Hai egress default IPv4/IPv6; khong co ingress 8081.
+AZ campus-az-a va campus-az-b deu available.
+openstack server list -f json: []
+openstack stack list -f json: []
+Schema OS::Octavia::Listener/PoolMember da doc tu Heat API tren A:
+Listener co protocol_port/protocol/loadbalancer; PoolMember co pool/address/subnet/protocol_port.
+Khong coi SG thieu 8081 la loi Octavia; chua tao stack de tranh cho doi tren cloud.
+
+IMPLEMENTATION LOCAL
+root.yaml: mot LB OVN/VIP/FIP, hai listener TCP8080/8081, hai pool SOURCE_IP_PORT,
+hai TCP monitor, hai VM private tren hai AZ.
+stub-unit.yaml: hai service/members moi VM; port8080 nhan app-a/app-b,
+port8081 nhan portal-a/portal-b. Dependency tuan tu hoa mutation cung LB.
+Khong sua stub.py/sample_lb.py; khong thay API Shlink/portal that.
+
+TEST OFFLINE
+Python venv .venv; dependency PyYAML==6.0.3.
+Baseline: .venv/bin/python -B -m unittest discover -s infra/heat/lab/tests -v
+15 tests, OK.
+Ba test moi FAIL truoc khi sua template vi thieu listener/member/service 8081:
+- test_two_listeners_route_to_separate_pools_on_the_same_lb
+- test_each_vm_registers_both_ports_with_distinct_backend_labels
+- test_cloud_config_launches_both_stubs_on_the_member_ports
+Sau implementation: cung lenh suite, Ran 18 tests in 7.298s, OK.
+Day la test HTTP local va contract YAML, khong phai traffic qua Octavia.
+
+FILE VALIDATE (SHA256 LOCAL)
+e452bd1f7f7313bae4a9a64bfbd58a840a34a6e34b8a5b69f4081a71eab866c5  infra/heat/lab/root.yaml
+31086a796fb20d52b6c61340977a494484ca497ed58440b69ee93172c785dd46  infra/heat/lab/stub-unit.yaml
+af9048bbd6a6e449350c808577487f50ee148d47c5827468c3118d3b4368b8ab  infra/heat/lab/stub.py
+c77e6dedf7ca86d2e592468ac942d191d6c10c9d7a2786e09d88c83de10f68da  infra/heat/lab/sample_lb.py
+
+CHUYEN FILE
+Tao thu muc moi /home/tv2/campuslink-tv2-o13-20261107 tren A, chi chuyen
+root.yaml, stub-unit.yaml, stub.py, sample_lb.py. Khong chuyen credential/private key.
+
+HEAT VALIDATE - LENH DA DOI CHIEU --help TREN A
+cd "$HOME/campuslink-tv2-o13-20261107"
+OS_CLOUD=campus-tv2 openstack orchestration template validate --template root.yaml --parameter key_name=campus-tv2 --show-nested -f json
+Exit code: 0
+Output that:
+{
+  "Description": "Lab LB hai listener 8080/8081 voi HTTP stub tren hai Nova AZ. Khong trien khai Shlink, readiness ung dung, alarm hoac autoscaling.",
+  "Parameters": {
+    "app_image": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "app_image",
+      "Default": "ubuntu-noble-base"
+    },
+    "app_flavor": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "app_flavor",
+      "Default": "campus.app"
+    },
+    "key_name": {
+      "Type": "String",
+      "Description": "Keypair Nova cua user tao stack, da import public key rieng.",
+      "NoEcho": "false",
+      "Label": "key_name",
+      "Value": "campus-tv2"
+    },
+    "app_network": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "app_network",
+      "Default": "campus-net"
+    },
+    "app_subnet": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "app_subnet",
+      "Default": "campus-subnet"
+    },
+    "app_security_group": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "app_security_group",
+      "Default": "campus-app-sg"
+    },
+    "external_network": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "external_network",
+      "Default": "public"
+    },
+    "az_a": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "az_a",
+      "Default": "campus-az-a"
+    },
+    "az_b": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "az_b",
+      "Default": "campus-az-b"
+    }
+  },
+  "NestedParameters": {
+    "app_b": {
+      "Type": "file:///home/tv2/campuslink-tv2-o13-20261107/stub-unit.yaml",
+      "Description": "VM HTTP stub va member TCP. Cloud-init khoi dong service sau VM ACTIVE; day khong phai readiness gate cua Shlink.",
+      "Parameters": {
+        "image": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "image",
+          "Value": "ubuntu-noble-base"
+        },
+        "flavor": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "flavor",
+          "Value": "campus.app"
+        },
+        "key_name": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "key_name",
+          "Value": "campus-tv2"
+        },
+        "network": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "network",
+          "Value": "campus-net"
+        },
+        "subnet": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "subnet",
+          "Value": "campus-subnet"
+        },
+        "security_group": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "security_group",
+          "Value": "campus-app-sg"
+        },
+        "availability_zone": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "availability_zone",
+          "Value": "campus-az-b"
+        },
+        "backend": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "backend",
+          "Value": "app-b",
+          "AllowedPattern": "[A-Za-z0-9][A-Za-z0-9_.-]{0,63}"
+        },
+        "pool": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "pool",
+          "Value": "pool"
+        },
+        "portal_backend": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "portal_backend",
+          "Value": "portal-b",
+          "AllowedPattern": "[A-Za-z0-9][A-Za-z0-9_.-]{0,63}"
+        },
+        "portal_pool": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "portal_pool",
+          "Value": "portal_pool"
+        }
+      }
+    },
+    "app_a": {
+      "Type": "file:///home/tv2/campuslink-tv2-o13-20261107/stub-unit.yaml",
+      "Description": "VM HTTP stub va member TCP. Cloud-init khoi dong service sau VM ACTIVE; day khong phai readiness gate cua Shlink.",
+      "Parameters": {
+        "image": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "image",
+          "Value": "ubuntu-noble-base"
+        },
+        "flavor": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "flavor",
+          "Value": "campus.app"
+        },
+        "key_name": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "key_name",
+          "Value": "campus-tv2"
+        },
+        "network": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "network",
+          "Value": "campus-net"
+        },
+        "subnet": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "subnet",
+          "Value": "campus-subnet"
+        },
+        "security_group": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "security_group",
+          "Value": "campus-app-sg"
+        },
+        "availability_zone": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "availability_zone",
+          "Value": "campus-az-a"
+        },
+        "backend": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "backend",
+          "Value": "app-a",
+          "AllowedPattern": "[A-Za-z0-9][A-Za-z0-9_.-]{0,63}"
+        },
+        "pool": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "pool",
+          "Value": "pool"
+        },
+        "portal_backend": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "portal_backend",
+          "Value": "portal-a",
+          "AllowedPattern": "[A-Za-z0-9][A-Za-z0-9_.-]{0,63}"
+        },
+        "portal_pool": {
+          "Type": "String",
+          "Description": "",
+          "NoEcho": "false",
+          "Label": "portal_pool",
+          "Value": "portal_pool"
+        }
+      }
+    }
+  },
+  "Environment": {
+    "resource_registry": {
+      "resources": {},
+      "file:///home/tv2/campuslink-tv2-o13-20261107/stub-unit.yaml": "file:///home/tv2/campuslink-tv2-o13-20261107/stub-unit.yaml"
+    },
+    "parameters": {
+      "key_name": "campus-tv2"
+    },
+    "parameter_defaults": {},
+    "event_sinks": []
+  }
+}
+
+KET LUAN VA GIOI HAN
+Validate PASS, resolves ca hai nested unit va parameters; chua nghiem thu provision/lifecycle/traffic.
+O-13 van MO: can TV1 cap SG8081 theo issue19, sau do phien cloud duoc xac nhan,
+tao stack lab rieng, do 40 ket noi moi moi cong den ca hai backend dung pool,
+ghi evidence va don dung stack sau thu.
+Khong goi H4b, portal/SSE/readiness/ASG la PASS.
+

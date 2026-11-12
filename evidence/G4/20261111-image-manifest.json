@@ -1,0 +1,323 @@
+{
+  "status": "VALIDATED_SHLINK_CORE_TWO_AZ",
+  "recorded_utc": "2026-11-11T11:48:36.783787+00:00",
+  "source_commit": "e703fe6990a617ac347084b1a9a90c8c7112c666",
+  "base_image_id": "b915f809-b352-4d03-a14a-ec9c294e85d8",
+  "base_sha256_from_H2": "04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94",
+  "kernel": "6.8.0-147-generic",
+  "packages": {
+    "curl": "8.5.0-2ubuntu10.16",
+    "docker.io": "29.1.3-0ubuntu3~24.04.2",
+    "iptables": "1.8.10-3ubuntu2",
+    "python3": "3.12.3-0ubuntu2.1",
+    "redis-tools": "5:7.0.15-1ubuntu0.24.04.5"
+  },
+  "docker_version": "29.1.3",
+  "shlink_index_digest": "sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+  "expected_shlink_amd64_digest_from_H1": "sha256:9083dc4ba2b682c43e1a477b69ef451738253fc8ad680db072663ea68530a973",
+  "observed_image_descriptor": {
+    "mediaType": "application/vnd.oci.image.index.v1+json",
+    "digest": "sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+    "size": 1609
+  },
+  "observed_architecture": "amd64",
+  "runtime_file_sha256": {
+    "infra/heat/bootstrap/controls.py": "20560b5c948b11d0f3db42953d808a761fb2c7896d2e12532bc93f49e6397498",
+    "infra/heat/bootstrap/fetch_secrets.py": "412c5bb8aa7c344ff5032ca4b93a167a7f411900cd5a66caf70fcfc8be250759",
+    "infra/heat/bootstrap/metadata_guard.py": "8c34b7ca341e8644bd6b2111992a8aaad1b48bf7ff1463914b0d29d6dedb27be",
+    "infra/heat/bootstrap/readiness.py": "79b39b6c7f9eb1cea447b3ca1f164919256a734ad5cd0a948f836e8a1dd195c9",
+    "infra/heat/bootstrap/runtime.py": "bf14d34dcf22df02df67975c62dfa6610a1e0a89c74cea1aec73603c2d468e57",
+    "infra/heat/bootstrap/start_shlink.py": "98a7e34e6ea6900d036ff2fd4599fbe52742fdf4480d92e9e58d77e3b9031a2c",
+    "infra/heat/bootstrap/metadata-guard.sh": "18d58086fb609b05d76367731ee9acc6c3e102ed136b88b0f7367b4f49fc80ad",
+    "infra/heat/bootstrap/start-shlink.sh": "10d19fa26174ac79e193954e2acacaf667028e9a804b92ee956d9ae8c209c5b9",
+    "infra/heat/bootstrap/systemd/campuslink-guard.service": "acf735ff5af3612c6453fe3b1b1aa95087ad8bdd925bd88d305d059f7faeddbf",
+    "infra/heat/bootstrap/systemd/campuslink-ready.service": "b63ca29c647200f5ca1c8e0a97c9b614231345f2bb17b5d3693cffb64cf64b1e",
+    "infra/heat/bootstrap/systemd/campuslink-secrets.service": "82d133e3682961e8274a2d89f395a2e30ae52f443a59b6988c78ae88499b0ec0",
+    "infra/heat/bootstrap/systemd/campuslink-shlink.service": "1978897666d55535e4b1cc7193fdfdd5ff82d9d3702c8e0d80e2b2567206ce4d",
+    "infra/heat/bootstrap/systemd/docker.service.d/campuslink.conf": "826948c82608d53fcf7c566499ae66b9796b4125e6d9c9ab9f6788d13805d55c",
+    "app/shlink.env.example": "0535664aba42b2a21a618482da7140c505233a1e45697f04c17630e73c0dc78a",
+    "app/smoke/redis-probe.sh": "a889c255b5a5ac32e95db18e33a514c677b03d55c448755a15b762a578f80958"
+  },
+  "glance": {
+    "checksum": "530e278fd51a2bc9f582a0416fa4955d",
+    "created_at": "2026-11-11T11:05:12Z",
+    "id": "2c43a06d-1db8-4c01-bd31-98803325d932",
+    "min_disk": 10,
+    "min_ram": 0,
+    "name": "campus-app-tv2-g4-20261111",
+    "properties": {
+      "os_hidden": false,
+      "os_hash_algo": "sha512",
+      "os_hash_value": "1a2e6d0b28388174e1ca3cb33631fc047e55b7b9ed7cd596ddb0f718abfcb62cee9ca27395b3f093cad0094642662c5374a06f57df35ea24234c3bda4b3b0390",
+      "owner_specified.openstack.md5": "",
+      "owner_specified.openstack.object": "images/ubuntu-noble-base",
+      "owner_specified.openstack.sha256": "",
+      "source_release": "release-20261017",
+      "base_image_ref": "b915f809-b352-4d03-a14a-ec9c294e85d8",
+      "owner_user_name": "campus-tv2",
+      "owner_project_name": "campuslink",
+      "boot_roles": "member,reader",
+      "hw_cdrom_bus": "ide",
+      "user_id": "af9b4a94567b4adf9450ae0119efc10b",
+      "image_type": "snapshot",
+      "image_location": "snapshot",
+      "image_state": "available",
+      "instance_uuid": "462020fe-323d-4e33-9edc-4aface711b64",
+      "os_distro": "ubuntu",
+      "os_version": "24.04",
+      "hw_disk_bus": "virtio",
+      "hw_machine_type": "pc",
+      "hw_video_model": "virtio",
+      "hw_vif_model": "virtio"
+    },
+    "size": 3236757504,
+    "status": "active",
+    "updated_at": "2026-11-11T11:06:55Z",
+    "virtual_size": 10737418240
+  },
+  "cleanliness": {
+    "result": "PASS_KNOWN_PATHS_AND_CONTROLLED_INPUTS",
+    "scope": "Builder received only committed allowlisted archive, never real credentials; no bootstrap config/app secrets/Docker auth/container at bake. cloud-init/user-data cache, authorized keys, host keys, history and machine-id sanitized before stopped snapshot. Clone host keys distinct. No forensic whole-disk scan claimed."
+  },
+  "clone_a": {
+    "application_json_log_entries_observed": 3,
+    "boot_id": "b154078a-5c93-4ec1-a30a-b8414ca57c2f",
+    "docker_log_entries_with_guest_attrs": 10,
+    "generation": "27895421604",
+    "guest_ip": "10.20.0.145",
+    "guest_uuid": "c4ea0781-633f-4337-a296-921b9f19fa93",
+    "health": {
+      "http_status": 200,
+      "status": "pass",
+      "version": "5.1.8"
+    },
+    "health_request_id_header_present": true,
+    "image": "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+    "image_pull_events_since_boot": 0,
+    "metadata": {
+      "container_rc": 1,
+      "drop_packets_after": 3,
+      "drop_packets_before": 0,
+      "host_http": 200
+    },
+    "network_mode": "bridge",
+    "observed_utc": "2026-11-11T11:16:07.948197+00:00",
+    "redis": "PONG",
+    "restart_policy": "no",
+    "result": "PASS",
+    "runtime_ready_seconds": 8.226,
+    "secret_permissions_and_uid1001": "PASS",
+    "unit_start_monotonic_us": {
+      "guard": 27912099,
+      "ready": 28603110,
+      "secrets": 27046190,
+      "shlink": 28585828
+    }
+  },
+  "clone_b": {
+    "application_json_log_entries_observed": 3,
+    "boot_id": "fe1043e0-fcee-4ed5-888a-b7e54a710f98",
+    "docker_log_entries_with_guest_attrs": 10,
+    "generation": "28913552089",
+    "guest_ip": "10.20.0.196",
+    "guest_uuid": "7565927f-ccdf-4aeb-b465-a0225f1d5d1e",
+    "health": {
+      "http_status": 200,
+      "status": "pass",
+      "version": "5.1.8"
+    },
+    "health_request_id_header_present": true,
+    "image": "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+    "image_pull_events_since_boot": 0,
+    "metadata": {
+      "container_rc": 1,
+      "drop_packets_after": 3,
+      "drop_packets_before": 0,
+      "host_http": 200
+    },
+    "network_mode": "bridge",
+    "observed_utc": "2026-11-11T11:18:09.772059+00:00",
+    "redis": "PONG",
+    "restart_policy": "no",
+    "result": "PASS",
+    "runtime_ready_seconds": 7.143,
+    "secret_permissions_and_uid1001": "PASS",
+    "unit_start_monotonic_us": {
+      "guard": 28929146,
+      "ready": 29611093,
+      "secrets": 28107168,
+      "shlink": 29591131
+    }
+  },
+  "reboot_a": {
+    "application_json_log_entries_observed": 3,
+    "boot_id": "abba634d-6826-4ba5-a65d-2422981a5813",
+    "boot_ready_monotonic_seconds": 18.714,
+    "docker_log_entries_with_guest_attrs": 10,
+    "generation": "11764658909",
+    "guest_ip": "10.20.0.145",
+    "guest_uuid": "c4ea0781-633f-4337-a296-921b9f19fa93",
+    "health": {
+      "http_status": 200,
+      "status": "pass",
+      "version": "5.1.8"
+    },
+    "health_request_id_header_present": true,
+    "image": "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+    "image_pull_events_since_boot": 0,
+    "metadata": {
+      "container_rc": 1,
+      "drop_packets_after": 3,
+      "drop_packets_before": 0,
+      "host_http": 200
+    },
+    "network_mode": "bridge",
+    "observed_utc": "2026-11-11T11:31:00.046135+00:00",
+    "redis": "PONG",
+    "restart_policy": "no",
+    "result": "PASS",
+    "runtime_ready_seconds": 7.106,
+    "secret_permissions_and_uid1001": "PASS",
+    "unit_start_monotonic_us": {
+      "guard": 11782220,
+      "ready": 12478087,
+      "secrets": 11015154,
+      "shlink": 12460852
+    }
+  },
+  "reboot_b": {
+    "application_json_log_entries_observed": 3,
+    "boot_id": "6c9f8ca6-768a-46b8-99d0-aa485e067904",
+    "boot_ready_monotonic_seconds": 18.814,
+    "docker_log_entries_with_guest_attrs": 10,
+    "generation": "11869854825",
+    "guest_ip": "10.20.0.196",
+    "guest_uuid": "7565927f-ccdf-4aeb-b465-a0225f1d5d1e",
+    "health": {
+      "http_status": 200,
+      "status": "pass",
+      "version": "5.1.8"
+    },
+    "health_request_id_header_present": true,
+    "image": "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee",
+    "image_pull_events_since_boot": 0,
+    "metadata": {
+      "container_rc": 1,
+      "drop_packets_after": 3,
+      "drop_packets_before": 0,
+      "host_http": 200
+    },
+    "network_mode": "bridge",
+    "observed_utc": "2026-11-11T11:35:51.489146+00:00",
+    "redis": "PONG",
+    "restart_policy": "no",
+    "result": "PASS",
+    "runtime_ready_seconds": 7.105,
+    "secret_permissions_and_uid1001": "PASS",
+    "unit_start_monotonic_us": {
+      "guard": 11884573,
+      "ready": 12558106,
+      "secrets": 11101171,
+      "shlink": 12542224
+    }
+  },
+  "docker_restart_a": {
+    "operation": "docker-restart-automatic-dependencies",
+    "previous_generation": "27895421604",
+    "result": "PASS",
+    "new_generation": "354236100505",
+    "elapsed_seconds": 5.687
+  },
+  "docker_restart_b": {
+    "operation": "docker-restart-automatic-dependencies",
+    "previous_generation": "28913552089",
+    "result": "PASS",
+    "new_generation": "712475785816",
+    "elapsed_seconds": 5.673
+  },
+  "negative_cases": {
+    "result": "PASS",
+    "cases": [
+      {
+        "case": "auth",
+        "result": "PASS",
+        "failed_layer": "secrets",
+        "service_result": "exit-code",
+        "fixture_requests": 1,
+        "app_absent": true,
+        "ready_absent": true
+      },
+      {
+        "case": "missing-object",
+        "result": "PASS",
+        "failed_layer": "secrets",
+        "service_result": "exit-code",
+        "fixture_requests": 2,
+        "app_absent": true,
+        "ready_absent": true
+      },
+      {
+        "case": "bad-format",
+        "result": "PASS",
+        "failed_layer": "secrets",
+        "service_result": "exit-code",
+        "fixture_requests": 2,
+        "app_absent": true,
+        "ready_absent": true
+      },
+      {
+        "case": "timeout",
+        "result": "PASS",
+        "failed_layer": "secrets",
+        "service_result": "exit-code",
+        "fixture_requests": 2,
+        "app_absent": true,
+        "ready_absent": true,
+        "timeout_phase": "Swift-object-GET"
+      },
+      {
+        "case": "guard-unavailable",
+        "result": "PASS",
+        "failed_layer": "guard",
+        "service_result": "exit-code",
+        "app_absent": true,
+        "ready_absent": true
+      },
+      {
+        "case": "db-unreachable-local-override",
+        "result": "PASS",
+        "failed_layer": "shlink",
+        "service_result": "exit-code",
+        "app_absent": true,
+        "ready_absent": true
+      },
+      {
+        "case": "redis-unreachable-local-secret-override",
+        "result": "PASS",
+        "failed_layer": "shlink",
+        "service_result": "exit-code",
+        "app_absent": true,
+        "ready_absent": true
+      }
+    ],
+    "original_config_restored_and_ready": true
+  },
+  "metadata_evidence": "evidence/G4/20261111-NFR-08-chan-metadata.txt",
+  "raw_verification": "evidence/G4/20261111-tv2-guest-checks.json",
+  "cleanup": {
+    "result": "PASS",
+    "completed_utc": "2026-11-11T11:43:07Z",
+    "retained_image": "2c43a06d-1db8-4c01-bd31-98803325d932",
+    "remaining_vm_ids": [
+      "6d17a9e8-4975-4c46-afd6-be1017e2a251"
+    ],
+    "remaining_stack_ids": [],
+    "remaining_fip_ids": [],
+    "temporary_ssh_sgs_removed": true,
+    "generated_true_heat_envs_on_A_removed": true,
+    "db_volume": "f43fbbd2-b85f-4bb1-b403-ba54a2f84189",
+    "db_port": "7df6ea1d-2e8c-46d5-99b9-e121855d81b5",
+    "test_link_retained_for_TV3": "tv2g4-20261111"
+  },
+  "deployment": "No main app stack/LB/ASG/WaitCondition/portal/worker was deployed."
+}

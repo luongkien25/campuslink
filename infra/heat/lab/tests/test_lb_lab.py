@@ -216,6 +216,55 @@ class HeatContractTests(unittest.TestCase):
         self.root = yaml.safe_load((LAB / "root.yaml").read_text())
         self.unit = yaml.safe_load((LAB / "stub-unit.yaml").read_text())
 
+    def test_two_listeners_route_to_separate_pools_on_the_same_lb(self):
+        resources = self.root["resources"]
+        listeners = {r["properties"]["protocol_port"]: name
+                     for name, r in resources.items()
+                     if r["type"] == "OS::Octavia::Listener"}
+        self.assertEqual(set(listeners), {8080, 8081})
+        for port, pool_name, monitor_name in (
+                (8080, "pool", "monitor"), (8081, "portal_pool", "portal_monitor")):
+            listener = resources[listeners[port]]["properties"]
+            self.assertEqual(listener["loadbalancer"], {"get_resource": "lb"})
+            self.assertEqual(listener["protocol"], "TCP")
+            pool = resources[pool_name]["properties"]
+            self.assertEqual(pool["listener"], {"get_resource": listeners[port]})
+            self.assertEqual(pool["protocol"], "TCP")
+            self.assertEqual(pool["lb_algorithm"], "SOURCE_IP_PORT")
+            monitor = resources[monitor_name]["properties"]
+            self.assertEqual(monitor["pool"], {"get_resource": pool_name})
+            self.assertEqual(monitor["type"], "TCP")
+
+    def test_each_vm_registers_both_ports_with_distinct_backend_labels(self):
+        resources = self.unit["resources"]
+        members = {r["properties"]["protocol_port"]: r
+                   for r in resources.values() if r["type"] == "OS::Octavia::PoolMember"}
+        self.assertEqual(set(members), {8080, 8081})
+        self.assertEqual(members[8080]["properties"]["pool"], {"get_param": "pool"})
+        self.assertEqual(members[8081]["properties"]["pool"], {"get_param": "portal_pool"})
+        for member in members.values():
+            self.assertEqual(member["properties"]["address"],
+                             {"get_attr": ["port", "fixed_ips", 0, "ip_address"]})
+        for name, label in (("app_a", "portal-a"), ("app_b", "portal-b")):
+            props = self.root["resources"][name]["properties"]
+            self.assertEqual(props["portal_pool"], {"get_resource": "portal_pool"})
+            self.assertEqual(props["portal_backend"], label)
+
+    def test_cloud_config_launches_both_stubs_on_the_member_ports(self):
+        config = self.unit["resources"]["config"]["properties"]["cloud_config"]
+        commands = []
+        for file in config["write_files"]:
+            if not file["path"].endswith(".service"):
+                continue
+            content = file["content"]["str_replace"]
+            rendered = content["template"]
+            for key, param in content["params"].items():
+                rendered = rendered.replace(key, {"backend": "app-a", "portal_backend": "portal-a"}[param["get_param"]])
+            command = next(line for line in rendered.splitlines() if line.startswith("ExecStart="))
+            commands.append(command.split("stub.py ", 1)[1])
+            self.assertIn(["systemctl", "enable", "--now", Path(file["path"]).name], config["runcmd"])
+        self.assertEqual(set(commands), {"--backend app-a --port 8080", "--backend portal-a --port 8081"})
+
     def test_lb_contract_uses_ovn_tcp_and_private_vms(self):
         resources = self.root["resources"]
         self.assertEqual(resources["lb"]["properties"]["provider"], "ovn")
@@ -234,7 +283,9 @@ class HeatContractTests(unittest.TestCase):
         self.assertEqual(resources["app_a"]["properties"]["availability_zone"], {"get_param": "az_a"})
         self.assertEqual(resources["app_b"]["properties"]["availability_zone"], {"get_param": "az_b"})
         self.assertEqual(resources["app_b"]["depends_on"], "app_a")
-        self.assertEqual(resources["app_a"]["depends_on"], "monitor")
+        self.assertEqual(resources["portal_listener"]["depends_on"], "monitor")
+        self.assertEqual(resources["app_a"]["depends_on"], "portal_monitor")
+        self.assertEqual(self.unit["resources"]["portal_member"]["depends_on"], "member")
         member = self.unit["resources"]["member"]["properties"]
         self.assertEqual(member["address"], {"get_attr": ["port", "fixed_ips", 0, "ip_address"]})
         self.assertEqual(self.unit["resources"]["member"]["depends_on"], "server")

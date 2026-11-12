@@ -82,11 +82,13 @@ Sửa bền đã cài 25/10 (`ops/campus-br-ex` + drop-in). Nếu vẫn mất: `
 
 ```bash
 a openstack compute service list -c Binary -c Host -c State -f value
-a openstack network agent list -c "Agent Type" -c Host -c Alive -f value
+a "openstack network agent list -c 'Agent Type' -c Host -c Alive -f value"
 a openstack volume service list -c Binary -c Host -c State -f value
 ```
 
 PASS: `nova-compute` của `campus-a` **và** `campus-b` `up`; network agent có **4** dòng OVN (đã thấy 24/10, 25/10), tất cả `:-)`/`True`; `cinder-volume` `up`.
+
+Hàm `a` nối đối số bằng `$*` nên làm mất dấu nháy: đối số có khoảng trắng (`-c 'Agent Type'`) phải nằm trong một chuỗi bọc cả lệnh như dòng 2 (HANDOFF phiên 19, cạm bẫy 2).
 
 ### 2.5 Octavia provider `ovn`
 
@@ -95,6 +97,14 @@ ls -ld /run/octavia; a openstack loadbalancer provider list
 ```
 
 PASS: thư mục có, chủ `stack`; có `ovn`. Thiếu thư mục: `sudo systemd-tmpfiles --create /etc/tmpfiles.d/octavia.conf`, rồi `sudo systemctl restart devstack@o-api`, đợi 10 giây, kiểm lại. (`devstack@o-da` báo `active` cả khi lỗi bind socket, nên `--state=failed` không bắt được lỗi này.)
+
+### 2.5b Swift: cấu hình cho access rules (từ 07/11/2026)
+
+```bash
+sudo grep -nE '^(service_type|include_service_catalog)' /etc/swift/proxy-server.conf; systemctl is-active devstack@s-proxy
+```
+
+PASS: có `service_type = object-store` **và** `include_service_catalog = True` (hai dòng sửa tay 07/11, ngoài repo, ADR-10 mục 6), `s-proxy` `active`. Thiếu một trong hai thì credential có access rules (`campus-svc`, `campus-boot`) bị 401 hoặc 500 dù mọi thứ khác đúng: báo TV1, không tự sửa.
 
 ### 2.6 Nginx và Apache `Alias`
 
@@ -106,7 +116,7 @@ PASS: `enabled`, `active`, `syntax is ok`; `:443` là `nginx`, `:80` là `apache
 
 ### 2.7 B
 
-Nếu chưa ở A: `ssh campus-a`. Từ A: `ssh campus-b`.
+**Chạy từ laptop**, không chạy từ A: `ssh campus-b` (ProxyJump qua A). Khóa SSH vào B chỉ nằm trên laptop, trên A không có khóa nên `ssh campus-b` từ A báo `Host key verification failed` (`BatchMode`). Vào shell B rồi dán lệnh dưới, hoặc `ssh campus-b '<lệnh>'`.
 
 ```bash
 hostnamectl --static; chronyc tracking | grep -E 'System time|Leap'; systemctl list-units 'devstack@*' --state=failed --no-legend; echo rc=$?

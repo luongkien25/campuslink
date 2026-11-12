@@ -17,10 +17,21 @@ cinder_sha=REPLACE_SHA
 swift_sha=REPLACE_SHA
 
 guest_base_image=ubuntu-noble-base
-guest_base_image_sha256=04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94   # file ubuntu-24.04-server-cloudimg-amd64.img, release-20261017 (25/10/2026); doi chieu voi SHA256SUMS qua HTTPS, chua kiem GPG
+guest_base_image_sha256=04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94   # file ubuntu-24.04-server-cloudimg-amd64.img, release-20261017 (25/10/2026); doi chieu voi SHA256SUMS qua HTTPS; da kiem GPG 02/11/2026 (SHA256SUMS.gpg Good signature, khoa UEC Image Automatic Signing Key D2EB4462 6FDDC30B 513D5BB7 1A5D6C4C 7DB87C81), TV1
+
+# TV2, FR-INF-22: image core da kiem clone A/B, reboot va Docker restart (11/11/2026)
+guest_app_image=campus-app-tv2-g4-20261111
+guest_app_image_uuid=2c43a06d-1db8-4c01-bd31-98803325d932
+guest_app_image_md5=530e278fd51a2bc9f582a0416fa4955d
+guest_app_image_os_hash_sha512=1a2e6d0b28388174e1ca3cb33631fc047e55b7b9ed7cd596ddb0f718abfcb62cee9ca27395b3f093cad0094642662c5374a06f57df35ea24234c3bda4b3b0390
+guest_app_image_source_commit=e703fe6990a617ac347084b1a9a90c8c7112c666
+guest_app_image_min_disk_gib=10
+guest_app_docker_version=29.1.3
+guest_app_image_manifest=evidence/G4/20261111-image-manifest.json
 
 shlink_version=5.1.8
-shlink_image_digest=shlinkio/shlink@sha256:REPLACE_REPO_DIGEST
+shlink_image_digest=shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee   # OCI index cua tag 5.1.8; docker buildx imagetools inspect tren Docker Hub khop RepoDigest sau pull, 2026-11-02 UTC, TV3; smoke local (Compose) /rest/health 200 version 5.1.8
+shlink_image_digest_amd64=sha256:9083dc4ba2b682c43e1a477b69ef451738253fc8ad680db072663ea68530a973   # manifest linux/amd64 trong index tren (guest x86_64), cung nguon
 web_client_version=4.8.1
 web_client_dist=shlink-web-client_4.8.1_dist.zip
 web_client_dist_sha256=85c96539fd609ef80ea7d366cced743a1c0af1d9987d9f8d4517e969d519a120   # da doi chieu tren A 27/10/2026 (sha256sum -c OK), TV1

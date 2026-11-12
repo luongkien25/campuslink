@@ -1,0 +1,1264 @@
+O-13 / FR-INF-07 (G2) - Hai listener TCP8080/8081 tren cung LB Octavia OVN
+Ngay: 07/11/2026. TV2: agent SSH Linux user tv2, OS_CLOUD=campus-tv2.
+Nguon template: main 87ff75cfa1d73bd8a7bcbcc229babb13bf4c99e5, da merge PR20/22/23.
+Nhanh evidence: tv2/lb-o13-evidence. Khong commit/push/PR tu dong.
+Nguoi dung xac nhan Zalo/A/B/nhat ky va pham vi tao-mau-don lab trong chat.
+Private key chi mo boi nguoi dung qua ssh-agent, host fingerprint khop gia tri da xac nhan.
+Khong dung admin/sudo, khong sua SG/network/controller, khong bat/tat EC2.
+
+TIEU CHI VA KET QUA TRAFFIC
+Mot LB provider ovn, cung VIP10.20.0.198/FIP172.24.4.111.
+Hai listener TCP8080/8081, moi listener pool SOURCE_IP_PORT va TCP monitor.
+Hai VM private, mot campus-az-a (10.20.0.127), mot campus-az-b (10.20.0.128).
+Bon member ONLINE dung port. FIP chi gan VIP, khong gan VM.
+8080: 40 ket noi moi, app-a27/app-b13, errors={}, missing=[], passed=true.
+8081: 40 ket noi moi, portal-a22/portal-b18, errors={}, missing=[], passed=true.
+Capture bo sung co nhan va hostname ca hai VM qua moi cong, khong nham pool.
+Khong yeu cau chia tai50/50. Day la thu stub; khong nghiem thu Shlink/portal/SSE/readiness/ASG.
+
+TAI NGUYEN
+Stack c8338308-8596-4202-8bcf-d707f7760751 (tv2-lb-o13), create13:38:32Z.
+LB 768940b0-7ec0-4fbf-98b0-edf117d31302; VIP port98e77f44-e24f-4b42-9723-b074b2c33f69.
+FIP resource1043e11f-8e96-4346-b079-ce64680a55f7.
+Pool8080 1b9e30d5-591c-49d0-bcfa-6f6ddb6162b7; pool8081 2e6a0fc1-7a59-4e30-bce3-a184bf23caa2.
+VM A c96dc138-4bd7-435d-aab1-34437327a3c4, VM B b6a37443-6977-48f3-a86a-4bea864021d2.
+Danh sach resource/nested unit/member/port/config day du o muc10.
+
+LENH CHINH (tren A, OS_CLOUD=campus-tv2)
+openstack security group rule list campus-app-sg -f json
+openstack availability zone list --compute -f json
+openstack stack list -f json
+openstack server list -c ID -c Name -c Status -f json
+openstack loadbalancer list -f json
+openstack floating ip list -f json
+openstack volume list -c ID -c Name -c Status -f json
+openstack port list -c ID -c Name -f json
+openstack quota show -f json
+cd "$HOME/campuslink-tv2-o13-20261107"
+openstack orchestration template validate --template root.yaml --parameter key_name=campus-tv2 -f json
+openstack stack create --template root.yaml --parameter key_name=campus-tv2 --timeout 20 --tags tv2,o13 tv2-lb-o13 -f json
+openstack stack show <stack> -c id -c stack_status -c stack_status_reason -f json
+openstack stack resource list --nested-depth 2 <stack> -f json
+openstack stack output show <stack> vip_fip -f json
+openstack loadbalancer show <lb> -f json
+openstack loadbalancer listener list -f json
+openstack loadbalancer pool list -f json
+openstack loadbalancer healthmonitor list -f json
+openstack loadbalancer member list <pool8080> -f json
+openstack loadbalancer member list <pool8081> -f json
+openstack server show <vm> -c id -c name -c status -c addresses -c OS-EXT-AZ:availability_zone -c metadata -f json
+openstack loadbalancer status show <lb>
+python3 sample_lb.py http://172.24.4.111:8080/ --expect app-a --expect app-b --requests 40 --timeout 3
+python3 sample_lb.py http://172.24.4.111:8081/ --expect portal-a --expect portal-b --requests 40 --timeout 3
+
+GHI CHU BOOT
+Lan stack list ngay sau boot tra "ERROR: Internal Error".
+Doc lai13:36:46-13:36:55 stack_list_exit=0, stacklist[]; Heat active va hai AZ available.
+Chua xac dinh nguyen nhan; khong sua/restart dich vu va khong coi service active don le la HeatAPI PASS.
+Volume campus-db-data available, chua co DB VM; khong nhan after-start app/datastore PASS.
+SG8081 duoc TV1 tao, PR23 evidence rieng; TV2 doc lai dung2CIDR, rule8080 giu nguyen.
+
+OUTPUT THAT THEO THU TU
+Chi bo whitespace cuoi dong khi luu, khong doi gia tri output.
+
+--- 1. Preflight ngay sau boot (chua dung de ket luan B san sang) ---
+Sat Nov  7 13:34:52 UTC 2026
+tv2
+campus-a
+ 13:34:52 up 0 min,  1 user,  load average: 9.95, 2.14, 0.70
+br-ex            UNKNOWN        172.24.4.1/24 fe80::5040:43ff:fe61:e047/64
+active
+active
+active
+[
+  {
+    "ID": "33e0a358-6330-41e4-9f90-97f8288f2749",
+    "IP Protocol": "tcp",
+    "Ethertype": "IPv4",
+    "IP Range": "10.20.0.0/24",
+    "Port Range": "8081:8081",
+    "Direction": "ingress",
+    "Remote Security Group": null,
+    "Remote Address Group": null
+  },
+  {
+    "ID": "6e5bfdc9-0409-4521-8367-008c4e12bd1a",
+    "IP Protocol": "tcp",
+    "Ethertype": "IPv4",
+    "IP Range": "10.20.0.0/24",
+    "Port Range": "8080:8080",
+    "Direction": "ingress",
+    "Remote Security Group": null,
+    "Remote Address Group": null
+  },
+  {
+    "ID": "70c9aa7c-6dc5-4d6b-a6a0-b75077ef537d",
+    "IP Protocol": null,
+    "Ethertype": "IPv4",
+    "IP Range": "0.0.0.0/0",
+    "Port Range": "",
+    "Direction": "egress",
+    "Remote Security Group": null,
+    "Remote Address Group": null
+  },
+  {
+    "ID": "a1ff0533-01ed-447c-a672-df9679240083",
+    "IP Protocol": "tcp",
+    "Ethertype": "IPv4",
+    "IP Range": "172.24.4.0/24",
+    "Port Range": "8081:8081",
+    "Direction": "ingress",
+    "Remote Security Group": null,
+    "Remote Address Group": null
+  },
+  {
+    "ID": "a23dfaec-5f85-4488-8908-1d1a22aff887",
+    "IP Protocol": null,
+    "Ethertype": "IPv6",
+    "IP Range": "::/0",
+    "Port Range": "",
+    "Direction": "egress",
+    "Remote Security Group": null,
+    "Remote Address Group": null
+  },
+  {
+    "ID": "a78cdf96-73b8-476d-9e43-9a32f9ce9c6b",
+    "IP Protocol": "tcp",
+    "Ethertype": "IPv4",
+    "IP Range": "172.24.4.0/24",
+    "Port Range": "8080:8080",
+    "Direction": "ingress",
+    "Remote Security Group": null,
+    "Remote Address Group": null
+  }
+]
+[
+  {
+    "Zone Name": "campus-az-a",
+    "Zone Status": "available"
+  },
+  {
+    "Zone Name": "campus-az-b",
+    "Zone Status": "not available"
+  }
+]
+
+--- 2. Heat services/AZ/provider/checksum doc lai ---
+Sat Nov  7 13:36:19 UTC 2026
+  devstack@h-api-cfn.service loaded active running Devstack devstack@h-api-cfn.service
+  devstack@h-api.service     loaded active running Devstack devstack@h-api.service
+  devstack@h-eng.service     loaded active running Devstack devstack@h-eng.service
+[
+  {
+    "Zone Name": "campus-az-a",
+    "Zone Status": "available"
+  },
+  {
+    "Zone Name": "campus-az-b",
+    "Zone Status": "available"
+  }
+]
+[
+  {
+    "name": "amphora",
+    "description": "The Octavia Amphora driver."
+  },
+  {
+    "name": "octavia",
+    "description": "Deprecated alias of the Octavia Amphora driver."
+  },
+  {
+    "name": "ovn",
+    "description": "Octavia OVN driver."
+  }
+]
+e452bd1f7f7313bae4a9a64bfbd58a840a34a6e34b8a5b69f4081a71eab866c5  root.yaml
+31086a796fb20d52b6c61340977a494484ca497ed58440b69ee93172c785dd46  stub-unit.yaml
+af9048bbd6a6e449350c808577487f50ee148d47c5827468c3118d3b4368b8ab  stub.py
+c77e6dedf7ca86d2e592468ac942d191d6c10c9d7a2786e09d88c83de10f68da  sample_lb.py
+
+--- 3. Kiem ke/quota sau boot ---
+Sat Nov  7 13:36:46 UTC 2026
+[]
+stack_list_exit=0
+[]
+[]
+[]
+[
+  {
+    "ID": "f43fbbd2-b85f-4bb1-b403-ba54a2f84189",
+    "Name": "campus-db-data",
+    "Status": "available"
+  }
+]
+[
+  {
+    "ID": "1512368b-5d13-445e-80b1-d64efbcd8665",
+    "Name": ""
+  },
+  {
+    "ID": "7df6ea1d-2e8c-46d5-99b9-e121855d81b5",
+    "Name": "campus-db-port"
+  },
+  {
+    "ID": "88a7dafa-88b5-42a8-80bd-62a5c6216ab9",
+    "Name": ""
+  }
+]
+[
+  {
+    "Resource": "cores",
+    "Limit": 8
+  },
+  {
+    "Resource": "instances",
+    "Limit": 6
+  },
+  {
+    "Resource": "ram",
+    "Limit": 12288
+  },
+  {
+    "Resource": "fixed_ips",
+    "Limit": null
+  },
+  {
+    "Resource": "networks",
+    "Limit": 100
+  },
+  {
+    "Resource": "volumes",
+    "Limit": 5
+  },
+  {
+    "Resource": "snapshots",
+    "Limit": 10
+  },
+  {
+    "Resource": "gigabytes",
+    "Limit": 30
+  },
+  {
+    "Resource": "backups",
+    "Limit": 10
+  },
+  {
+    "Resource": "volumes_lvmdriver-1",
+    "Limit": -1
+  },
+  {
+    "Resource": "gigabytes_lvmdriver-1",
+    "Limit": -1
+  },
+  {
+    "Resource": "snapshots_lvmdriver-1",
+    "Limit": -1
+  },
+  {
+    "Resource": "volumes___DEFAULT__",
+    "Limit": -1
+  },
+  {
+    "Resource": "gigabytes___DEFAULT__",
+    "Limit": -1
+  },
+  {
+    "Resource": "snapshots___DEFAULT__",
+    "Limit": -1
+  },
+  {
+    "Resource": "groups",
+    "Limit": 10
+  },
+  {
+    "Resource": "check_limit",
+    "Limit": null
+  },
+  {
+    "Resource": "health_monitors",
+    "Limit": null
+  },
+  {
+    "Resource": "listeners",
+    "Limit": null
+  },
+  {
+    "Resource": "load_balancers",
+    "Limit": null
+  },
+  {
+    "Resource": "l7_policies",
+    "Limit": null
+  },
+  {
+    "Resource": "pools",
+    "Limit": null
+  },
+  {
+    "Resource": "ports",
+    "Limit": 500
+  },
+  {
+    "Resource": "project_id",
+    "Limit": null
+  },
+  {
+    "Resource": "rbac_policies",
+    "Limit": 10
+  },
+  {
+    "Resource": "routers",
+    "Limit": 10
+  },
+  {
+    "Resource": "subnets",
+    "Limit": 100
+  },
+  {
+    "Resource": "subnet_pools",
+    "Limit": -1
+  },
+  {
+    "Resource": "injected-file-size",
+    "Limit": 10240
+  },
+  {
+    "Resource": "injected-path-size",
+    "Limit": 255
+  },
+  {
+    "Resource": "injected-files",
+    "Limit": 5
+  },
+  {
+    "Resource": "key-pairs",
+    "Limit": 100
+  },
+  {
+    "Resource": "properties",
+    "Limit": 128
+  },
+  {
+    "Resource": "server-group-members",
+    "Limit": 10
+  },
+  {
+    "Resource": "server-groups",
+    "Limit": 10
+  },
+  {
+    "Resource": "floating-ips",
+    "Limit": 3
+  },
+  {
+    "Resource": "secgroup-rules",
+    "Limit": 100
+  },
+  {
+    "Resource": "secgroups",
+    "Limit": 10
+  },
+  {
+    "Resource": "backup-gigabytes",
+    "Limit": 1000
+  },
+  {
+    "Resource": "per-volume-gigabytes",
+    "Limit": -1
+  }
+]
+Sat Nov  7 13:36:55 UTC 2026
+
+--- 4. Image/flavor/keypair/MTU, CLI help va validate ---
+Sat Nov  7 13:37:24 UTC 2026
+{
+  "id": "b915f809-b352-4d03-a14a-ec9c294e85d8",
+  "status": "active"
+}
+{
+  "disk": 10,
+  "id": "a9083cf8-24ab-4a7a-8b5c-6ba44ed1b6de",
+  "ram": 2048,
+  "vcpus": 1
+}
+[
+  {
+    "Name": "campus-tv2"
+  }
+]
+{
+  "id": "18ecc898-663f-4440-9782-bdf1675ba5c9",
+  "mtu": 1400
+}
+usage: openstack stack create [-h] [-f {json,shell,table,value,yaml}]
+                              [-c COLUMN] [--noindent] [--prefix PREFIX]
+                              [--max-width <integer>] [--fit-width]
+                              [--print-empty] [-e <environment>]
+                              [-s <files-container>] [--timeout <timeout>]
+                              [--pre-create <resource>] [--enable-rollback]
+                              [--parameter <key=value>]
+                              [--parameter-file <key=file>] [--wait]
+                              [--poll SECONDS] [--tags <tag1,tag2...>]
+                              [--dry-run] -t <template>
+                              <stack-name>
+
+Create a stack.
+
+positional arguments:
+  <stack-name>          Name of the stack to create
+
+options:
+  -h, --help            show this help message and exit
+  -e <environment>, --environment <environment>
+                        Path to the environment. Can be specified multiple
+                        times
+  -s <files-container>, --files-container <files-container>
+                        Swift files container name. Local files other than
+                        root template would be ignored. If other files are not
+                        found in swift, heat engine would raise an error.
+  --timeout <timeout>   Stack creating timeout in minutes
+  --pre-create <resource>
+                        Name of a resource to set a pre-create hook to.
+                        Resources in nested stacks can be set using slash as a
+                        separator: ``nested_stack/another/my_resource``. You
+                        can use wildcards to match multiple stacks or
+                        resources: ``nested_stack/an*/*_resource``. This can
+                        be specified multiple times
+  --enable-rollback     Enable rollback on create/update failure
+  --parameter <key=value>
+                        Parameter values used to create the stack. This can be
+                        specified multiple times
+  --parameter-file <key=file>
+                        Parameter values from file used to create the stack.
+                        This can be specified multiple times. Parameter values
+                        would be the content of the file
+  --wait                Wait until stack goes to CREATE_COMPLETE or
+                        CREATE_FAILED
+  --poll SECONDS        Poll interval in seconds for use with --wait, defaults
+                        to 5.
+  --tags <tag1,tag2...>
+                        A list of tags to associate with the stack
+  --dry-run             Do not actually perform the stack create, but show
+                        what would be created
+  -t <template>, --template <template>
+                        Path to the template
+
+output formatters:
+  output formatter options
+
+  -f {json,shell,table,value,yaml}, --format {json,shell,table,value,yaml}
+                        the output format, defaults to table
+  -c COLUMN, --column COLUMN
+                        specify the column(s) to include, can be repeated to
+                        show multiple columns
+
+json formatter:
+  --noindent            whether to disable indenting the JSON
+
+shell formatter:
+  a format a UNIX shell can parse (variable="value")
+
+  --prefix PREFIX       add a prefix to all variable names
+
+table formatter:
+  --max-width <integer>
+                        Maximum display width, <1 to disable. You can also use
+                        the CLIFF_MAX_TERM_WIDTH environment variable, but the
+                        parameter takes precedence.
+  --fit-width           Fit the table to the display width. Implied if --max-
+                        width greater than 0. Set the environment variable
+                        CLIFF_FIT_WIDTH=1 to always enable
+  --print-empty         Print empty table if there is no data to show.
+
+This command is provided by the python-heatclient plugin.
+{
+  "Description": "Lab LB hai listener 8080/8081 voi HTTP stub tren hai Nova AZ. Khong trien khai Shlink, readiness ung dung, alarm hoac autoscaling.",
+  "Parameters": {
+    "app_image": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "app_image",
+      "Default": "ubuntu-noble-base"
+    },
+    "app_flavor": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "app_flavor",
+      "Default": "campus.app"
+    },
+    "key_name": {
+      "Type": "String",
+      "Description": "Keypair Nova cua user tao stack, da import public key rieng.",
+      "NoEcho": "false",
+      "Label": "key_name",
+      "Value": "campus-tv2"
+    },
+    "app_network": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "app_network",
+      "Default": "campus-net"
+    },
+    "app_subnet": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "app_subnet",
+      "Default": "campus-subnet"
+    },
+    "app_security_group": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "app_security_group",
+      "Default": "campus-app-sg"
+    },
+    "external_network": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "external_network",
+      "Default": "public"
+    },
+    "az_a": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "az_a",
+      "Default": "campus-az-a"
+    },
+    "az_b": {
+      "Type": "String",
+      "Description": "",
+      "NoEcho": "false",
+      "Label": "az_b",
+      "Default": "campus-az-b"
+    }
+  },
+  "Environment": {
+    "resource_registry": {
+      "resources": {},
+      "file:///home/tv2/campuslink-tv2-o13-20261107/stub-unit.yaml": "file:///home/tv2/campuslink-tv2-o13-20261107/stub-unit.yaml"
+    },
+    "parameters": {
+      "key_name": "campus-tv2"
+    },
+    "parameter_defaults": {},
+    "event_sinks": []
+  }
+}
+
+--- 5. Lenh tao stack ---
+Sat Nov  7 13:38:30 UTC 2026
+{
+  "id": "c8338308-8596-4202-8bcf-d707f7760751",
+  "stack_name": "tv2-lb-o13",
+  "description": "Lab LB hai listener 8080/8081 voi HTTP stub tren hai Nova AZ. Khong trien khai Shlink, readiness ung dung, alarm hoac autoscaling.",
+  "creation_time": "2026-11-07T13:38:32Z",
+  "updated_time": null,
+  "stack_status": "CREATE_IN_PROGRESS",
+  "stack_status_reason": "Stack CREATE started"
+}
+
+--- 6. Stack CREATE_COMPLETE va CLI help ---
+Sat Nov  7 13:39:45 UTC 2026
+{
+  "id": "c8338308-8596-4202-8bcf-d707f7760751",
+  "stack_status": "CREATE_COMPLETE",
+  "stack_status_reason": "Stack CREATE completed successfully"
+}
+[
+  {
+    "output_key": "pool_id",
+    "description": "No description given"
+  },
+  {
+    "output_key": "portal_pool_id",
+    "description": "No description given"
+  },
+  {
+    "output_key": "app_a_id",
+    "description": "No description given"
+  },
+  {
+    "output_key": "app_b_id",
+    "description": "No description given"
+  },
+  {
+    "output_key": "vip_address",
+    "description": "No description given"
+  },
+  {
+    "output_key": "vip_fip",
+    "description": "FIP noi bo OpenStack; truy cap tu A, khong phai IP public AWS."
+  },
+  {
+    "output_key": "lb_id",
+    "description": "No description given"
+  }
+]
+usage: openstack loadbalancer show [-h] [-f {json,shell,table,value,yaml}]
+                                   [-c COLUMN] [--noindent] [--prefix PREFIX]
+                                   [--max-width <integer>] [--fit-width]
+                                   [--print-empty]
+                                   <load_balancer>
+
+Show the details for a single load balancer
+
+positional arguments:
+  <load_balancer>       Name or UUID of the load balancer.
+
+options:
+  -h, --help            show this help message and exit
+
+output formatters:
+  output formatter options
+
+  -f {json,shell,table,value,yaml}, --format {json,shell,table,value,yaml}
+                        the output format, defaults to table
+  -c COLUMN, --column COLUMN
+                        specify the column(s) to include, can be repeated to
+                        show multiple columns
+
+json formatter:
+  --noindent            whether to disable indenting the JSON
+
+shell formatter:
+  a format a UNIX shell can parse (variable="value")
+
+  --prefix PREFIX       add a prefix to all variable names
+
+table formatter:
+  --max-width <integer>
+                        Maximum display width, <1 to disable. You can also use
+                        the CLIFF_MAX_TERM_WIDTH environment variable, but the
+                        parameter takes precedence.
+  --fit-width           Fit the table to the display width. Implied if --max-
+                        width greater than 0. Set the environment variable
+                        CLIFF_FIT_WIDTH=1 to always enable
+  --print-empty         Print empty table if there is no data to show.
+
+This command is provided by the python-octaviaclient plugin.
+usage: openstack loadbalancer member list [-h]
+                                          [-f {csv,json,table,value,yaml}]
+                                          [-c COLUMN]
+                                          [--quote {all,minimal,none,nonnumeric}]
+                                          [--noindent] [--max-width <integer>]
+                                          [--fit-width] [--print-empty]
+                                          [--sort-column SORT_COLUMN]
+                                          [--sort-ascending | --sort-descending]
+                                          [--tags <tag>[,<tag>,...]]
+                                          [--any-tags <tag>[,<tag>,...]]
+                                          [--not-tags <tag>[,<tag>,...]]
+                                          [--not-any-tags <tag>[,<tag>,...]]
+                                          <pool>
+
+List members in a pool
+
+positional arguments:
+  <pool>                Pool name or ID to list the members of.
+
+options:
+  -h, --help            show this help message and exit
+  --tags <tag>[,<tag>,...]
+                        List member which have all given tag(s) (Comma-
+                        separated list of tags)
+  --any-tags <tag>[,<tag>,...]
+                        List member which have any given tag(s) (Comma-
+                        separated list of tags)
+  --not-tags <tag>[,<tag>,...]
+                        Exclude member which have all given tag(s) (Comma-
+                        separated list of tags)
+  --not-any-tags <tag>[,<tag>,...]
+                        Exclude member which have any given tag(s) (Comma-
+                        separated list of tags)
+
+output formatters:
+  output formatter options
+
+  -f {csv,json,table,value,yaml}, --format {csv,json,table,value,yaml}
+                        the output format, defaults to table
+  -c COLUMN, --column COLUMN
+                        specify the column(s) to include, can be repeated to
+                        show multiple columns
+  --sort-column SORT_COLUMN
+                        specify the column(s) to sort the data (columns
+                        specified first have a priority, non-existing columns
+                        are ignored), can be repeated
+  --sort-ascending      sort the column(s) in ascending order
+  --sort-descending     sort the column(s) in descending order
+
+CSV Formatter:
+  --quote {all,minimal,none,nonnumeric}
+                        when to include quotes, defaults to nonnumeric
+
+json formatter:
+  --noindent            whether to disable indenting the JSON
+
+table formatter:
+  --max-width <integer>
+                        Maximum display width, <1 to disable. You can also use
+                        the CLIFF_MAX_TERM_WIDTH environment variable, but the
+                        parameter takes precedence.
+  --fit-width           Fit the table to the display width. Implied if --max-
+                        width greater than 0. Set the environment variable
+                        CLIFF_FIT_WIDTH=1 to always enable
+  --print-empty         Print empty table if there is no data to show.
+
+This command is provided by the python-octaviaclient plugin.
+usage: openstack loadbalancer status show [-h] <load_balancer>
+
+Display load balancer status tree in json format
+
+positional arguments:
+  <load_balancer>  Name or UUID of the load balancer.
+
+options:
+  -h, --help       show this help message and exit
+
+This command is provided by the python-octaviaclient plugin.
+
+--- 7. Topology LB/listener/pool/monitor/member/VM ---
+Sat Nov  7 13:40:16 UTC 2026
+{
+  "output_key": "vip_fip",
+  "description": "FIP noi bo OpenStack; truy cap tu A, khong phai IP public AWS.",
+  "output_value": "172.24.4.111"
+}
+{
+  "admin_state_up": true,
+  "availability_zone": null,
+  "created_at": "2026-11-07T13:38:33",
+  "description": "",
+  "flavor_id": null,
+  "id": "768940b0-7ec0-4fbf-98b0-edf117d31302",
+  "listeners": [
+    {
+      "id": "460a4bb0-1594-4dd9-b1cf-631320be8bbf"
+    },
+    {
+      "id": "90419429-5038-4e32-ae9b-90d24df50246"
+    }
+  ],
+  "name": "tv2-lb-o13-lb-6j3vtu5qmkmk",
+  "operating_status": "ONLINE",
+  "pools": [
+    {
+      "id": "1b9e30d5-591c-49d0-bcfa-6f6ddb6162b7"
+    },
+    {
+      "id": "2e6a0fc1-7a59-4e30-bce3-a184bf23caa2"
+    }
+  ],
+  "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+  "provider": "ovn",
+  "provisioning_status": "ACTIVE",
+  "updated_at": "2026-11-07T13:39:54",
+  "vip_address": "10.20.0.198",
+  "vip_network_id": "18ecc898-663f-4440-9782-bdf1675ba5c9",
+  "vip_port_id": "98e77f44-e24f-4b42-9723-b074b2c33f69",
+  "vip_qos_policy_id": null,
+  "vip_subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+  "vip_vnic_type": "normal",
+  "vip_sg_ids": [],
+  "tags": [],
+  "additional_vips": []
+}
+[
+  {
+    "id": "460a4bb0-1594-4dd9-b1cf-631320be8bbf",
+    "default_pool_id": "1b9e30d5-591c-49d0-bcfa-6f6ddb6162b7",
+    "name": "tv2-lb-o13-listener-277tlvwezrpo",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "protocol": "TCP",
+    "protocol_port": 8080,
+    "admin_state_up": true
+  },
+  {
+    "id": "90419429-5038-4e32-ae9b-90d24df50246",
+    "default_pool_id": "2e6a0fc1-7a59-4e30-bce3-a184bf23caa2",
+    "name": "tv2-lb-o13-portal_listener-vedtxwcevpah",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "protocol": "TCP",
+    "protocol_port": 8081,
+    "admin_state_up": true
+  }
+]
+[
+  {
+    "id": "1b9e30d5-591c-49d0-bcfa-6f6ddb6162b7",
+    "name": "tv2-lb-o13-pool-uzadylxesyk5",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "provisioning_status": "ACTIVE",
+    "protocol": "TCP",
+    "lb_algorithm": "SOURCE_IP_PORT",
+    "admin_state_up": true
+  },
+  {
+    "id": "2e6a0fc1-7a59-4e30-bce3-a184bf23caa2",
+    "name": "tv2-lb-o13-portal_pool-hv22qfdm35zt",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "provisioning_status": "ACTIVE",
+    "protocol": "TCP",
+    "lb_algorithm": "SOURCE_IP_PORT",
+    "admin_state_up": true
+  }
+]
+[
+  {
+    "id": "0888b278-d11d-4672-8e79-8d5d35bdf8fa",
+    "name": "",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "type": "TCP",
+    "admin_state_up": true
+  },
+  {
+    "id": "6960f0de-9493-49cd-9910-ab9197b29aad",
+    "name": "",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "type": "TCP",
+    "admin_state_up": true
+  }
+]
+[
+  {
+    "id": "685cda52-e4d4-488b-ac34-9ea702f94980",
+    "name": "",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "provisioning_status": "ACTIVE",
+    "address": "10.20.0.127",
+    "protocol_port": 8080,
+    "operating_status": "ONLINE",
+    "weight": 1
+  },
+  {
+    "id": "00a1f057-2c24-403f-8547-d8b60b575656",
+    "name": "",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "provisioning_status": "ACTIVE",
+    "address": "10.20.0.128",
+    "protocol_port": 8080,
+    "operating_status": "ONLINE",
+    "weight": 1
+  }
+]
+[
+  {
+    "id": "a7b668f3-68c3-4f7a-96ad-66816699ac86",
+    "name": "",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "provisioning_status": "ACTIVE",
+    "address": "10.20.0.127",
+    "protocol_port": 8081,
+    "operating_status": "ONLINE",
+    "weight": 1
+  },
+  {
+    "id": "35c25cbd-9473-45f0-bf8b-e579fc9516d6",
+    "name": "",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "provisioning_status": "ACTIVE",
+    "address": "10.20.0.128",
+    "protocol_port": 8081,
+    "operating_status": "ONLINE",
+    "weight": 1
+  }
+]
+{
+  "OS-EXT-AZ:availability_zone": "campus-az-a",
+  "addresses": {
+    "campus-net": [
+      "10.20.0.127"
+    ]
+  },
+  "id": "c96dc138-4bd7-435d-aab1-34437327a3c4",
+  "name": "tv2-lb-o13-app_a-43kmb52dslox-server-swjt75lwctjg",
+  "status": "ACTIVE"
+}
+{
+  "OS-EXT-AZ:availability_zone": "campus-az-b",
+  "addresses": {
+    "campus-net": [
+      "10.20.0.128"
+    ]
+  },
+  "id": "b6a37443-6977-48f3-a86a-4bea864021d2",
+  "name": "tv2-lb-o13-app_b-elro4ingi5hu-server-pdkpd7e4yvmb",
+  "status": "ACTIVE"
+}
+Sat Nov  7 13:40:28 UTC 2026
+
+--- 8. Hai luot sampler, 40 ket noi moi moi cong ---
+Sat Nov  7 13:41:22 UTC 2026
+{
+  "service": "campuslink-lb-stub-sample",
+  "started_utc": "2026-11-07T13:41:22.564686+00:00",
+  "finished_utc": "2026-11-07T13:41:22.639096+00:00",
+  "requests": 40,
+  "counts": {
+    "app-a": 27,
+    "app-b": 13
+  },
+  "errors": {},
+  "missing": [],
+  "passed": true
+}
+{
+  "service": "campuslink-lb-stub-sample",
+  "started_utc": "2026-11-07T13:41:22.691272+00:00",
+  "finished_utc": "2026-11-07T13:41:22.772565+00:00",
+  "requests": 40,
+  "counts": {
+    "portal-a": 22,
+    "portal-b": 18
+  },
+  "errors": {},
+  "missing": [],
+  "passed": true
+}
+Sat Nov  7 13:41:22 UTC 2026
+
+--- 9. Capture nhan/hostname tung guest qua hai listener ---
+{"listener_port": 8080, "attempt": 1, "response": {"service": "campuslink-lb-stub", "backend": "app-b", "hostname": "tv2-lb-o13-app-b-elro4ingi5hu-server-pdkpd7e4yvmb", "time_utc": "2026-11-07T13:41:41.598193+00:00"}}
+{"listener_port": 8080, "attempt": 2, "response": {"service": "campuslink-lb-stub", "backend": "app-a", "hostname": "tv2-lb-o13-app-a-43kmb52dslox-server-swjt75lwctjg", "time_utc": "2026-11-07T13:41:41.606664+00:00"}}
+{"listener_port": 8081, "attempt": 1, "response": {"service": "campuslink-lb-stub", "backend": "portal-a", "hostname": "tv2-lb-o13-app-a-43kmb52dslox-server-swjt75lwctjg", "time_utc": "2026-11-07T13:41:41.608259+00:00"}}
+{"listener_port": 8081, "attempt": 2, "response": {"service": "campuslink-lb-stub", "backend": "portal-a", "hostname": "tv2-lb-o13-app-a-43kmb52dslox-server-swjt75lwctjg", "time_utc": "2026-11-07T13:41:41.609272+00:00"}}
+{"listener_port": 8081, "attempt": 3, "response": {"service": "campuslink-lb-stub", "backend": "portal-a", "hostname": "tv2-lb-o13-app-a-43kmb52dslox-server-swjt75lwctjg", "time_utc": "2026-11-07T13:41:41.609992+00:00"}}
+{"listener_port": 8081, "attempt": 4, "response": {"service": "campuslink-lb-stub", "backend": "portal-a", "hostname": "tv2-lb-o13-app-a-43kmb52dslox-server-swjt75lwctjg", "time_utc": "2026-11-07T13:41:41.610697+00:00"}}
+{"listener_port": 8081, "attempt": 5, "response": {"service": "campuslink-lb-stub", "backend": "portal-b", "hostname": "tv2-lb-o13-app-b-elro4ingi5hu-server-pdkpd7e4yvmb", "time_utc": "2026-11-07T13:41:41.608924+00:00"}}
+CAPTURE_BOTH_PORTS_PASS
+
+--- 10. Trang thai va UUID tai nguyen truoc don ---
+Sat Nov  7 13:42:12 UTC 2026
+{
+    "loadbalancer": {
+        "id": "768940b0-7ec0-4fbf-98b0-edf117d31302",
+        "name": "tv2-lb-o13-lb-6j3vtu5qmkmk",
+        "operating_status": "ONLINE",
+        "provisioning_status": "ACTIVE",
+        "listeners": [
+            {
+                "id": "460a4bb0-1594-4dd9-b1cf-631320be8bbf",
+                "name": "tv2-lb-o13-listener-277tlvwezrpo",
+                "operating_status": "ONLINE",
+                "provisioning_status": "ACTIVE",
+                "pools": [
+                    {
+                        "id": "1b9e30d5-591c-49d0-bcfa-6f6ddb6162b7",
+                        "name": "tv2-lb-o13-pool-uzadylxesyk5",
+                        "provisioning_status": "ACTIVE",
+                        "operating_status": "ONLINE",
+                        "health_monitor": {
+                            "id": "0888b278-d11d-4672-8e79-8d5d35bdf8fa",
+                            "name": "",
+                            "type": "TCP",
+                            "provisioning_status": "ACTIVE",
+                            "operating_status": "ONLINE"
+                        },
+                        "members": [
+                            {
+                                "id": "685cda52-e4d4-488b-ac34-9ea702f94980",
+                                "name": "",
+                                "operating_status": "ONLINE",
+                                "provisioning_status": "ACTIVE",
+                                "address": "10.20.0.127",
+                                "protocol_port": 8080
+                            },
+                            {
+                                "id": "00a1f057-2c24-403f-8547-d8b60b575656",
+                                "name": "",
+                                "operating_status": "ONLINE",
+                                "provisioning_status": "ACTIVE",
+                                "address": "10.20.0.128",
+                                "protocol_port": 8080
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "90419429-5038-4e32-ae9b-90d24df50246",
+                "name": "tv2-lb-o13-portal_listener-vedtxwcevpah",
+                "operating_status": "ONLINE",
+                "provisioning_status": "ACTIVE",
+                "pools": [
+                    {
+                        "id": "2e6a0fc1-7a59-4e30-bce3-a184bf23caa2",
+                        "name": "tv2-lb-o13-portal_pool-hv22qfdm35zt",
+                        "provisioning_status": "ACTIVE",
+                        "operating_status": "ONLINE",
+                        "health_monitor": {
+                            "id": "6960f0de-9493-49cd-9910-ab9197b29aad",
+                            "name": "",
+                            "type": "TCP",
+                            "provisioning_status": "ACTIVE",
+                            "operating_status": "ONLINE"
+                        },
+                        "members": [
+                            {
+                                "id": "a7b668f3-68c3-4f7a-96ad-66816699ac86",
+                                "name": "",
+                                "operating_status": "ONLINE",
+                                "provisioning_status": "ACTIVE",
+                                "address": "10.20.0.127",
+                                "protocol_port": 8081
+                            },
+                            {
+                                "id": "35c25cbd-9473-45f0-bf8b-e579fc9516d6",
+                                "name": "",
+                                "operating_status": "ONLINE",
+                                "provisioning_status": "ACTIVE",
+                                "address": "10.20.0.128",
+                                "protocol_port": 8081
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
+[
+  {
+    "ID": "1043e11f-8e96-4346-b079-ce64680a55f7",
+    "Floating IP Address": "172.24.4.111",
+    "Fixed IP Address": "10.20.0.198",
+    "Port": "98e77f44-e24f-4b42-9723-b074b2c33f69",
+    "Floating Network": "88b4d52a-cf80-4758-a340-445b37d8bb8c",
+    "Project": "07af3a3dd4c24d1ba028efcb6d28ef84"
+  }
+]
+[
+  {
+    "resource_name": "app_b",
+    "physical_resource_id": "26722457-69eb-4c7e-be58-f60889f063bc",
+    "resource_type": "file:///home/tv2/campuslink-tv2-o13-20261107/stub-unit.yaml",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:38:32Z",
+    "stack_name": "tv2-lb-o13"
+  },
+  {
+    "resource_name": "app_a",
+    "physical_resource_id": "6e5e2850-ff47-4110-9d31-f9752af36412",
+    "resource_type": "file:///home/tv2/campuslink-tv2-o13-20261107/stub-unit.yaml",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:38:32Z",
+    "stack_name": "tv2-lb-o13"
+  },
+  {
+    "resource_name": "portal_monitor",
+    "physical_resource_id": "6960f0de-9493-49cd-9910-ab9197b29aad",
+    "resource_type": "OS::Octavia::HealthMonitor",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:38:32Z",
+    "stack_name": "tv2-lb-o13"
+  },
+  {
+    "resource_name": "portal_pool",
+    "physical_resource_id": "2e6a0fc1-7a59-4e30-bce3-a184bf23caa2",
+    "resource_type": "OS::Octavia::Pool",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:38:32Z",
+    "stack_name": "tv2-lb-o13"
+  },
+  {
+    "resource_name": "vip_fip",
+    "physical_resource_id": "1043e11f-8e96-4346-b079-ce64680a55f7",
+    "resource_type": "OS::Neutron::FloatingIP",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:38:32Z",
+    "stack_name": "tv2-lb-o13"
+  },
+  {
+    "resource_name": "portal_listener",
+    "physical_resource_id": "90419429-5038-4e32-ae9b-90d24df50246",
+    "resource_type": "OS::Octavia::Listener",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:38:32Z",
+    "stack_name": "tv2-lb-o13"
+  },
+  {
+    "resource_name": "monitor",
+    "physical_resource_id": "0888b278-d11d-4672-8e79-8d5d35bdf8fa",
+    "resource_type": "OS::Octavia::HealthMonitor",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:38:32Z",
+    "stack_name": "tv2-lb-o13"
+  },
+  {
+    "resource_name": "pool",
+    "physical_resource_id": "1b9e30d5-591c-49d0-bcfa-6f6ddb6162b7",
+    "resource_type": "OS::Octavia::Pool",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:38:32Z",
+    "stack_name": "tv2-lb-o13"
+  },
+  {
+    "resource_name": "listener",
+    "physical_resource_id": "460a4bb0-1594-4dd9-b1cf-631320be8bbf",
+    "resource_type": "OS::Octavia::Listener",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:38:32Z",
+    "stack_name": "tv2-lb-o13"
+  },
+  {
+    "resource_name": "lb",
+    "physical_resource_id": "768940b0-7ec0-4fbf-98b0-edf117d31302",
+    "resource_type": "OS::Octavia::LoadBalancer",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:38:32Z",
+    "stack_name": "tv2-lb-o13"
+  },
+  {
+    "resource_name": "portal_member",
+    "physical_resource_id": "35c25cbd-9473-45f0-bf8b-e579fc9516d6",
+    "resource_type": "OS::Octavia::PoolMember",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:39:05Z",
+    "stack_name": "tv2-lb-o13-app_b-elro4ingi5hu"
+  },
+  {
+    "resource_name": "member",
+    "physical_resource_id": "00a1f057-2c24-403f-8547-d8b60b575656",
+    "resource_type": "OS::Octavia::PoolMember",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:39:05Z",
+    "stack_name": "tv2-lb-o13-app_b-elro4ingi5hu"
+  },
+  {
+    "resource_name": "server",
+    "physical_resource_id": "b6a37443-6977-48f3-a86a-4bea864021d2",
+    "resource_type": "OS::Nova::Server",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:39:05Z",
+    "stack_name": "tv2-lb-o13-app_b-elro4ingi5hu"
+  },
+  {
+    "resource_name": "port",
+    "physical_resource_id": "beb0047c-2652-4fed-9f6e-519c2db30a1a",
+    "resource_type": "OS::Neutron::Port",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:39:05Z",
+    "stack_name": "tv2-lb-o13-app_b-elro4ingi5hu"
+  },
+  {
+    "resource_name": "config",
+    "physical_resource_id": "a6d5f2e7-a0e3-484b-bab2-5ccc647501fc",
+    "resource_type": "OS::Heat::CloudConfig",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:39:05Z",
+    "stack_name": "tv2-lb-o13-app_b-elro4ingi5hu"
+  },
+  {
+    "resource_name": "portal_member",
+    "physical_resource_id": "a7b668f3-68c3-4f7a-96ad-66816699ac86",
+    "resource_type": "OS::Octavia::PoolMember",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:38:44Z",
+    "stack_name": "tv2-lb-o13-app_a-43kmb52dslox"
+  },
+  {
+    "resource_name": "member",
+    "physical_resource_id": "685cda52-e4d4-488b-ac34-9ea702f94980",
+    "resource_type": "OS::Octavia::PoolMember",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:38:44Z",
+    "stack_name": "tv2-lb-o13-app_a-43kmb52dslox"
+  },
+  {
+    "resource_name": "server",
+    "physical_resource_id": "c96dc138-4bd7-435d-aab1-34437327a3c4",
+    "resource_type": "OS::Nova::Server",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:38:44Z",
+    "stack_name": "tv2-lb-o13-app_a-43kmb52dslox"
+  },
+  {
+    "resource_name": "port",
+    "physical_resource_id": "e84856ea-998c-4b5e-86d0-725b775c42c4",
+    "resource_type": "OS::Neutron::Port",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:38:44Z",
+    "stack_name": "tv2-lb-o13-app_a-43kmb52dslox"
+  },
+  {
+    "resource_name": "config",
+    "physical_resource_id": "34943d6b-c668-46b5-9e8d-e9f4730711e9",
+    "resource_type": "OS::Heat::CloudConfig",
+    "resource_status": "CREATE_COMPLETE",
+    "updated_time": "2026-11-07T13:38:44Z",
+    "stack_name": "tv2-lb-o13-app_a-43kmb52dslox"
+  }
+]
+usage: openstack stack delete [-h] [-y] [--wait] <stack> [<stack> ...]
+
+Delete stack(s).
+
+positional arguments:
+  <stack>     Stack(s) to delete (name or ID)
+
+options:
+  -h, --help  show this help message and exit
+  -y, --yes   Skip yes/no prompt (assume yes)
+  --wait      Wait for stack delete to complete
+
+This command is provided by the python-heatclient plugin.
+
+--- 11. Don va hau kiem ---
+Lenh: openstack stack delete --yes --wait c8338308-8596-4202-8bcf-d707f7760751
+Gio gui lenh va output CLI:
+Sat Nov  7 13:43:56 UTC 2026
+2026-11-07 13:43:59Z [tv2-lb-o13]: DELETE_IN_PROGRESS  Stack DELETE started
+2026-11-07 13:43:59Z [tv2-lb-o13.vip_fip]: DELETE_IN_PROGRESS  state changed
+2026-11-07 13:44:00Z [tv2-lb-o13.vip_fip]: DELETE_COMPLETE  state changed
+2026-11-07 13:44:00Z [tv2-lb-o13.app_b]: DELETE_IN_PROGRESS  state changed
+2026-11-07 13:44:09Z [tv2-lb-o13.app_b]: DELETE_COMPLETE  state changed
+2026-11-07 13:44:09Z [tv2-lb-o13.app_a]: DELETE_IN_PROGRESS  state changed
+2026-11-07 13:44:17Z [tv2-lb-o13.app_a]: DELETE_COMPLETE  state changed
+2026-11-07 13:44:17Z [tv2-lb-o13.portal_monitor]: DELETE_IN_PROGRESS  state changed
+2026-11-07 13:44:19Z [tv2-lb-o13.portal_monitor]: DELETE_COMPLETE  state changed
+2026-11-07 13:44:19Z [tv2-lb-o13.portal_pool]: DELETE_IN_PROGRESS  state changed
+2026-11-07 13:44:20Z [tv2-lb-o13.portal_pool]: DELETE_COMPLETE  state changed
+2026-11-07 13:44:20Z [tv2-lb-o13.portal_listener]: DELETE_IN_PROGRESS  state changed
+2026-11-07 13:44:21Z [tv2-lb-o13.portal_listener]: DELETE_COMPLETE  state changed
+2026-11-07 13:44:21Z [tv2-lb-o13.monitor]: DELETE_IN_PROGRESS  state changed
+2026-11-07 13:44:22Z [tv2-lb-o13.monitor]: DELETE_COMPLETE  state changed
+2026-11-07 13:44:22Z [tv2-lb-o13.pool]: DELETE_IN_PROGRESS  state changed
+2026-11-07 13:44:23Z [tv2-lb-o13.pool]: DELETE_COMPLETE  state changed
+2026-11-07 13:44:23Z [tv2-lb-o13.listener]: DELETE_IN_PROGRESS  state changed
+2026-11-07 13:44:24Z [tv2-lb-o13.listener]: DELETE_COMPLETE  state changed
+2026-11-07 13:44:25Z [tv2-lb-o13.lb]: DELETE_IN_PROGRESS  state changed
+2026-11-07 13:44:26Z [tv2-lb-o13.lb]: DELETE_COMPLETE  state changed
+2026-11-07 13:44:26Z [tv2-lb-o13]: DELETE_COMPLETE  Stack DELETE completed successfully
+Sat Nov  7 13:44:43 UTC 2026
+stack_delete_exit=0
+
+Hau kiem bang campus-tv2, lenh va ket qua JSON that:
+{"started_utc": "2026-11-07T13:45:19.554658+00:00"}
+{"command": "openstack stack list -f json", "result_name": "stacks", "result": []}
+{"command": "openstack server list -c ID -c Name -c Status -f json", "result_name": "servers", "result": []}
+{"command": "openstack loadbalancer list -f json", "result_name": "loadbalancers", "result": []}
+{"command": "openstack loadbalancer listener list -f json", "result_name": "listeners", "result": []}
+{"command": "openstack loadbalancer pool list -f json", "result_name": "pools", "result": []}
+{"command": "openstack loadbalancer healthmonitor list -f json", "result_name": "healthmonitors", "result": []}
+{"command": "openstack floating ip list -f json", "result_name": "floating_ips", "result": []}
+{"command": "openstack port list -c ID -c Name -f json", "result_name": "ports", "result": [{"ID": "1512368b-5d13-445e-80b1-d64efbcd8665", "Name": ""}, {"ID": "7df6ea1d-2e8c-46d5-99b9-e121855d81b5", "Name": "campus-db-port"}, {"ID": "88a7dafa-88b5-42a8-80bd-62a5c6216ab9", "Name": ""}]}
+{"command": "openstack volume list -c ID -c Name -c Status -f json", "result_name": "volumes", "result": [{"ID": "f43fbbd2-b85f-4bb1-b403-ba54a2f84189", "Name": "campus-db-data", "Status": "available"}]}
+{"command": "openstack network list -c ID -c Name -f json", "result_name": "networks", "result": [{"ID": "18ecc898-663f-4440-9782-bdf1675ba5c9", "Name": "campus-net"}, {"ID": "88b4d52a-cf80-4758-a340-445b37d8bb8c", "Name": "public"}]}
+{"command": "openstack subnet list -c ID -c Name -f json", "result_name": "subnets", "result": [{"ID": "41a894ab-5b20-47fa-bded-29f7942c8135", "Name": "ipv6-public-subnet"}, {"ID": "59399337-e22b-4237-87dd-bf4ac035bcfa", "Name": "campus-subnet"}, {"ID": "f2686f2e-1eb8-4c5f-8834-00d4f1d37113", "Name": "public-subnet"}]}
+{"command": "openstack security group list -c ID -c Name -f json", "result_name": "security_groups", "result": [{"ID": "15d5d84d-f71a-4595-a5b2-ac75f818c040", "Name": "campus-db-sg"}, {"ID": "b3eb3225-3e50-4c38-b43f-3823b6022d05", "Name": "campus-app-sg"}, {"ID": "dac9eeec-d02c-4ccc-8297-e510330a39aa", "Name": "default"}]}
+{"command": "openstack image list -c ID -c Name -f json", "result_name": "images", "result": [{"ID": "10ed8a67-8808-480b-b04d-1faf7d118ba1", "Name": "cirros-0.6.3-x86_64-disk"}, {"ID": "b915f809-b352-4d03-a14a-ec9c294e85d8", "Name": "ubuntu-noble-base"}]}
+{"command": "openstack keypair list -c Name -f json", "result_name": "keypairs", "result": [{"Name": "campus-tv2"}]}
+{"finished_utc": "2026-11-07T13:45:36.916738+00:00", "verification_exit": 0}
+
+KET LUAN
+PASS O-13 hai listener TCP8080/8081 tren mot LB/VIP OVN trong pham vi HTTP stub.
+PASS don lab: Heat DELETE_COMPLETE13:44:26Z, CLI exit0; hau kiem13:45:36Z exit0.
+Khong con stack/server/LB/listener/pool/monitor/FIP, guest ports/VIP port/OVN HM port lab.
+Ba port nen/DB van dung UUID truoc thu; volume campus-db-data van available nhu truoc.
+Network/subnet/SG/image/keypair campus-tv2 van ton tai. Khong xoa rieng ngoai stack.
+Khong thu lai failover, khong nghiem thu Shlink/portal/SSE/image/readiness/ASG/H4b.
+Khong sua SRS/ADR, khong dong issue#21, khong bat/tat EC2, khong commit/push/PR hoac dang nhat ky.
