@@ -1,5 +1,5 @@
 Evidence FR-INF-09 / NFR-08 / ADR-10 (#34, G3): kiem token signal (TOKEN_SIGNAL) cua OS::Heat::WaitConditionHandle tren cum.
-Ngay: 2026-11-12 (gio VN), UTC 12:49:36Z-12:50:22Z. A boot 12:44:28Z (uptime -s; TV1 bao bat luc 19:44 gio VN), B khong bat. TV1 Stop A luc 21:58 gio VN (14:58Z) theo loi nguoi dung; ket qua campus-check truoc Stop chua duoc doi chieu. TV1 tu chay lenh tren A (ubuntu@campus-a, trong tmux) roi copy file ket qua ve laptop cho Claude Code doi chieu; Claude khong SSH.
+Ngay: 2026-11-12 (gio VN), UTC 12:49:36Z-12:50:22Z. A boot 12:44:28Z (uptime -s; TV1 bao bat luc 19:44 gio VN), B khong bat. A tat luc 13:01Z (20:01 gio VN) theo `last -x shutdown` tren A (doi chieu toi 12/11; gio 21:58 gio VN ma TV1 bao luc dau la sai), chay khoang 17 phut; ket qua campus-check truoc Stop chua duoc doi chieu. TV1 tu chay lenh tren A (ubuntu@campus-a, trong tmux) roi copy file ket qua ve laptop cho Claude Code doi chieu; Claude khong SSH.
 Script: heat-token-probe.sh (ngoai repo, o may TV1). Stack thu tv1-wc-probe do campus-tv2 (member) tao, KHONG co VM; token chi nam trong file 0600 o /run roi bi xoa, khong in ra; output chi co PASS/FAIL/INFO va ma HTTP.
 KET QUA: 26 PASS, 1 FAIL (5.1), 0 WARN.
 GIOI HAN:
