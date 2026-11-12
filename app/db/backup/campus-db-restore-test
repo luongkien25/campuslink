@@ -1,0 +1,69 @@
+#!/bin/bash
+# CampusLink - restore dump tu Swift vao DB TACH BIET campus_restore_test (FR-INF-16, FR-INF-25 tang 2). TV3.
+# Chay tren DB VM bang root:  campus-db-restore-test [latest | db/shlink-<UTC>.dump]
+#   1. tai dump + .sha256 tu Swift (cung credential voi backup), kiem sha256
+#   2. DROP/CREATE campus_restore_test (ten co dinh, KHONG BAO GIO dung DB shlink), pg_restore --no-owner
+#   3. in so dong short_urls, visits, phien ban migration cua ca shlink va campus_restore_test de so
+# SLUGS="a b c" de kiem them slug -> long_url trong ban khoi phuc (FR-INF-16: 5 slug da chot).
+set -euo pipefail
+umask 077
+
+CONF=${CAMPUS_BACKUP_CONF:-/etc/campus-backup.conf}
+# shellcheck source=/dev/null
+[[ -r $CONF ]] && . "$CONF"
+: "${KEYSTONE_URL:?}" "${SWIFT_URL:?}"
+CONTAINER=${CONTAINER:-campus-backups}
+PREFIX=${PREFIX:-db/}
+CRED=${CRED:-/root/campus-backup/cred}
+TARGET=campus_restore_test
+want=${1:-latest}
+
+log() { echo "campus-db-restore-test: $*"; }
+fail() { log "FAIL $*"; exit 1; }
+
+work=$(mktemp -d /run/campus-restore.XXXXXX)
+chmod 711 "$work"   # postgres can doc file dump trong thu muc nay
+trap 'rm -rf "$work"' EXIT
+
+id=$(sed -n 's/^id=//p' "$CRED"); secret=$(sed -n 's/^secret=//p' "$CRED")
+[[ -n $id && -n $secret ]] || fail "$CRED thieu id= hoac secret="
+printf '{"auth":{"identity":{"methods":["application_credential"],"application_credential":{"id":"%s","secret":"%s"}}}}' \
+  "$id" "$secret" > "$work/auth.json"
+unset id secret
+code=$(curl -sS -m 20 -o /dev/null -D "$work/auth.hdr" -w '%{http_code}' -H 'Content-Type: application/json' \
+  --data @"$work/auth.json" "$KEYSTONE_URL/v3/auth/tokens")
+rm -f "$work/auth.json"
+[[ $code == 201 ]] || fail "Keystone tra $code"
+printf 'X-Auth-Token: %s\n' "$(sed -n 's/^[Xx]-[Ss]ubject-[Tt]oken: *//p' "$work/auth.hdr" | tr -d '\r')" > "$work/token.hdr"
+get() { curl -sS -m 300 -o "$2" -w '%{http_code}' -H @"$work/token.hdr" "$SWIFT_URL/$CONTAINER/$1"; }
+
+if [[ $want == latest ]]; then
+  code=$(curl -sS -m 60 -o "$work/list.json" -w '%{http_code}' -H @"$work/token.hdr" \
+    "$SWIFT_URL/$CONTAINER?prefix=${PREFIX}shlink-&format=json")
+  [[ $code == 200 ]] || fail "list tra $code"
+  want=$(python3 -c 'import json,sys; n=[o["name"] for o in json.load(open(sys.argv[1])) if o["name"].endswith(".dump")]; print(max(n) if n else "")' "$work/list.json")
+  [[ -n $want ]] || fail "khong co dump nao trong $CONTAINER/$PREFIX"
+fi
+base=${want##*/}
+[[ $(get "$want" "$work/$base") == 200 ]] || fail "GET $want loi"
+[[ $(get "$want.sha256" "$work/$base.sha256") == 200 ]] || fail "GET $want.sha256 loi"
+(cd "$work" && sha256sum -c --quiet "$base.sha256") || fail "sha256 KHONG khop cho $want"
+log "OK tai $CONTAINER/$want $(stat -c %s "$work/$base") byte, sha256 khop ($(cut -d' ' -f1 "$work/$base.sha256"))"
+chmod 644 "$work/$base"
+
+psql_q() { runuser -u postgres -- psql -At -v ON_ERROR_STOP=1 -d "$1" -c "$2"; }
+t0=$(date +%s%N)
+runuser -u postgres -- psql -q -v ON_ERROR_STOP=1 -d postgres \
+  -c "DROP DATABASE IF EXISTS $TARGET WITH (FORCE)" -c "CREATE DATABASE $TARGET"
+runuser -u postgres -- pg_restore --no-owner --no-acl --exit-on-error -d "$TARGET" "$work/$base" || fail "pg_restore loi"
+ms=$(( ($(date +%s%N) - t0) / 1000000 ))
+log "OK pg_restore vao $TARGET trong ${ms} ms"
+
+mig() { psql_q "$1" "SELECT CASE WHEN to_regclass('public.migrations') IS NOT NULL THEN (SELECT max(version) FROM migrations) END"; }
+for d in shlink "$TARGET"; do
+  log "$d: short_urls=$(psql_q "$d" 'SELECT count(*) FROM short_urls') visits=$(psql_q "$d" 'SELECT count(*) FROM visits') migration=$(mig "$d")"
+done
+for s in ${SLUGS:-}; do
+  log "slug $s: $TARGET -> $(psql_q "$TARGET" "SELECT coalesce((SELECT original_url FROM short_urls WHERE short_code = '${s//\'/}'), 'KHONG CO')")"
+done
+log "ghi chu: so lieu cua shlink la luc chay lenh, co the lon hon ban dump neu co ghi moi sau khi dump"

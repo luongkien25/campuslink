@@ -1,0 +1,9 @@
+[Unit]
+Description=CampusLink backup DB shlink len Swift (FR-INF-15)
+After=postgresql@16-main.service network-online.target
+Requires=postgresql@16-main.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/campus-db-backup
