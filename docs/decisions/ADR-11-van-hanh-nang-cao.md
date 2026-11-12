@@ -1,6 +1,6 @@
 # ADR-11: Thêm ba yêu cầu vận hành nâng cao, trong đó có dịch vụ thí nghiệm lỗi tự viết; không bật dịch vụ OpenStack mới
 
-- Ngày: 03/11/2026 · Người quyết: TV1 (Kenn) · Trạng thái: chấp nhận
+- Ngày: 03/11/2026 · Người quyết: TV1 (Kenn) · Trạng thái: chấp nhận; riêng đề nghị S3 (mục "Đề nghị đổi ràng buộc ngân sách") chờ nhóm duyệt theo `AGENTS.md` mục 7
 
 ## Bối cảnh
 
@@ -14,7 +14,7 @@ Giảng viên không nhận xét gì về phần cloud khi duyệt đề tài (S
    - FR-INF-25: khôi phục thảm họa 3 tầng có RPO/RTO, bản sao trên S3 có Object Lock.
    - NFR-20–22 (RPO/RTO, số đo tự ghi của thí nghiệm lỗi, SLO).
 2. TV1 làm chính; TV4 viết test cho FR-INF-23 và kịch bản cho FR-INF-24, TV3 phối hợp FR-INF-25, TV2 review hành động lên LB member.
-3. Mốc cắt: FR-INF-23 cắt 09/11; FR-INF-24 và FR-INF-25 cắt 14/11. Trễ thì FR-INF-25 rút về 2 kịch bản đầu và FR-INF-24 chỉ giữ hành động tắt VM; FR-INF-24 chưa PASS thì làm tay FR-INF-20 như cũ.
+3. Mốc cắt: cả ba cắt 14/11 (cập nhật 12/11/2026: mốc 09/11 của FR-INF-23 đã qua khi chưa bắt đầu, giữ 14/11, không dời). Trễ thì FR-INF-25 rút về 2 kịch bản đầu và FR-INF-24 chỉ giữ hành động tắt VM; FR-INF-24 chưa PASS thì làm tay FR-INF-20 như cũ.
 4. Không bật thêm dịch vụ OpenStack, không thêm EC2 hay VM thường trực.
 
 ## Căn cứ
@@ -23,6 +23,15 @@ Giảng viên không nhận xét gì về phần cloud khi duyệt đề tài (S
 - `campus-chaos` tự động hóa phép thử FR-INF-20/NFR-07 vốn phải làm tay, nên tải việc tăng ít mà phần đánh giá có số đo lặp lại được; khi demo, giảng viên chọn máy để tắt và xem báo cáo tự sinh.
 - Chốt an toàn của `campus-chaos`: chỉ đích có metadata `campus_role=app`, không bao giờ DB VM hay host; mỗi lúc một thí nghiệm; thời lượng tối đa 300 s; trạng thái trước lỗi ghi ra file để `campus-chaos revert` hoàn tác được cả khi tiến trình chết; application credential có access rules, không dùng admin.
 - Object Lock chế độ Governance cho phép người có quyền đặc biệt dọn bucket sau khi xong môn; role `CampusLinkBackup` chỉ thêm `s3:PutObject` vào một prefix, guest vẫn không có credential AWS (NFR-09).
+
+## Đề nghị đổi ràng buộc ngân sách (S3), chờ nhóm duyệt (bổ sung 12/11/2026)
+
+`AGENTS.md` mục 3 cấm "dịch vụ AWS trả phí khác" ngoài EC2 và EBS, và mục 7 cấm đổi ràng buộc mục 3 nếu chưa có ADR được nhóm duyệt. Tầng 3 của FR-INF-25 cần một bucket S3, nên đây là một đề nghị đổi ràng buộc (SRS O-22):
+
+- **Đề nghị:** cho phép đúng một khoản AWS ngoài EC2 và EBS: một bucket S3 (Versioning + Object Lock Governance 7 ngày) nhận dump DB đã kiểm checksum, chỉ từ host A bằng role `CampusLinkBackup` (thêm `s3:PutObject` vào một prefix, không có quyền xóa). Guest vẫn không có credential AWS (NFR-09).
+- **Vì sao cần:** hai tầng đầu nằm trong cụm nên không mô phỏng được mất cả cụm; bản sao ngoài cụm là tầng duy nhất cho số RTO của kịch bản đó.
+- **Chi phí:** dump vài MB, vài lần đẩy, ước rất nhỏ so với ngân sách khoảng 70 USD (credit ước tính còn khoảng 112 USD, 09/11). Số chính thức do TV4 tính bằng AWS Pricing Calculator cho `cost.csv` (FR-INF-21); chưa tính.
+- **Cách duyệt:** nhóm đọc PR này. Đồng ý thì mục này thành "chấp nhận" và TV1 mới tạo bucket (TV1 tự bấm trên console). Không đồng ý hoặc không phản hồi kịp thì **không tạo bucket** và FR-INF-25 dừng ở 2 kịch bản đầu (đường lùi ở mục Quyết định 3); yêu cầu không mất.
 
 ## Phương án đã loại
 

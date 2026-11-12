@@ -6,7 +6,7 @@
 >
 > **02/11/2026 (ADR-10, TV1):** chốt D3 và D4 (O-02, O-03): secret ứng dụng cất trong Swift `campus-secrets`, VM do ASG tạo lấy bằng application credential chỉ-đọc `campus-boot`. NFR-08 có một ngoại lệ duy nhất cho credential này (mục 4.6, NFR-08). **10/11/2026 (TV3, PR #30, TV1 chấp nhận):** thêm ngoại lệ thứ hai, hẹp: mật khẩu DB `shlink` và Redis trong user-data của DB VM `campus-db` (NFR-08).
 >
-> **Bản 1.4 (03/11/2026, TV1):** thêm ba yêu cầu vận hành nâng cao FR-INF-23–25 (chuỗi cung ứng image, dịch vụ thí nghiệm lỗi `campus-chaos` do nhóm tự viết, khôi phục thảm họa có RPO/RTO), NFR-20–22, lịch và mốc cắt riêng (ADR-11). TV1 làm chính để TV2–TV4 giữ sức cho mục 3.3.
+> **Bản 1.4 (03/11/2026, cập nhật lịch 12/11/2026, TV1):** thêm ba yêu cầu vận hành nâng cao FR-INF-23–25 (chuỗi cung ứng image, dịch vụ thí nghiệm lỗi `campus-chaos` do nhóm tự viết, khôi phục thảm họa có RPO/RTO), NFR-20–22, lịch và mốc cắt riêng (ADR-11). TV1 làm chính để TV2–TV4 giữ sức cho mục 3.3. Từ 12/11: cả ba cắt chung 14/11 (không dời), FR-INF-24 làm trên stack lab riêng của TV1, tầng S3 của FR-INF-25 chờ nhóm duyệt (ADR-11, O-22).
 
 **Có cần SRS không?** Có, nhưng là bản gọn để làm việc. Đề xuất nói *làm gì*, bản phân công nói *ai làm khi nào*, Lab TV1 nói *làm thế nào*; còn thiếu một chỗ đánh mã từng yêu cầu và ghi rõ phép thử PASS, để mỗi người (và AI agent khi "vibe code") nhìn một bảng là biết việc của mình xong hay chưa. Bản 1.0–1.2 chỉ tổng hợp từ 3 tài liệu nhóm; bản 1.3 thêm phạm vi mở rộng ứng dụng mà nhóm chốt ngày 02/11 (mục 3.3). Điểm chưa chốt nằm ở mục 7.
 
@@ -382,11 +382,11 @@ Mỗi thành viên "xong" khi mọi mã yêu cầu mình chủ trì có bằng c
 | 25–26/10 | G2 | Network/role/storage smoke; chạy lại được sau stop/start | TV1 + TV3 + TV4 |
 | 02–05/11 | G3 | App thật 2 replica, backup/restore, TLS, manual scaling | TV2 + TV3 |
 | 03–09/11 | Mở rộng (Compose) | Portal, worker, stats chạy trên Compose local (mục 3.3, 4.6) | TV3 + TV4 |
-| 03–09/11 | Vận hành nâng cao 1 (1.4) | FR-INF-23: CI build, Trivy, SBOM, ký cosign, digest vào `versions.lock`; cắt 09/11 (chưa xong thì giữ build + Trivy, bỏ ký) | TV1 |
 | 06–09/11 | G4 | Tải thật → alarm → VM ready → traffic → scale-in; đo thời gian scale-out (đầu vào NFR-19) | TV2 + TV4 |
 | 10/11 | Mốc cắt 1 | MVP mở rộng chạy trên Compose; FR-APP-16 chưa chia lô được thì lùi về 1 lô | Cả nhóm |
 | 10–14/11 | Mở rộng lên cụm | Listener 8081, vhost `app.`, image có portal + worker, Swift `campus-qr`/`campus-reports`, `campus-svc` | TV1 + TV2 + TV3 |
-| 10–14/11 | Vận hành nâng cao 2 (1.4) | FR-INF-24 `campus-chaos` (thử hành động trên stack lab trước); FR-INF-25: S3 Object Lock, đo RPO/RTO 3 kịch bản | TV1 (+TV3, TV4; TV2 review) |
+| 10–14/11 | Vận hành nâng cao 1 (1.4) | FR-INF-23: gitleaks + Trivy cho digest Shlink trên GitHub Actions (làm ngay); build, SBOM, ký cosign và `cosign verify` cho `campus-portal`, `campus-stats` khi có Dockerfile (TV3, TV4). Mốc 09/11 cũ đã qua khi chưa bắt đầu; cắt 14/11, chưa xong thì giữ quét, bỏ ký | TV1 (TV4 viết test) |
+| 10–14/11 | Vận hành nâng cao 2 (1.4) | FR-INF-24 `campus-chaos` làm trên stack lab TV1 tự dựng (2 VM `campus_role=app` sau LB `ovn`), không đợi stack app của TV2; FR-INF-25: tầng 1–2 trước, tầng 3 (S3 Object Lock) khi nhóm duyệt ADR-11 (O-22); đo RPO/RTO | TV1 (+TV3, TV4; TV2 review) |
 | 14/11 | Mốc cắt 2 | Phần mở rộng chưa ổn trên cụm thì rút khỏi demo, chỉ giữ trong báo cáo; FR-INF-24 chưa PASS thì làm tay FR-INF-20 như cũ, FR-INF-25 giữ 2 kịch bản đầu | TV1 chốt |
 | 15–18/11 | G5 | Benchmark 3 lượt, fault run, NFR-17, NFR-19, giới hạn, chi phí; bản 1.4: NFR-20–22, quét bảo mật NFR-10, so chi phí NFR-16, chương đánh giá chia theo 6 trụ cột AWS Well-Architected | TV4 |
 | 19–22/11 | Freeze | Diễn tập, video, kiểm đủ 8 tiêu chí, thu SSH về /32 | TV1 chốt |
@@ -397,12 +397,14 @@ Mỗi thành viên "xong" khi mọi mã yêu cầu mình chủ trì có bằng c
 
 **Cập nhật lịch 02/11/2026.** Giảng viên lùi nộp sang 23/11 và bảo vệ sang 30/11. G3 trễ vì H1 chưa có (issue #11), nên G3–G5 dời như bảng; phần mở rộng (mục 3.3) làm trên Compose song song G3, G4 và chỉ lên cụm 10–14/11.
 
-**Cập nhật lịch 03/11/2026.** Nhóm chốt thêm FR-INF-23–25 (ADR-11). TV1 làm chính; mỗi yêu cầu có mốc cắt riêng (09/11, 14/11) nên không lấn G5 và freeze.
+**Cập nhật lịch 03/11/2026.** Nhóm chốt thêm FR-INF-23–25 (ADR-11). TV1 làm chính; mốc cắt ban đầu là 09/11 (FR-INF-23) và 14/11 (FR-INF-24, 25); xem cập nhật 12/11/2026 bên dưới.
+
+**Cập nhật lịch 12/11/2026 (1.4).** Mốc 09/11 của FR-INF-23 đã qua khi chưa bắt đầu. Giữ mốc cắt **14/11** cho cả FR-INF-23, 24, 25 (không dời) và tăng tốc: FR-INF-24 làm trên stack lab TV1 tự dựng, không đợi stack app của TV2; FR-INF-25 làm tầng 1–2 trước; FR-INF-23 làm phần quét (gitleaks, Trivy cho digest Shlink) ngay, phần build và ký `campus-portal` khi có Dockerfile. Tầng 3 của FR-INF-25 (S3) đổi ràng buộc ngân sách ở `AGENTS.md` mục 3, nên cần nhóm duyệt ADR-11 (mục 7, O-22) trước khi tạo bucket; chưa duyệt thì FR-INF-25 dừng ở 2 kịch bản đầu.
 
 - **Mốc quyết định 25/10:** G1 chưa PASS → cả nhóm họp cắt phạm vi.
 - **Mốc quyết định 05/11:** chưa có H1 (Shlink thật trên cụm) → TV2 dựng Shlink theo hợp đồng 4.3, phần portal chuyển cho TV1 + TV4.
 - **Mốc quyết định 09/11:** scale-out/in tự động bằng alarm chưa chạy → demo scale bằng tay qua webhook của scaling policy và ghi rõ giới hạn trong báo cáo.
-- **Mốc quyết định 10/11 (1.4):** TV1 trễ phần "Mở rộng lên cụm" → FR-INF-25 rút về 2 kịch bản đầu, FR-INF-24 chỉ giữ hành động tắt VM (O-21).
+- **Mốc quyết định 10/11 (1.4):** TV1 trễ phần "Mở rộng lên cụm" → FR-INF-25 rút về 2 kịch bản đầu, FR-INF-24 chỉ giữ hành động tắt VM (O-21). Đã qua ngày này (xem cập nhật lịch 12/11/2026): chưa áp dụng đường lùi, mốc cắt giữ 14/11.
 - **Mốc cắt 10/11 và 14/11** cho phần mở rộng: xem bảng; P1, P2 bỏ trước, FR-APP-16 lùi về 1 lô.
 - **19/11 (đầu freeze):** thu SSH cổng 22 về /32 (ADR-07), chụp lại SG làm bằng chứng.
 - **Việc thêm của TV1 trong G0–G1:** gắn tag `Project=CampusLink` + IAM user chỉ Start/Stop cho TV2–TV4; user Linux riêng không sudo + fail2ban; tự tắt khi rảnh + lịch tắt 02:00 + snapshot EBS hằng ngày (`docs/runbooks/start-stop.md`); chứng thư Let's Encrypt cho tên miền sslip.io (thay CA lab).
@@ -439,3 +441,4 @@ Các điểm dưới đây chưa được chốt trong tài liệu nhóm; SRS gi
 | O-19 | Chu kỳ backup sang Swift (FR-INF-15) và chu kỳ đẩy sang S3, quyết định RPO của NFR-20 | FR-INF-15, 25; NFR-20 | TV1 + TV3 |
 | O-20 | Bật/tắt member bằng `admin_state_up` và tắt/bật port có chạy đúng với provider `ovn` trên 2026.1 không; access rules tối thiểu cho `campus-chaos` (cùng rủi ro O-14) | FR-INF-24, NFR-21 | TV1 + TV2 |
 | O-21 | Tải việc của TV1 trong 10–14/11 (mở rộng lên cụm + FR-INF-24, 25); trễ thì FR-INF-25 rút về 2 kịch bản, FR-INF-24 chỉ giữ hành động tắt VM | FR-INF-24, 25 | TV1 |
+| O-22 | Cho phép một bucket S3 (Versioning + Object Lock) cho tầng 3 của FR-INF-25: đổi ràng buộc ngân sách `AGENTS.md` mục 3 ("không dịch vụ AWS trả phí khác"), cần nhóm duyệt ADR-11 theo mục 7. Chưa duyệt thì không tạo bucket, FR-INF-25 dừng ở 2 kịch bản đầu | FR-INF-25 | TV1 |
