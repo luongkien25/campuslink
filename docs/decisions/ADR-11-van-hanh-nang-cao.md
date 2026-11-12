@@ -33,6 +33,11 @@ Giảng viên không nhận xét gì về phần cloud khi duyệt đề tài (S
 - **Chi phí:** dump vài MB, vài lần đẩy, ước rất nhỏ so với ngân sách khoảng 70 USD (credit ước tính còn khoảng 112 USD, 09/11). Số chính thức do TV4 tính bằng AWS Pricing Calculator cho `cost.csv` (FR-INF-21); chưa tính.
 - **Cách duyệt:** nhóm đọc PR này. Đồng ý thì mục này thành "chấp nhận" và TV1 mới tạo bucket (TV1 tự bấm trên console). Không đồng ý hoặc không phản hồi kịp thì **không tạo bucket** và FR-INF-25 dừng ở 2 kịch bản đầu (đường lùi ở mục Quyết định 3); yêu cầu không mất.
 
+## Đã kiểm (12/11/2026)
+
+- **O-20, FR-INF-24 giai đoạn lab:** trên stack lab 2 VM `campus_role=app` sau LB `ovn`, `member` (`campus-tv2`) tắt VM, `loadbalancer member set --disable` và `port set --disable` đều được chấp nhận. LB ngừng gửi lưu lượng tới backend lỗi sau khoảng 0,5–2,6 s kể từ lúc gõ lệnh (gồm 1–2 s trễ của CLI); **0/842 probe trả mã khác 200**, xác nhận bằng log thô; hồi phục 1,9–30,5 s. Lưu lượng quay lại backend **trước** khi `operating_status` về ONLINE (0,3–5,6 s), nên `campus-chaos` phải kiểm "đã hoàn tác" bằng lưu lượng thật, không dựa vào `operating_status`. Một lần chạy mỗi hành động, probe ~3,8 kết nối/s; **chưa** kiểm access rules của credential riêng. Evidence `evidence/G3/20261112-FR-INF-24-O-20-chaos-lab-hanh-dong-loi-bang-member.txt`.
+- **FR-INF-23, bản nhẹ:** workflow `.github/workflows/supply-chain.yml` chạy trên PR này. gitleaks quét toàn bộ lịch sử (74 commit): 3 dương tính giả (tên file có chữ `secrets` hoặc `api_key_`, giá trị là hash), đã thêm ngoại lệ hẹp theo đường dẫn và dạng dòng trong `.gitleaks.toml`, chạy lại sạch. Trivy trên digest Shlink 5.1.8 (chỉ lỗ hổng đã có bản vá): 21 lỗ hổng (1 CRITICAL `brotli-libs`, 20 HIGH, phần lớn ở lớp Alpine, kèm 1 ở binary RoadRunner `rr` và 1 ở composer); SBOM CycloneDX 1.6 có 414 thành phần. Chỉ báo cáo, vì Shlink bị khóa phiên bản. **Chưa có:** build, ký cosign và `cosign verify` cho `campus-portal`, `campus-stats` (cần Dockerfile của TV3, TV4).
+
 ## Phương án đã loại
 
 - **Rolling update bằng Heat `rolling_updates`** (bản nháp đầu của FR-INF-24): khả thi (theo `heat/scaling/rolling_update.py` stable/2026.1, nhóm 1 máy được tăng tạm lên 2 rồi mới bỏ máy cũ) nhưng tương đương ASG instance refresh của AWS, nên không mới theo tiêu chí trên; lại phụ thuộc G4.
