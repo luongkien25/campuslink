@@ -1,0 +1,62 @@
+Evidence FR-INF-09 / NFR-08 / ADR-10 (#34, G3): kiem token signal (TOKEN_SIGNAL) cua OS::Heat::WaitConditionHandle tren cum.
+Ngay: 2026-11-12 (gio VN), UTC 12:49:36Z-12:50:22Z. A boot 12:44:28Z (uptime -s; TV1 bao bat luc 19:44 gio VN), B khong bat. TV1 Stop A luc 21:58 gio VN (14:58Z) theo loi nguoi dung; ket qua campus-check truoc Stop chua duoc doi chieu. TV1 tu chay lenh tren A (ubuntu@campus-a, trong tmux) roi copy file ket qua ve laptop cho Claude Code doi chieu; Claude khong SSH.
+Script: heat-token-probe.sh (ngoai repo, o may TV1). Stack thu tv1-wc-probe do campus-tv2 (member) tao, KHONG co VM; token chi nam trong file 0600 o /run roi bi xoa, khong in ra; output chi co PASS/FAIL/INFO va ma HTTP.
+KET QUA: 26 PASS, 1 FAIL (5.1), 0 WARN.
+GIOI HAN:
+  (1) 5.1 FAIL la ghi nhan, khong chan: reader campus-tv4 doc duoc token cua stack (stack show/resource show --with-attr token); token chi co quyen signal (muc 4: 403 o Heat, Swift, Keystone, Nova).
+  (2) CHUA thu token cua mot handle signal handle khac cung cay stack (stack lon, vd member ASG) hoac khac stack. Doc ma Heat stable/2026.1: stack lon ke thua stack_user_project_id cua stack cha (stack_resource.py) va _stack_get chi loc theo project (db/api.py), nen cung cay thi duoc, khac cay thi 404. Day la suy tu ma, khong phai ket qua do tren cum.
+  (3) CHUA co VM that goi endpoint signal: chi suy tu host:port trung Keystone (10.11.0.10:80); duong VM -> Keystone da kiem 07/11 va 09/11.
+  (4) CHUA thu token het han (3600 s, mac dinh Keystone; keystone.conf khong ghi de). WaitCondition.timeout du kien 300 s.
+  (5) Mot lan chay, mot stack thu; stack da xoa va user stack bi xoa theo (domain heat: 2 -> 1).
+
+== Output cua script (nguyen van, tu /home/ubuntu/heat-token-probe-20261112-1249Z.txt tren A)
+== heat-token-probe bat dau 2026-11-12T12:49:36Z tren campus-a
+PASS  0.1 admin lay duoc token (openrc stack)
+PASS  0.2 campus-tv2 lay duoc token
+PASS  0.3 campus-tv4 lay duoc token
+PASS  0.4 chua co stack tv1-wc-probe
+INFO  1. Heat va Keystone (chi doc)
+INFO  service devstack@h-api = active
+INFO  service devstack@h-eng = active
+INFO  service devstack@h-api-cfn = active
+PASS  1.1 h-api va h-eng active
+INFO  heat.conf (chi cac khoa khong bi mat):
+INFO    stack_domain_admin = heat_domain_admin
+INFO    heat_waitcondition_server_url = http://10.11.0.10/heat-api-cfn/v1/waitcondition
+INFO    heat_metadata_server_url = http://10.11.0.10/heat-api-cfn
+INFO  dung domain=heat role=heat_stack_user (mac dinh neu heat.conf khong ghi)
+PASS  1.2 stack domain 'heat' co
+PASS  1.3 role 'heat_stack_user' co
+INFO  keystone [token] expiration = chua dat (mac dinh 3600) giay
+INFO  catalog identity=http://10.11.0.10/identity
+INFO  catalog orchestration=http://10.11.0.10/heat-api/v1/$(project_id)s
+INFO  catalog compute=http://10.11.0.10/compute/v2.1
+INFO  catalog object-store=http://10.11.0.10:8080/v1/AUTH_$(project_id)s
+PASS  1.4 Heat va Keystone cung host:port (10.11.0.10); VM da toi duoc Keystone nen cung duong
+INFO  so user trong domain heat truoc khi tao stack = 1
+INFO  2. member (campus-tv2) tao stack chi co WaitConditionHandle TOKEN_SIGNAL + WaitCondition
+PASS  2.1 template hop le (OS::Heat::WaitConditionHandle, TOKEN_SIGNAL)
+PASS  2.2 member tao stack luc 12:49:53Z
+PASS  2.3 handle CREATE_COMPLETE
+PASS  2.4 WaitCondition cho signal (CREATE_IN_PROGRESS), khong tu hoan tat
+PASS  2.5 Heat tao them user trong domain heat (1 -> 2)
+INFO  member doc attribute token/endpoint: token_len=183 endpoint_len=143
+PASS  3.1 member (chu stack) lay duoc token va endpoint
+INFO  endpoint signal: host:port=10.11.0.10, duong=...3c12e59cbe494c7e9ee67761b3ab7c26/stacks/tv1-wc-probe/5a1f7387-7c1b-4e28-a771-13e551a67916/resources/handle/signal
+INFO  token cua stack user: user_domain=heat project_domain=heat roles=heat_stack_user ttl_s=3600
+PASS  3.2 token cua stack user, role heat_stack_user, khong co admin/member/reader
+PASS  3.3 user va project cua token nam trong domain heat (khong phai project campuslink)
+INFO  4. token chi duoc signal: cac API khac phai bi tu choi (khong phai 2xx)
+PASS  4.1 Heat: GET danh sach stack -> HTTP 403 (bi tu choi/khong co)
+PASS  4.2 Heat: GET stack cua chinh no -> HTTP 403 (bi tu choi/khong co)
+PASS  4.3 Swift: GET liet ke campus-secrets -> HTTP 403 (bi tu choi/khong co)
+PASS  4.4 Keystone: GET /v3/projects -> HTTP 403 (bi tu choi/khong co)
+PASS  4.5 Nova: GET /servers -> HTTP 403 (bi tu choi/khong co)
+FAIL  5.1 reader (campus-tv4) lay duoc token cua stack (can ghi nhan; token chi co quyen signal)
+PASS  6.1 signal SUCCESS bang token -> HTTP 200
+PASS  6.2 WaitCondition CREATE_COMPLETE sau signal
+PASS  6.3 stack CREATE_COMPLETE
+INFO  7. don dep
+PASS  7.1 stack da xoa
+PASS  7.2 user stack bi xoa cung stack (domain heat: 2 -> 1, ban dau 1)
+== ket qua: 26 PASS, 1 FAIL, 0 WARN (2026-11-12T12:50:22Z). File: /home/ubuntu/heat-token-probe-20261112-1249Z.txt
