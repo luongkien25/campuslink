@@ -10,7 +10,7 @@ description = "manifest image TV2: dong 'ten-file: sha256' (ten co chu secrets, 
 condition = "AND"
 paths = ['''evidence/G4/.*image-manifest.*\.json$''']
 regexTarget = "line"
-regexes = ['''"[A-Za-z0-9_.-]+": "[0-9a-f]{64}"''']
+regexes = ['''"[A-Za-z0-9_./-]+": "[0-9a-f]{64}"''']
 
 [[allowlists]]
 description = "evidence H1 TV2: dong liet ke TEN file api_key_tv2-*, khong chua gia tri (dong truoc ghi ro khong in gia tri)"
