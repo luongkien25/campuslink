@@ -16,7 +16,7 @@ Không ghi secret vào repo, evidence, issue hay Zalo. Lệnh đánh dấu ⚠�
 | Bản ngoài A | `pull-latest.sh` chép bản mới nhất về laptop và kiểm sha256 | FR-INF-15 "1 bản về máy nhóm", NFR-11 |
 | Restore | `campus-db-restore-test`: tải dump, kiểm sha256, `DROP/CREATE campus_restore_test`, `pg_restore --no-owner`; tên DB đích cố định, **không bao giờ** là `shlink` | FR-INF-16, FR-INF-25 tầng 2 |
 
-Script: `app/db/backup/`. Đã thử local (container Ubuntu 24.04 + PostgreSQL 16.15 + Shlink 5.1.8 + Keystone/Swift giả): `evidence/G3/20261112-FR-INF-15-backup-thu-local.txt`.
+Script: `app/db/backup/`. Đã thử local (container Ubuntu 24.04 + PostgreSQL 16.15 + Shlink 5.1.8 + Keystone/Swift giả): `evidence/G3/20261112-FR-INF-15-backup-thu-local.txt`. **Đã chạy trên cụm 12/11:** `evidence/G3/20261112-FR-INF-15-16-backup-restore-cum.txt` (access rules thật: 4 thao tác trong `db/` được phép, ngoài `db/` và `campus-secrets` bị 401).
 
 ## 0. Trước phiên
 
@@ -73,7 +73,7 @@ Host campus-db
     IdentitiesOnly yes
 ```
 
-Đối chiếu host key lần đầu với console log (`openstack console log show campus-db | grep -A6 'BEGIN SSH HOST KEY FINGERPRINTS'`, tương tự với `campus-jump`).
+Đối chiếu host key lần đầu với console log: `campus-jump` (Cirros) in khóa đầy đủ giữa `BEGIN SSH HOST KEY KEYS` và `END`, chép thẳng vào `~/.ssh/known_hosts`. `campus-db` chỉ in host key ở lần boot đầu (cloud-init `keys_to_console` chạy một lần), nên sau reboot không còn trong console: chấp nhận lần đầu (`StrictHostKeyChecking=accept-new`) vì đường đi nằm trọn sau A. ED25519 của `campus-db`: `SHA256:ADcHyo0E7RMz+FVGzHSD6f1omo4EjuUNlWmmlE8Oixo`.
 
 ## 4. Cài và chạy lần đầu
 

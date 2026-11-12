@@ -14,20 +14,25 @@ exp=${CRED_EXPIRES:-2026-12-31T00:00:00}
 
 proj=$(openstack token issue -f value -c project_id)
 p="/v1/AUTH_$proj/campus-backups"
-rules=$(printf '[{"service":"object-store","method":"%s","path":"%s/db/*"},' PUT "$p" GET "$p" HEAD "$p" DELETE "$p")
-rules="${rules}{\"service\":\"object-store\",\"method\":\"GET\",\"path\":\"$p\"}]"
+rules=$(python3 -c 'import json,sys; p=sys.argv[1]
+r=[{"service":"object-store","method":m,"path":p+"/db/*"} for m in ("PUT","GET","HEAD","DELETE")]
+r.append({"service":"object-store","method":"GET","path":p}); print(json.dumps(r))' "$p")
 
 umask 077
-tmp=$(mktemp)
+tmp=$(mktemp); trap 'rm -f "$tmp"' EXIT
 openstack application credential create "$name" --expiration "$exp" \
   --description "CampusLink backup DB VM -> campus-backups/db (FR-INF-15, TV3)" \
   --access-rules "$rules" -f json > "$tmp"
 python3 - "$tmp" "$out" <<'PY'
 import json, sys
-d = json.load(open(sys.argv[1]))
+# OSC -f json dung khoa viet hoa ("ID", "Secret", "Access Rules"); doc khong phan biet hoa thuong
+d = {k.lower().replace(" ", "_"): v for k, v in json.load(open(sys.argv[1])).items()}
+cid, sec = d.get("id"), d.get("secret")
+if not cid or not sec:
+    sys.exit(f"FAIL output thieu id/secret (khoa: {sorted(d)}); credential co the da tao, xoa bang tay")
 with open(sys.argv[2], "w") as f:
-    f.write(f"id={d['id']}\nsecret={d['secret']}\n")
-print(f"OK credential {d['name']} id={d['id']} het han {d.get('expires_at')}, {len(d.get('access_rules') or [])} access rule")
+    f.write(f"id={cid}\nsecret={sec}\n")
+print(f"OK credential {d.get('name')} id={cid} het han {d.get('expires_at')}, {len(d.get('access_rules') or [])} access rule")
 PY
 rm -f "$tmp"
 ls -l "$out" | awk '{print $1, $NF}'

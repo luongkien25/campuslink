@@ -46,7 +46,9 @@ get_token() {
 }
 sw() { # method, path (sau URL container), [curl args...] -> in http code
   local m=$1 p=$2; shift 2
-  curl -sS -m 120 -o "$work/sw.out" -D "$work/sw.hdr" -w '%{http_code}' -X "$m" -H @"$work/token.hdr" "$@" \
+  # HEAD phai dung -I: voi -X HEAD curl cho than theo Content-Length va bao loi (18) tren Swift that
+  local how=(-X "$m"); [[ $m == HEAD ]] && how=(-I)
+  curl -sS -m 120 -o "$work/sw.out" -D "$work/sw.hdr" -w '%{http_code}' "${how[@]}" -H @"$work/token.hdr" "$@" \
     "$SWIFT_URL/$CONTAINER$p"
 }
 hdr() { sed -n "s/^$1: *//Ip" "$work/sw.hdr" | tr -d '\r'; }
