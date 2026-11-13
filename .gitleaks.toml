@@ -18,3 +18,10 @@ condition = "AND"
 paths = ['''evidence/G3/20261107-H1-tv2-smoke-local\.txt$''']
 regexTarget = "line"
 regexes = ['''Ten file: api_key_''']
+
+[[allowlists]]
+description = "evidence TV3 (PR #39): dong ghi ID cua application credential campus-db-backup (ID la dinh danh cong khai, khong phai secret; script khong in secret)"
+condition = "AND"
+paths = ['''evidence/G3/20261112-FR-INF-15-16-backup-restore-cum[.]txt$''']
+regexTarget = "line"
+regexes = ['''credential campus-db-backup id=[0-9a-f]{32} het han''']
