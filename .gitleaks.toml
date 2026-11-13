@@ -20,7 +20,7 @@ regexTarget = "line"
 regexes = ['''Ten file: api_key_''']
 
 [[allowlists]]
-description = "evidence TV3 (PR #39): dong ghi ID cua application credential campus-db-backup (ID la dinh danh cong khai, khong phai secret; script khong in secret)"
+description = "evidence TV3 (PR #39): dong ghi ID cua application credential campus-db-backup (ID chi la dinh danh, khong phai secret xac thuc: xac thuc can ca ID va secret, secret khong duoc in trong file do)"
 condition = "AND"
 paths = ['''evidence/G3/20261112-FR-INF-15-16-backup-restore-cum[.]txt$''']
 regexTarget = "line"
