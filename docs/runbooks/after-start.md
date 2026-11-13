@@ -35,6 +35,7 @@ export OS_CLOUD=campus-tv2
 | 1.5 | `openstack loadbalancer provider list -f value -c name` | có dòng `ovn` | Báo TV1 (2.5). Không tạo LB khi thiếu `ovn` (sẽ ra amphora, không chạy được) |
 | 1.6 | `openstack server list -c Name -c Status` | VM của nhóm `ACTIVE` | `SHUTOFF`: xem 1.8. `ERROR`: báo TV1 |
 | 1.7 | `openstack volume list -c Name -c Status` | `campus-db-data` là `in-use` (khi đã gắn DB VM) | `error`/`available` sai dự kiến: báo TV3 + TV1 |
+| 1.7b | Khi cụm đã chạy ≥ 15 phút: `openstack object list campus-backups --prefix db/shlink- --long -f value -c Name -c "Last Modified"` (cú pháp cột `Last Modified` chưa kiểm trên cụm; TV4 là `reader` nên có thể bị từ chối: nhờ TV2 hoặc TV3 chạy) | có ít nhất một `.dump` và bản mới nhất có `Last Modified` (UTC) cách `date -u` không quá 70 phút. Lúc mới bật bản mới nhất có thể cũ cho tới lượt `OnBootSec=10min` đầu tiên | Không có dump nào, hoặc quá 70 phút khi cụm đã chạy hơn 15 phút: báo TV3 (`campus-db-backup.timer` trên `campus-db`, `/var/lib/campus-backup/last` ghi `OK` hay `FAIL`); chép vào issue "Nhật ký cloud" |
 | 1.8 | Chỉ khi có VM `SHUTOFF`: bật **DB VM trước**, đợi `ACTIVE`, rồi mới bật app: `openstack server start <UUID>` | VM lên `ACTIVE` | Dùng UUID, không dùng tên (dễ trùng) |
 
 Từ **laptop** (PowerShell hoặc Git Bash), không dùng `-k`:
