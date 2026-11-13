@@ -1,0 +1,398 @@
+Evidence FR-INF-24 (G3): campus_chaos.py v0 chay THAT tren cum: rao an toan, dry-run, 3 thi nghiem loi (vm-stop, member-disable, port-disable), thu dung som, bao cao len Swift campus-reports. Stack lab 2 VM (campus_role=app) sau LB ovn do chaos-lab.sh dung.
+Ngay: 2026-11-13 (gio VN 13:30-13:36), UTC 06:30:29Z-06:36:48Z. A boot 06:26:46Z (uptime -s; TV1 bao bat 13:26 gio VN, khop). B khong bat. TV1 tu chay lenh tren A (ubuntu@campus-a, trong tmux) roi scp file ve laptop cho Claude Code doi chieu; Claude khong SSH.
+Script: chaos-run.sh run, goi chaos-lab.sh up/down va campus_chaos.py (sha256 e1faff646a4e14ac3910cca555444c329f840c94f98ce2807a5754da5c7f26f7, trung ops/campus-chaos/campus_chaos.py cua PR #37). Chi dung credential member campus-tv2 (sudo -u tv2), khong dung admin. Kich ban .yaml sinh tu chaos-run.sh (A co PyYAML).
+Gia thuyet (khai truoc, ban sao scenarios/vm-stop.example.yaml): LB phat hien <= 15 s, 0 loi sau khi phat hien, dich tro lai <= 150 s. Moi thi nghiem: nen 10 s, giu loi 45 s, hoan tac, doi hoi phuc bang luu luong that (probe 4 req/s tu A toi FIP cua VIP, marker chaos-lab-1).
+KET QUA: chaos-run 26 PASS, 0 FAIL, 379 s (ca lab up va down).
+  Thi nghiem      phat hien   hoi phuc (status)   dich tra loi lai   loi/probe trong luc loi   verdict
+  vm-stop           3,6 s        30,0 s               30,5 s             0/181                  PASS
+  member-disable    1,5 s         2,1 s                1,4 s             0/181                  PASS
+  port-disable      1,4 s         6,1 s                1,9 s             0/181                  PASS
+  Cung xu huong voi lan do O-20 hom truoc (evidence 20261112-FR-INF-24-O-20-...): 0 loi, phat hien 1-4 s, vm-stop hoi phuc cham nhat vi phai boot lai VM.
+  Rao an toan: dich campus-db bi TU CHOI (rc=2, "campus_role=None, chi nhan campus_role=app") truoc khi lam gi. Day la "mac dinh tu choi" vi thieu metadata campus_role, khong phai vi nhan ra la DB.
+  Dry-run ca 3 hanh dong hop le, khong gay loi gi.
+  Thu dung som (member-disable, online_members_lt=3 de dung ngay): verdict ABORTED, ly do "khong con member ONLINE (con 1)"; da hoan tac, state.json xoa, ca hai member ONLINE lai (kiem bang luu luong that). Chi chung minh co che dung som + hoan tac + kiem hoi phuc; CHUA thu nguong ti le loi that (error_rate_gt).
+  Bao cao: 4 file JSON trong Swift campus-reports/chaos/ (object create --name tu member tv2); doc lai tu Swift duoc, JSON hop le.
+  Sau cung: campus_chaos.py status = "khong co thi nghiem dang chay"; chaos-lab down = "khong con tai nguyen chaos-lab".
+  Ba muc README "chua kiem" nay da kiem: (a) cot properties cua server show -f json doc dung (VM lab nhan campus_role=app, campus-db ra None); (b) object create --name len campus-reports; (c) doc kich ban .yaml.
+GIOI HAN (khong doc thanh ket luan rong hon):
+  (1) Dung credential member campus-tv2; CHUA co credential rieng campus-chaos voi access rules (phan con lai cua O-20, rui ro nhu O-14).
+  (2) Mot lan chay moi hanh dong, mot lab, 2 member, probe 4 req/s la nhe, khong phai tai that. Chua chay tren stack app that cua TV2 (chua co).
+  (3) Thoi gian tinh tu luc go lenh nen gom ~1-2 s tre cua CLI openstack; trang thai LB lay mau moi ~0,5 s cong do tre CLI.
+  (4) vm-stop la server stop (tat ACPI), khong phai mat dien dot ngot. "Hoi phuc" cua vm-stop gom ca thoi gian boot lai VM va khoi dong web.
+  (5) Thu dung som dung online_members_lt=3 chu dong (xem tren); thu nguong ti le loi that chua lam.
+  (6) NFR-21: bao cao co so do (phat hien, loi, hoi phuc) nhung chua ghi ket luan NFR-01/02; chua co SLI tu log Nginx (NFR-22).
+  (7) Da quet output va 4 bao cao: khong co secret hay token; co IP mang lab (10.20.0.x, 172.24.4.156) va UUID tai nguyen lab da xoa.
+
+== Output cua chaos-run.sh (tu /home/ubuntu/chaos-run-20261113.txt tren A)
+== chaos-run run bat dau 2026-11-13T06:30:29Z tren campus-a
+INFO  may: campus-a, 2026-11-13T06:30:29Z, boot 2026-11-13 06:26:46
+INFO  python3: Python 3.12.3, openstack: openstack 9.0.0
+INFO  campus_chaos.py sha256: e1faff646a4e14ac3910cca555444c329f840c94f98ce2807a5754da5c7f26f7
+INFO  kich ban dung .yaml (PyYAML co): kiem duong doc .yaml
+PASS  preflight: file, quyen member, thu muc lam viec /tmp/campus-chaos
+INFO  == 1. dung lab (chaos-lab.sh up)
+INFO    INFO  == up: dung lab 2 VM + LB ovn
+INFO    PASS  up: chaos-lab-1 ACTIVE (campus_role=app, campus-az-a) ip=10.20.0.217
+INFO    PASS  up: chaos-lab-2 ACTIVE (campus_role=app, campus-az-a) ip=10.20.0.111
+INFO    PASS  up: LB ovn ACTIVE, VIP=10.20.0.118, FIP=172.24.4.156, pool SOURCE_IP_PORT, HM TCP 5/3/2, 2 member
+INFO    PASS  up: ca hai backend tra loi qua VIP (chaos-lab-1, chaos-lab-2)
+INFO    PASS  up: m1, m2 ONLINE
+PASS  lab san sang: 2 member ONLINE, VIP tra loi tu 2 backend
+INFO  == 2. rao an toan: tu choi dich khong phai campus_role=app (chi doc, khong gay loi)
+INFO    TU CHOI: dich campus-db co campus_role=None, chi nhan campus_role=app
+PASS  campus-db bi tu choi truoc khi lam gi (rc=2)
+INFO  == 3. dry-run 3 hanh dong tren lab
+INFO    DRY-RUN hop le. Se gay: vm-stop len chaos-lab-1 (member 1bece02f-b2ff-4c20-8bf8-79ba5ef23b05). Khong gay loi gi.
+PASS  dry-run tat-vm-1 hop le
+INFO    DRY-RUN hop le. Se gay: member-disable len chaos-lab-1 (member 1bece02f-b2ff-4c20-8bf8-79ba5ef23b05). Khong gay loi gi.
+PASS  dry-run tat-member-1 hop le
+INFO    DRY-RUN hop le. Se gay: port-disable len chaos-lab-1 (member 1bece02f-b2ff-4c20-8bf8-79ba5ef23b05). Khong gay loi gi.
+PASS  dry-run tat-port-1 hop le
+INFO  == 4. thi nghiem that (moi cai: nen 10 s, giu loi 45s, hoan tac, doi hoi phuc)
+INFO  == chay that: tat-vm-1 (ky vong verdict PASS) 06:31:58Z
+INFO  rc=0
+INFO    verdict=PASS aborted=None
+INFO    checks={"lenh_gay_loi_ok": true, "hoan_tac_ok": true, "phat_hien_trong_han": true, "khong_loi_sau_phat_hien": true, "dich_tro_lai": true}
+INFO    metrics={"detect_s": 3.6, "recover_status_s": 30.0, "target_back_s": 30.5, "probes_in_fault": 181, "errors_in_fault": 0, "errors_after_detect": 0, "target_resp_after_detect": 0}
+INFO    report=/tmp/campus-chaos/reports/20261113T063331Z-tat-vm-1.json
+PASS  tat-vm-1: verdict PASS dung ky vong
+PASS  tat-vm-1: state.json da xoa (hoan tac xong)
+PASS  tat-vm-1: ca hai member ONLINE sau thi nghiem
+INFO  == chay that: tat-member-1 (ky vong verdict PASS) 06:33:33Z
+INFO  rc=0
+INFO    verdict=PASS aborted=None
+INFO    checks={"lenh_gay_loi_ok": true, "hoan_tac_ok": true, "phat_hien_trong_han": true, "khong_loi_sau_phat_hien": true, "dich_tro_lai": true}
+INFO    metrics={"detect_s": 1.5, "recover_status_s": 2.1, "target_back_s": 1.4, "probes_in_fault": 181, "errors_in_fault": 0, "errors_after_detect": 0, "target_resp_after_detect": 0}
+INFO    report=/tmp/campus-chaos/reports/20261113T063438Z-tat-member-1.json
+PASS  tat-member-1: verdict PASS dung ky vong
+PASS  tat-member-1: state.json da xoa (hoan tac xong)
+PASS  tat-member-1: ca hai member ONLINE sau thi nghiem
+INFO  == chay that: tat-port-1 (ky vong verdict PASS) 06:34:41Z
+INFO  rc=0
+INFO    verdict=PASS aborted=None
+INFO    checks={"lenh_gay_loi_ok": true, "hoan_tac_ok": true, "phat_hien_trong_han": true, "khong_loi_sau_phat_hien": true, "dich_tro_lai": true}
+INFO    metrics={"detect_s": 1.4, "recover_status_s": 6.1, "target_back_s": 1.9, "probes_in_fault": 181, "errors_in_fault": 0, "errors_after_detect": 0, "target_resp_after_detect": 0}
+INFO    report=/tmp/campus-chaos/reports/20261113T063551Z-tat-port-1.json
+PASS  tat-port-1: verdict PASS dung ky vong
+PASS  tat-port-1: state.json da xoa (hoan tac xong)
+PASS  tat-port-1: ca hai member ONLINE sau thi nghiem
+INFO  == 5. thu dung som: online_members_lt=3 nen dung ngay sau khi gay loi (member-disable 30 s), phai hoan tac
+INFO  == chay that: dung-som-member-1 (ky vong verdict ABORTED) 06:35:53Z
+INFO  rc=1
+INFO    verdict=ABORTED aborted=khong con member ONLINE (con 1)
+INFO    checks={"lenh_gay_loi_ok": true, "hoan_tac_ok": true, "phat_hien_trong_han": true, "khong_loi_sau_phat_hien": true, "dich_tro_lai": true}
+INFO    metrics={"detect_s": 1.6, "recover_status_s": 1.9, "target_back_s": 1.8, "probes_in_fault": 14, "errors_in_fault": 0, "errors_after_detect": 0, "target_resp_after_detect": 0}
+INFO    report=/tmp/campus-chaos/reports/20261113T063616Z-dung-som-member-1.json
+PASS  dung-som-member-1: verdict ABORTED dung ky vong
+PASS  dung-som-member-1: dung som vi khong con member ONLINE (con 1)
+PASS  dung-som-member-1: state.json da xoa (hoan tac xong)
+PASS  dung-som-member-1: ca hai member ONLINE sau thi nghiem
+INFO  == 6. bao cao len Swift campus-reports/chaos/
+PASS  Swift co bao cao tat-vm-1: chaos/20261113T063331Z-tat-vm-1.json
+PASS  Swift co bao cao tat-member-1: chaos/20261113T063438Z-tat-member-1.json
+PASS  Swift co bao cao tat-port-1: chaos/20261113T063551Z-tat-port-1.json
+PASS  Swift co bao cao dung-som-member-1: chaos/20261113T063616Z-dung-som-member-1.json
+PASS  doc lai bao cao tu Swift, JSON hop le
+INFO    doc lai tu Swift: verdict PASS
+INFO  == 7. trang thai cuoi
+INFO    khong co thi nghiem dang chay
+PASS  status: khong co thi nghiem dang chay
+INFO  == 8. don lab
+INFO    == chaos-lab down bat dau 2026-11-13T06:36:22Z tren campus-a
+INFO    INFO  == down: don lab
+INFO    PASS  down: khong con tai nguyen chaos-lab
+INFO    == ket qua: 1 PASS, 0 FAIL (2026-11-13T06:36:45Z). File: /home/ubuntu/chaos-lab-20261113.txt
+PASS  down: khong con tai nguyen chaos-lab
+INFO  ban sao ket qua o /home/ubuntu/chaos-run-reports: 21 file
+INFO  tong thoi gian 379 s
+== ket qua: 26 PASS, 0 FAIL (2026-11-13T06:36:48Z). File: /home/ubuntu/chaos-run-20261113.txt
+
+== Output cua chaos-lab.sh (tu /home/ubuntu/chaos-lab-20261113.txt tren A; up luc 06:30:33Z, down luc 06:36:22Z)
+== chaos-lab up bat dau 2026-11-13T06:30:33Z tren campus-a
+INFO  == up: dung lab 2 VM + LB ovn
+INFO  han muc (member tv2):
+INFO    | floating_ips                |    -1 |
+INFO    | floating_ips_used           |     0 |
+INFO    | instances                   |     6 |
+INFO    | instances_used              |     1 |
+INFO    | max_total_cores             |     8 |
+INFO    | max_total_floating_ips      |    -1 |
+INFO    | max_total_instances         |     6 |
+INFO    | max_total_ram_size          | 12288 |
+INFO    | total_cores                 |     8 |
+INFO    | total_cores_used            |     1 |
+INFO    | total_floating_ips_used     |     0 |
+INFO    | total_instances_used        |     1 |
+INFO    | total_ram                   | 12288 |
+INFO    | total_ram_used              |  2048 |
+PASS  up: chaos-lab-1 ACTIVE (campus_role=app, campus-az-a) ip=10.20.0.217
+PASS  up: chaos-lab-2 ACTIVE (campus_role=app, campus-az-a) ip=10.20.0.111
+PASS  up: LB ovn ACTIVE, VIP=10.20.0.118, FIP=172.24.4.156, pool SOURCE_IP_PORT, HM TCP 5/3/2, 2 member
+PASS  up: ca hai backend tra loi qua VIP (chaos-lab-1, chaos-lab-2)
+PASS  up: m1, m2 ONLINE
+== ket qua: 5 PASS, 0 FAIL (2026-11-13T06:31:44Z). File: /home/ubuntu/chaos-lab-20261113.txt
+== chaos-lab down bat dau 2026-11-13T06:36:22Z tren campus-a
+INFO  == down: don lab
+PASS  down: khong con tai nguyen chaos-lab
+== ket qua: 1 PASS, 0 FAIL (2026-11-13T06:36:45Z). File: /home/ubuntu/chaos-lab-20261113.txt
+
+== Bao cao JSON tren Swift: campus-reports/chaos/20261113T063331Z-tat-vm-1.json
+{
+  "scenario": {
+    "name": "tat-vm-1",
+    "action": "vm-stop",
+    "duration_s": 45,
+    "baseline_s": 10,
+    "target": {
+      "server": "chaos-lab-1",
+      "pool": "6e5f59fc-9bda-48f5-b062-26000a7e0dfc"
+    },
+    "probe": {
+      "url": "http://172.24.4.156:8080/",
+      "rate_per_s": 4,
+      "timeout_s": 1,
+      "marker": "chaos-lab-1"
+    },
+    "stop_if": {
+      "error_rate_gt": 0.2,
+      "window_s": 5,
+      "min_probes": 8,
+      "online_members_lt": 1
+    },
+    "hypothesis": {
+      "detect_within_s": 15,
+      "max_errors_after_detect": 0,
+      "recover_within_s": 150
+    },
+    "report": {
+      "swift_container": "campus-reports"
+    }
+  },
+  "target": {
+    "server": "chaos-lab-1",
+    "server_id": "51c964a1-a1cc-466b-ac77-ef06c80d99fb",
+    "ip": "10.20.0.217",
+    "pool": "6e5f59fc-9bda-48f5-b062-26000a7e0dfc",
+    "member_id": "1bece02f-b2ff-4c20-8bf8-79ba5ef23b05",
+    "status_before": "ACTIVE"
+  },
+  "verdict": "PASS",
+  "checks": {
+    "lenh_gay_loi_ok": true,
+    "hoan_tac_ok": true,
+    "phat_hien_trong_han": true,
+    "khong_loi_sau_phat_hien": true,
+    "dich_tro_lai": true
+  },
+  "metrics": {
+    "detect_s": 3.6,
+    "recover_status_s": 30.0,
+    "target_back_s": 30.5,
+    "probes_in_fault": 181,
+    "errors_in_fault": 0,
+    "errors_after_detect": 0,
+    "target_resp_after_detect": 0
+  },
+  "aborted_reason": null,
+  "fault_rc": 0,
+  "revert_rc": 0,
+  "t0": 1794551531.793703,
+  "t1": 1794551577.4407277,
+  "finished_utc": "20261113T063331Z"
+}
+
+== Bao cao JSON tren Swift: campus-reports/chaos/20261113T063438Z-tat-member-1.json
+{
+  "scenario": {
+    "name": "tat-member-1",
+    "action": "member-disable",
+    "duration_s": 45,
+    "baseline_s": 10,
+    "target": {
+      "server": "chaos-lab-1",
+      "pool": "6e5f59fc-9bda-48f5-b062-26000a7e0dfc"
+    },
+    "probe": {
+      "url": "http://172.24.4.156:8080/",
+      "rate_per_s": 4,
+      "timeout_s": 1,
+      "marker": "chaos-lab-1"
+    },
+    "stop_if": {
+      "error_rate_gt": 0.2,
+      "window_s": 5,
+      "min_probes": 8,
+      "online_members_lt": 1
+    },
+    "hypothesis": {
+      "detect_within_s": 15,
+      "max_errors_after_detect": 0,
+      "recover_within_s": 150
+    },
+    "report": {
+      "swift_container": "campus-reports"
+    }
+  },
+  "target": {
+    "server": "chaos-lab-1",
+    "server_id": "51c964a1-a1cc-466b-ac77-ef06c80d99fb",
+    "ip": "10.20.0.217",
+    "pool": "6e5f59fc-9bda-48f5-b062-26000a7e0dfc",
+    "member_id": "1bece02f-b2ff-4c20-8bf8-79ba5ef23b05",
+    "status_before": "ACTIVE"
+  },
+  "verdict": "PASS",
+  "checks": {
+    "lenh_gay_loi_ok": true,
+    "hoan_tac_ok": true,
+    "phat_hien_trong_han": true,
+    "khong_loi_sau_phat_hien": true,
+    "dich_tro_lai": true
+  },
+  "metrics": {
+    "detect_s": 1.5,
+    "recover_status_s": 2.1,
+    "target_back_s": 1.4,
+    "probes_in_fault": 181,
+    "errors_in_fault": 0,
+    "errors_after_detect": 0,
+    "target_resp_after_detect": 0
+  },
+  "aborted_reason": null,
+  "fault_rc": 0,
+  "revert_rc": 0,
+  "t0": 1794551626.9622738,
+  "t1": 1794551672.6554503,
+  "finished_utc": "20261113T063438Z"
+}
+
+== Bao cao JSON tren Swift: campus-reports/chaos/20261113T063551Z-tat-port-1.json
+{
+  "scenario": {
+    "name": "tat-port-1",
+    "action": "port-disable",
+    "duration_s": 45,
+    "baseline_s": 10,
+    "target": {
+      "server": "chaos-lab-1",
+      "pool": "6e5f59fc-9bda-48f5-b062-26000a7e0dfc"
+    },
+    "probe": {
+      "url": "http://172.24.4.156:8080/",
+      "rate_per_s": 4,
+      "timeout_s": 1,
+      "marker": "chaos-lab-1"
+    },
+    "stop_if": {
+      "error_rate_gt": 0.2,
+      "window_s": 5,
+      "min_probes": 8,
+      "online_members_lt": 1
+    },
+    "hypothesis": {
+      "detect_within_s": 15,
+      "max_errors_after_detect": 0,
+      "recover_within_s": 150
+    },
+    "report": {
+      "swift_container": "campus-reports"
+    }
+  },
+  "target": {
+    "server": "chaos-lab-1",
+    "server_id": "51c964a1-a1cc-466b-ac77-ef06c80d99fb",
+    "ip": "10.20.0.217",
+    "pool": "6e5f59fc-9bda-48f5-b062-26000a7e0dfc",
+    "member_id": "1bece02f-b2ff-4c20-8bf8-79ba5ef23b05",
+    "status_before": "ACTIVE",
+    "port_id": "39c42b22-94a8-4f9a-b2fe-bb1add2561c2"
+  },
+  "verdict": "PASS",
+  "checks": {
+    "lenh_gay_loi_ok": true,
+    "hoan_tac_ok": true,
+    "phat_hien_trong_han": true,
+    "khong_loi_sau_phat_hien": true,
+    "dich_tro_lai": true
+  },
+  "metrics": {
+    "detect_s": 1.4,
+    "recover_status_s": 6.1,
+    "target_back_s": 1.9,
+    "probes_in_fault": 181,
+    "errors_in_fault": 0,
+    "errors_after_detect": 0,
+    "target_resp_after_detect": 0
+  },
+  "aborted_reason": null,
+  "fault_rc": 0,
+  "revert_rc": 0,
+  "t0": 1794551695.575679,
+  "t1": 1794551741.3269045,
+  "finished_utc": "20261113T063551Z"
+}
+
+== Bao cao JSON tren Swift: campus-reports/chaos/20261113T063616Z-dung-som-member-1.json
+{
+  "scenario": {
+    "name": "dung-som-member-1",
+    "action": "member-disable",
+    "duration_s": 30,
+    "baseline_s": 10,
+    "target": {
+      "server": "chaos-lab-1",
+      "pool": "6e5f59fc-9bda-48f5-b062-26000a7e0dfc"
+    },
+    "probe": {
+      "url": "http://172.24.4.156:8080/",
+      "rate_per_s": 4,
+      "timeout_s": 1,
+      "marker": "chaos-lab-1"
+    },
+    "stop_if": {
+      "error_rate_gt": 0.2,
+      "window_s": 5,
+      "min_probes": 8,
+      "online_members_lt": 3
+    },
+    "hypothesis": {
+      "detect_within_s": 15,
+      "max_errors_after_detect": 0,
+      "recover_within_s": 150
+    },
+    "report": {
+      "swift_container": "campus-reports"
+    }
+  },
+  "target": {
+    "server": "chaos-lab-1",
+    "server_id": "51c964a1-a1cc-466b-ac77-ef06c80d99fb",
+    "ip": "10.20.0.217",
+    "pool": "6e5f59fc-9bda-48f5-b062-26000a7e0dfc",
+    "member_id": "1bece02f-b2ff-4c20-8bf8-79ba5ef23b05",
+    "status_before": "ACTIVE"
+  },
+  "verdict": "ABORTED",
+  "checks": {
+    "lenh_gay_loi_ok": true,
+    "hoan_tac_ok": true,
+    "phat_hien_trong_han": true,
+    "khong_loi_sau_phat_hien": true,
+    "dich_tro_lai": true
+  },
+  "metrics": {
+    "detect_s": 1.6,
+    "recover_status_s": 1.9,
+    "target_back_s": 1.8,
+    "probes_in_fault": 14,
+    "errors_in_fault": 0,
+    "errors_after_detect": 0,
+    "target_resp_after_detect": 0
+  },
+  "aborted_reason": "khong con member ONLINE (con 1)",
+  "fault_rc": 0,
+  "revert_rc": 0,
+  "t0": 1794551766.856628,
+  "t1": 1794551770.5006306,
+  "finished_utc": "20261113T063616Z"
+}

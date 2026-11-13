@@ -2,7 +2,7 @@
 
 Dịch vụ thí nghiệm lỗi có kiểm soát cho app VM của nhóm (SRS 1.4, ADR-11). Chạy trên host A bằng Python 3 và thư viện chuẩn, gọi CLI `openstack`.
 
-**Trạng thái (12/11/2026):** v0, **chưa chạy trên cụm**. Logic (xác thực, rào an toàn, dừng sớm, hoàn tác, phân tích số liệu) đã có 18 test chạy không cần cụm. Ba lệnh gây lỗi và hoàn tác (`server stop/start`, `loadbalancer member set --disable/--enable`, `port set --disable/--enable`) đã chạy thật bằng `member` trong `chaos-lab.sh` (evidence `evidence/G3/20261112-FR-INF-24-O-20-chaos-lab-hanh-dong-loi-bang-member.txt`). **Chưa kiểm trên cụm:** dạng cột `properties` của `server show -f json`, `object create --name` lên Swift `campus-reports`, và việc đọc kịch bản `.yaml` (cần PyYAML; dùng `.json` nếu thiếu).
+**Trạng thái (13/11/2026):** v0, **đã chạy trên cụm** trên stack lab 2 VM sau LB `ovn` (evidence `evidence/G3/20261113-FR-INF-24-campus-chaos-chay-tren-cum.txt`): rào an toàn, dry-run, 3 thí nghiệm thật (`vm-stop`, `member-disable`, `port-disable`: LB phát hiện 1,4–3,6 s, 0/181 probe lỗi mỗi lần, đích trả lời lại sau 1,4–30,5 s) và một lần thử dừng sớm đều đạt (26 PASS, 0 FAIL). Báo cáo lên Swift `campus-reports` và đọc lại được; kịch bản `.yaml` đọc được (cần PyYAML, A có; dùng `.json` nếu thiếu); dạng cột `properties` của `server show -f json` đọc đúng. Logic có 18 test chạy không cần cụm. Ba lệnh gây lỗi và hoàn tác đã chạy bằng `member` từ 12/11 (`evidence/G3/20261112-FR-INF-24-O-20-chaos-lab-hanh-dong-loi-bang-member.txt`). **Chưa:** credential riêng `campus-chaos`, thử trên stack app thật của TV2, thử ngưỡng tỉ lệ lỗi thật của dừng sớm (13/11 mới thử bằng `online_members_lt: 3` để dừng ngay).
 
 ## Rào an toàn
 
@@ -26,6 +26,10 @@ sudo -u tv2 -H env CHAOS_CLOUD=campus-tv2 CHAOS_STATE_DIR=/tmp/campus-chaos \
 
 Nếu tiến trình bị ngắt: `campus_chaos.py revert` (đọc `state.json`) rồi `status`. Báo cáo JSON nằm ở `<state-dir>/reports/` và được đưa lên Swift `campus-reports` (`chaos/<giờ>-<tên>.json`); đưa lên thất bại chỉ cảnh báo.
 
+## Chạy cả chuỗi trên lab
+
+Bộ lab tự dựng và chạy cả chuỗi nằm ở `lab/`: `chaos-lab.sh` dựng stack 2 VM `campus_role=app` sau LB `ovn`; `chaos-run.sh` chạy kiểm rào an toàn, dry-run, 3 thí nghiệm thật, thử dừng sớm, kiểm báo cáo trên Swift rồi dọn lab. Chép `lab/chaos-lab.sh`, `lab/chaos-run.sh` và `campus_chaos.py` vào **cùng một thư mục** trên A, rồi `sudo bash chaos-run.sh run` (khoảng 6 phút; bị ngắt thì `sudo bash chaos-run.sh down`). Chạy bằng quyền `member` `campus-tv2`, không dùng admin.
+
 ## Đối chiếu FR-INF-24
 
 | Yêu cầu | v0 |
@@ -34,7 +38,7 @@ Nếu tiến trình bị ngắt: `campus_chaos.py revert` (đọc `state.json`) 
 | Gây đúng một lỗi: tắt VM, tắt member LB, tắt port | Có |
 | Dừng sớm khi tỉ lệ lỗi vượt ngưỡng hoặc hết member `ONLINE` | Có |
 | Tự hoàn tác sau thời lượng (tối đa 300 s) | Có |
-| Báo cáo vào Swift `campus-reports` | Có, **chưa kiểm** |
+| Báo cáo vào Swift `campus-reports` | Có, đã kiểm trên cụm 13/11 (4 báo cáo, đọc lại được) |
 | Chỉ nhận đích `campus_role=app`; mỗi lúc một thí nghiệm | Có |
 | Application credential có access rules, không dùng admin | **Chưa**: tạm dùng user `member` |
 
@@ -42,4 +46,5 @@ Nếu tiến trình bị ngắt: `campus_chaos.py revert` (đọc `state.json`) 
 
 - Credential riêng `campus-chaos` với access rules (phần còn lại của O-20) và thử trên stack thật của TV2.
 - Tự ghi số đo NFR-21 và kết luận giả thuyết NFR-01/02; SLI từ log Nginx (NFR-22). Log `$request_time` đã bật trên A ngày 12/11 (`/var/log/nginx/campus-rt.log`).
+- Thử ngưỡng tỉ lệ lỗi thật của dừng sớm (13/11 mới thử bằng `online_members_lt: 3`).
 - Kịch bản nhiều bước; probe từ nhiều nguồn.
