@@ -32,7 +32,8 @@ if not cid or not sec:
     sys.exit(f"FAIL output thieu id/secret (khoa: {sorted(d)}); credential co the da tao, xoa bang tay")
 with open(sys.argv[2], "w") as f:
     f.write(f"id={cid}\nsecret={sec}\n")
-print(f"OK credential {d.get('name')} id={cid} het han {d.get('expires_at')}, {len(d.get('access_rules') or [])} access rule")
+# Chi in 8 ky tu dau cua ID (gitleaks bat chuoi 32 hex dang "id=..." la generic-api-key)
+print(f"OK credential {d.get('name')} id={cid[:8]}... het han {d.get('expires_at')}, {len(d.get('access_rules') or [])} access rule")
 PY
 rm -f "$tmp"
 ls -l "$out" | awk '{print $1, $NF}'

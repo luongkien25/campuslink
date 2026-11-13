@@ -11,7 +11,7 @@ Không ghi secret vào repo, evidence, issue hay Zalo. Lệnh đánh dấu ⚠�
 | Đích | Swift `campus-backups/db/shlink-<UTC>.dump` và `...dump.sha256`; object dump có metadata `X-Object-Meta-Sha256`; PUT kèm `ETag` (md5) để Swift từ chối nếu hỏng đường truyền | FR-INF-15 "có checksum" |
 | Quyền | Application credential `campus-db-backup` do `campus-tv3` tạo, hết hạn 31/12/2026, access rules chỉ `PUT/GET/HEAD/DELETE` trên `campus-backups/db/*` và `GET` liệt kê `campus-backups` | O-14: access rules đã chạy trên cụm; không thêm user Keystone |
 | Đưa credential vào VM | Qua SSH, VM nhảy tạm (H2 mục 4.1), file `/root/campus-backup/cred` (0600, 2 dòng `id=`, `secret=`) | Không qua user-data nên không cần ngoại lệ NFR-08 mới |
-| Chu kỳ (O-19, đề xuất) | systemd timer: 10 phút sau boot, rồi mỗi giờ; `Persistent=true` chạy bù lượt lỡ khi máy tắt | RPO ≤ 1 giờ khi cụm chạy; lúc cụm tắt không có ghi mới |
+| Chu kỳ (O-19, **chốt 13/11** ở #38) | systemd timer: 10 phút sau boot, rồi mỗi giờ (`RandomizedDelaySec=120`); `Persistent=true` chạy bù lượt lỡ khi máy tắt | RPO ≤ 1 giờ 02 phút khi cụm chạy; lúc cụm tắt không có ghi mới |
 | Retention | 48 bản trong Swift (khoảng 2 ngày chạy), 2 bản trên đĩa DB VM | Dump khoảng vài chục KB; Swift 5 GiB (H3 mục 4) |
 | Bản ngoài A | `pull-latest.sh` chép bản mới nhất về laptop và kiểm sha256 | FR-INF-15 "1 bản về máy nhóm", NFR-11 |
 | Restore | `campus-db-restore-test`: tải dump, kiểm sha256, `DROP/CREATE campus_restore_test`, `pg_restore --no-owner`; tên DB đích cố định, **không bao giờ** là `shlink` | FR-INF-16, FR-INF-25 tầng 2 |
@@ -127,4 +127,6 @@ Kiểm: `openstack port show campus-db-port -c security_group_ids` chỉ còn `c
 
 - Trạng thái lượt gần nhất: `/var/lib/campus-backup/last` trên DB VM (`OK <UTC> <object> <byte> <sha256>` hoặc `FAIL <UTC> <lý do>`).
 - Đổi credential (hết hạn 31/12/2026 hoặc nghi lộ): tạo cái mới bằng `make-backup-cred.sh`, ghi lại `/root/campus-backup/cred` qua SSH, xóa cái cũ (`openstack application credential delete`). Credential chỉ ghi/xóa được `campus-backups/db/*`, không đọc được `campus-secrets`.
+- Credential `campus-db-backup` thuộc user `campus-tv3` (giữ đến 30/11, TV1 chốt ở #38): đổi role, khóa hoặc xóa `campus-tv3` thì backup hỏng ngay (lượt sau báo `FAIL Keystone tra 401`, xem `/var/lib/campus-backup/last`).
+- Giới hạn: credential có quyền `DELETE` trong `db/*` (để chạy retention), và Swift nằm trên chính host A. Bản trong Swift chỉ chống mất DB VM hoặc volume, **không** chống mất host A hay xóa nhầm. Bản về laptop (`pull-latest.sh`) và tầng 3 của FR-INF-25 (S3 Object Lock, O-22) bù phần này.
 - Chưa có: DB `campus_portal` (thêm vào dump khi portal có DB, H1b); Redis không backup (cache + hàng đợi, ADR-09).

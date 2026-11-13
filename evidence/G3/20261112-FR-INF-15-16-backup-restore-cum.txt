@@ -20,7 +20,7 @@ DB shlink (psql tren DB VM, 16:05Z): tv2g4-20261111|https://example.org/campusli
 == credential backup (tren A)
 lan 1: make-backup-cred.sh tao credential 98d78808... nhung doc sai khoa JSON cua OSC ("ID"/"Secret" viet hoa) -> secret mat,
        file rong. Da xoa credential 98d78808 (TV3 xac nhan), sua script, tao lai.
-OK credential campus-db-backup id=380fe7eea91f417cb4619e6542bfd5d0 het han 2026-12-31T00:00:00, unrestricted False, 5 access rule:
+OK credential campus-db-backup id=380fe7ee... (ID day du trong docs/inventory.yaml) het han 2026-12-31T00:00:00, unrestricted False, 5 access rule:
   PUT|GET|HEAD|DELETE /v1/AUTH_07af3a3dd4c24d1ba028efcb6d28ef84/campus-backups/db/*
   GET                 /v1/AUTH_07af3a3dd4c24d1ba028efcb6d28ef84/campus-backups
 Thu access rules bang curl tu A (token 201):
