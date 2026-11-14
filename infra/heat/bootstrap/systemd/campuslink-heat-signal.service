@@ -1,0 +1,12 @@
+[Unit]
+Description=CampusLink CREATE readiness signal to Heat
+Requires=campuslink-ready.service
+After=campuslink-ready.service
+OnFailure=campuslink-heat-failure.service
+ConditionPathExists=/run/campuslink/signal.json
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/usr/bin/python3 -B /opt/campuslink/bootstrap/signal_ready.py
+TimeoutStartSec=180
