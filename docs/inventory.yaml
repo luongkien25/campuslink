@@ -85,7 +85,7 @@ aws:
 openstack:
   release: stable/2026.1
   devstack_sha: "da2f4d73f5ad74fc8ecfbe15bd7e20f6b0982dbb"   # cung SHA tren A va B (24/10/2026)
-  gnocchi_sha: "4a41c1d05052bcabf19fbe2e5bfb5a036a321d32"    # tag 4.7.1, TAM, cho TV2 chot (O-06)
+  gnocchi_sha: "4a41c1d05052bcabf19fbe2e5bfb5a036a321d32"    # tag 4.7.1; TV2 kiem O-06 tren A 14/11: CPU60s A/B + group aggregate + high/low Aodh; giu pin
   repo_shas_file: docs/versions.lock
   keystone_auth_url: "http://10.11.0.10/identity"   # doc lai tu catalog
   nova:
@@ -145,7 +145,7 @@ shlink:                         # Lab 9.5
   ingress:                      # 27/10/2026, mau cau hinh: infra/nginx/campus.conf.example, infra/apache/campus-acme.conf.example
     nginx: { version: "1.24.0", listen: 443, conf: /etc/nginx/conf.d/campus.conf, admin_root: /var/www/campus-admin/shlink-web-client_4.8.1_dist }
     apache_acme_alias: /etc/apache2/conf-available/campus-acme.conf   # Alias /.well-known/acme-challenge/ -> /var/www/html
-  vip_lab_fip: "REPLACE"        # FIP cua VIP do Heat tao, khong phai LB smoke
+  vip_lab_fip: "172.24.4.117"        # FIP cua VIP do Heat tao, khong phai LB smoke
   db: { host: 10.20.0.10, name: shlink, engine: "PostgreSQL 16", version: "16.15 (apt Ubuntu 24.04)", max_connections: 50, role_shlink_conn_limit: 15 }   # SRS 1.3 them DB campus_portal + user rieng (TV3)
   db_vm: { name: campus-db, uuid: "6d17a9e8-4975-4c46-afd6-be1017e2a251", flavor: campus.db, az: campus-az-a, port: campus-db-port, volume: campus-db-data, key_name: tv3, created: "2026-11-08" }   # FR-INF-12, TV3; cloud-init app/db/user-data.tmpl.yaml, runbook docs/runbooks/db-vm.md
   redis: { endpoint: "10.20.0.10:6379", auth: required, version: "7.0.15 (apt)", appendonly: true, maxmemory: 256mb, policy: noeviction }   # policy de xuat, chot cung TV4
@@ -157,19 +157,59 @@ shlink:                         # Lab 9.5
     sha256: 85c96539fd609ef80ea7d366cced743a1c0af1d9987d9f8d4517e969d519a120
     root_dir_in_zip: shlink-web-client_4.8.1_dist
   app_instances:
-    app-a: { uuid: "REPLACE", ip: "REPLACE" }
-    app-b: { uuid: "REPLACE", ip: "REPLACE" }
+    app-a: { uuid: "523d67b4-9234-4b09-b3dc-c814e6b868fc", ip: "10.20.0.195", az: campus-az-a }
+    app-b: { uuid: "157e3878-4555-4e11-8186-f60b825792e3", ip: "10.20.0.150", az: campus-az-b }   # Heat giu B moi sau manual3->2 ngay14/11, B88d... da xoa
 
 load_balancer:                  # TV2 dien sau Heat (H4)
   provider: ovn
-  lb_id: "REPLACE"
-  vip_port_id: "REPLACE"
-  listener: { protocol: TCP, port: 8080 }
+  lb_id: "deb301de-fb2a-430b-8bc7-2954a3afe14a"
+  vip_port_id: "9b107b20-4d06-4716-808b-a57f12a64c45"
+  vip_address: "10.20.0.128"
+  vip_fip: "172.24.4.117"
+  listener: { protocol: TCP, port: 8080, id: "b431e26a-0590-48ba-8c5d-544bc01ee7f4" }
   listener_portal_planned: { protocol: TCP, port: 8081, pool_id: "REPLACE" }   # SRS 1.3 (H4b, O-13), CHUA tao; TV2
-  pool: { algorithm: SOURCE_IP_PORT, id: "REPLACE" }
-  health_monitor: { type: TCP, delay: 5, timeout: 3, max_retries: 3 }
+  pool: { algorithm: SOURCE_IP_PORT, id: "e7014f7e-6883-4198-861e-bf23b0247f9f" }
+  health_monitor: { type: TCP, delay: 5, timeout: 3, max_retries: 3, id: "558c8bab-9cbf-4730-94be-4d705c8d51d4" }
 
 # 07/11/2026: tv2-lb-lab 88dabbc1-f487-4f26-9554-ced5c1fdb69b da xoa qua Heat.
 # DELETE_COMPLETE 06:43:02 UTC; hau kiem 06:43:52 UTC, giu volume/port DB va mang nen.
 # Evidence: evidence/G2/20261107-FR-INF-07-tv2-lb-cleanup.txt
 temporary_resources: []         # diag-a/diag-b, LB smoke, FIP tam... ghi de xoa sau
+
+# TV2 G5 core deployment, 13/11/2026. UUID live; stack integration cu da don.
+heat:
+  stack: { name: campus-app, id: "816bd58d-ca22-47b8-abe5-9729719d894e", status_at_check: CREATE_COMPLETE }
+  template: infra/heat/root.yaml
+  handoff: docs/handoffs/H4-heat-lb-scaling.md
+  app_image: "2c43a06d-1db8-4c01-bd31-98803325d932"
+  asg_b: { id: "479438e0-37fe-47d3-a0a3-fcaf53e756b1", min: 1, max: 2, size_at_check: 1, az: campus-az-b }
+  manual_policies: { scale_out: scale_out, scale_in: scale_in, cooldown_seconds: 180 }
+  readiness_seconds: 180
+  wait_condition_seconds: 300
+  diagnostic_security_groups: []
+  ingress_status: "HTTPS cert verified; health200/pass, redirect302 dung dich"
+  ingress_checked_utc: "2026-11-14T08:32:55.530910Z"
+  checked_utc: "2026-11-14T08:32:38.324048Z"
+  cpu_alarm_stack:
+    name: campus-app-cpu-alarms
+    id: "f5b0c4cf-558b-46b2-a4e2-c28d835fc275"
+    scope: "standalone CPU alarms; app root update NOT applied due preview replacement"
+    high: { id: "37680d7a-7c46-4cf8-a789-035c7d990219", threshold: 36000000000, comparison: gt, periods: 2 }
+    low: { id: "90f9060e-af83-4bba-834c-52753144421c", threshold: 15000000000, comparison: lt, periods: 3 }
+    metric: cpu
+    aggregation: "rate:mean"
+    granularity_seconds: 60
+    rate_semantics: delta-ns
+    group: campuslink-app
+    cpu_metric_ids: { app-a: "123ecdaf-efc2-4815-931e-cd846de6e910", app-b: "bd3a4524-7121-42ea-aba3-344525fcdd25" }
+    vcpus_metric_ids: { app-a: "05418399-d872-4659-a41a-e1b71d91c229", app-b: "d4340a4e-0fe2-46f8-9368-ba3d6845b03a" }
+    lifecycle_filter: "ended_at=null AND deleted_at=null"
+    enabled_at_handoff: false
+    action_count: 0
+    disabled_utc: "2026-11-14T07:58:40.025171Z"
+    high_alarm_history_utc: "2026-11-14T07:49:13.738777Z"
+    low_after_load_alarm_history_utc: "2026-11-14T07:54:13.692679Z"
+    evidence: "evidence/G4/20261114-FR-INF-10-tv2-metric-alarm.txt"
+  app_ssh_host_fingerprints:
+    app-a: { type: ed25519, sha256: "SHA256:chWPXeef/ZDCO9ee4smKz6ilsIAQvBvZorzmDZEzyb0", source: "TV1 hypervisor check issue42, matched strict SSH14/11" }
+    app-b: { type: ed25519, sha256: "SHA256:Acr0rxOaQt0BT5z8kLImaSx0xErhyMuV8cLPAJ32H8k", source: "Nova console first boot14/11, matched strict SSH" }

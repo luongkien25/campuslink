@@ -1,0 +1,9 @@
+[Unit]
+Description=CampusLink CREATE bootstrap failure signal
+ConditionPathExists=/run/campuslink/signal.json
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/usr/bin/python3 -B /opt/campuslink/bootstrap/signal_ready.py --failure
+TimeoutStartSec=10

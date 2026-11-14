@@ -15,6 +15,7 @@ Chỉ khi thật sự phải vá upstream mới lưu patch vào `app/patches/` k
 
 - Người mới: đọc `CONTRIBUTING.md` (quy trình nhóm, cách dùng AI, dùng chung cloud).
 - AI agent: đọc `AGENTS.md` (Claude Code đọc qua `CLAUDE.md`).
+- TV2 triển khai app bằng Heat: [template, tests offline và trình tự kiểm cloud](infra/heat/README.md).
 
 ## Cấu trúc
 
