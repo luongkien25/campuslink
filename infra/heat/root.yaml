@@ -1,0 +1,259 @@
+heat_template_version: '2021-04-16'
+description: 'Shlink core: fixed AZ-A + ASG-B 1-2; readiness local 180s, Heat wait
+  300s. Khong tao DB/network nen.'
+parameters:
+  app_image:
+    type: string
+  app_flavor:
+    type: string
+    default: campus.app
+    constraints:
+    - allowed_values:
+      - campus.app
+  key_name:
+    type: string
+  app_network:
+    type: string
+  app_subnet:
+    type: string
+  app_security_group:
+    type: string
+  external_network:
+    type: string
+    default: public
+  az_a:
+    type: string
+    default: campus-az-a
+    constraints:
+    - allowed_values:
+      - campus-az-a
+  az_b:
+    type: string
+    default: campus-az-b
+    constraints:
+    - allowed_values:
+      - campus-az-b
+  bootstrap_credential_id:
+    type: string
+    hidden: true
+    constraints:
+    - allowed_pattern: '[a-fA-F0-9]{32}'
+  bootstrap_credential_secret:
+    type: string
+    hidden: true
+    constraints:
+    - allowed_pattern: '[A-Za-z0-9_+/=-]{16,256}'
+  readiness_timeout:
+    type: number
+    default: 180
+    constraints:
+    - allowed_values:
+      - 180
+  drain_seconds:
+    type: number
+    default: 5
+    constraints:
+    - range:
+        min: 5
+        max: 30
+  metric_group_metadata:
+    type: string
+    default: campuslink-app
+    constraints:
+    - allowed_values:
+      - campuslink-app
+  diagnostic_security_groups:
+    type: comma_delimited_list
+    default: []
+    description: SG SSH tam cua TV2, mac dinh rong; chi gan app port, khong doi SG
+      chung.
+resources:
+  lb:
+    type: OS::Octavia::LoadBalancer
+    properties:
+      provider: ovn
+      vip_subnet:
+        get_param: app_subnet
+  vip_fip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network:
+        get_param: external_network
+      port_id:
+        get_attr:
+        - lb
+        - vip_port_id
+  listener:
+    type: OS::Octavia::Listener
+    properties:
+      loadbalancer:
+        get_resource: lb
+      protocol: TCP
+      protocol_port: 8080
+  pool:
+    type: OS::Octavia::Pool
+    properties:
+      listener:
+        get_resource: listener
+      protocol: TCP
+      lb_algorithm: SOURCE_IP_PORT
+  monitor:
+    type: OS::Octavia::HealthMonitor
+    properties:
+      pool:
+        get_resource: pool
+      type: TCP
+      delay: 5
+      timeout: 3
+      max_retries: 3
+  app_a:
+    type: app-unit.yaml
+    depends_on: monitor
+    properties:
+      image:
+        get_param: app_image
+      flavor:
+        get_param: app_flavor
+      key_name:
+        get_param: key_name
+      network:
+        get_param: app_network
+      subnet:
+        get_param: app_subnet
+      security_group:
+        get_param: app_security_group
+      availability_zone:
+        get_param: az_a
+      readiness_timeout:
+        get_param: readiness_timeout
+      drain_seconds:
+        get_param: drain_seconds
+      metric_group_metadata:
+        get_param: metric_group_metadata
+      bootstrap_credential_id:
+        get_param: bootstrap_credential_id
+      bootstrap_credential_secret:
+        get_param: bootstrap_credential_secret
+      pool:
+        get_resource: pool
+      app_env:
+        get_file: ../../app/shlink.env.example
+      diagnostic_security_groups:
+        get_param: diagnostic_security_groups
+  asg_b:
+    type: OS::Heat::AutoScalingGroup
+    depends_on: app_a
+    properties:
+      min_size: 1
+      max_size: 2
+      desired_capacity: 1
+      cooldown: 180
+      rolling_updates:
+        min_in_service: 1
+        max_batch_size: 1
+        pause_time: 0
+      resource:
+        type: app-unit.yaml
+        properties:
+          image:
+            get_param: app_image
+          flavor:
+            get_param: app_flavor
+          key_name:
+            get_param: key_name
+          network:
+            get_param: app_network
+          subnet:
+            get_param: app_subnet
+          security_group:
+            get_param: app_security_group
+          availability_zone:
+            get_param: az_b
+          readiness_timeout:
+            get_param: readiness_timeout
+          drain_seconds:
+            get_param: drain_seconds
+          metric_group_metadata:
+            get_param: metric_group_metadata
+          bootstrap_credential_id:
+            get_param: bootstrap_credential_id
+          bootstrap_credential_secret:
+            get_param: bootstrap_credential_secret
+          pool:
+            get_resource: pool
+          app_env:
+            get_file: ../../app/shlink.env.example
+          diagnostic_security_groups:
+            get_param: diagnostic_security_groups
+  scale_out:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      auto_scaling_group_id:
+        get_resource: asg_b
+      adjustment_type: change_in_capacity
+      scaling_adjustment: 1
+      cooldown: 180
+  scale_in:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      auto_scaling_group_id:
+        get_resource: asg_b
+      adjustment_type: change_in_capacity
+      scaling_adjustment: -1
+      cooldown: 180
+outputs:
+  stack_id:
+    value:
+      get_param: OS::stack_id
+  lb_id:
+    value:
+      get_resource: lb
+  pool_id:
+    value:
+      get_resource: pool
+  vip_port_id:
+    value:
+      get_attr:
+      - lb
+      - vip_port_id
+  vip_address:
+    value:
+      get_attr:
+      - lb
+      - vip_address
+  vip_fip:
+    value:
+      get_attr:
+      - vip_fip
+      - floating_ip_address
+  app_a_id:
+    value:
+      get_attr:
+      - app_a
+      - server_id
+  app_a_address:
+    value:
+      get_attr:
+      - app_a
+      - address
+  asg_b_size:
+    value:
+      get_attr:
+      - asg_b
+      - current_size
+  asg_b_ids:
+    value:
+      get_attr:
+      - asg_b
+      - outputs_list
+      - server_id
+  asg_b_addresses:
+    value:
+      get_attr:
+      - asg_b
+      - outputs_list
+      - address
+  scale_out_resource:
+    value: scale_out
+  scale_in_resource:
+    value: scale_in

@@ -1,0 +1,2 @@
+[Unit]
+OnFailure=campuslink-heat-failure.service

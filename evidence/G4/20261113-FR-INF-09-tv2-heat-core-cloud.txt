@@ -1,0 +1,116 @@
+CampusLink TV2 — FR-INF-08/09, NFR-08 — cloud giai doan 5 CORE
+Ngay 13/11/2026 UTC. Ket qua core TV2 da kiem; public HTTPS/H4b/alarm chua nhan PASS. Trang thai cuoi la snapshot 13/11, khong phai cloud live hom nay.
+
+Nguon: main69d0a4c + working tree tv2/heat-app; codeallowlist52files SHA2564a6295aa5eb2896372b7c0c8fd84ccda2bd5607c64fabac1c39faf54e9100310.
+Offline cuoi:36bootstrap+19Heat+18LB=73testsPASS, review2Important da sua bang regression RED->GREEN.
+Khongcommit/push/PR; khongdoiEC2/DB/SGchung.
+
+PREFLIGHT
+A12:48:53Z usertv2; uptime-s12:41:34Z. HaiAZavailable. ChiDB6d17a9e8-4975-4c46-afd6-be1017e2a251 ACTIVE10.20.0.10;
+DBbootcheckPG16.15 max50/role15,1short_url/2visits,Redis7PONG/mount/metadataOK. Quota6VM8CPU12GiB,used1VM1CPU2GiB1volume10GiB.
+Image2c43a06d-1db8-4c01-bd31-98803325d932active/min_disk10GiB,size3236757504.
+Live schemaWC/handle/Delay/ASG/policy/CloudConfig/Nova/PoolMember verified; native template validate --show-nested PASS voi fake env, fake file removed.
+OctaviaBase source on A: is_conflict handled by poll in create/update/delete, deletion polls DELETED/notfound. Live delete/scale remains to measure.
+SSH strictHost verification A matches approved gW49fIV...; jump/app host publickeys pinned from Nova console. Private key remains on laptop.
+
+NEGATIVE A — DB_HOST localhost CHI app A
+Stack6afca53c-4259-4d22-9e6d-46a254bd6f32, VM a38691c9-703c-44a6-9d14-4e42888d4a65,10.20.0.122.
+campuslink-secrets Result=success ExecMainStatus=0 ActiveState=active SubState=exited
+campuslink-guard Result=success ExecMainStatus=0 ActiveState=active SubState=exited
+campuslink-shlink Result=exit-code ExecMainStatus=1 ActiveState=failed SubState=failed
+campuslink-ready Result=signal ExecMainStatus=15 ActiveState=failed SubState=failed
+campuslink-heat-signal Result=success ExecMainStatus=0 ActiveState=inactive SubState=dead
+campuslink-heat-failure Result=success ExecMainStatus=0 ActiveState=inactive SubState=dead
+heat-attempt.json {'instance_id': 'a38691c9-703c-44a6-9d14-4e42888d4a65', 'boot_id': '5fa4e788-0ff0-40bf-847a-f62dfede3c39', 'started': 25.070680851, 'deadline': 205.070680851}
+heat-sent.json {'status': 'FAILURE', 'boot_id': '5fa4e788-0ff0-40bf-847a-f62dfede3c39', 'instance_id': 'a38691c9-703c-44a6-9d14-4e42888d4a65'}
+heat-chosen.json {'status': 'FAILURE'}
+ready.json absent
+signal_descriptor_exists False
+containers
+Heat/pool:
+{
+  "stack_status": "CREATE_FAILED",
+  "stack_status_reason": "Resource CREATE failed: WaitConditionFailure: resources.app_a.resources.ready: bootstrap-failed"
+}
+
+[]
+ASG/member physical IDs empty; only A tried, HeatFAILED expected. Stack deleted via Heat before B test.
+
+NEGATIVE B — DB_HOST localhost CHI ASG-B
+Stack1aa8fe65-3b92-4a68-961b-2b27d927f078.
+A77b01f7e-cc0b-4e07-8ad2-8461e71f56ba,10.20.0.172:
+{"heat-attempt": {"instance_id": "77b01f7e-cc0b-4e07-8ad2-8461e71f56ba", "boot_id": "113e6995-5430-4e49-b7a5-2dd4f8387b8a", "started": 16.520751716, "deadline": 196.520751716, "file_utc": "2026-11-13T13:01:33.904221+00:00"}, "heat-sent": {"status": "SUCCESS", "boot_id": "113e6995-5430-4e49-b7a5-2dd4f8387b8a", "instance_id": "77b01f7e-cc0b-4e07-8ad2-8461e71f56ba", "file_utc": "2026-11-13T13:01:42.708822+00:00"}, "secrets": {"boot_id": "113e6995-5430-4e49-b7a5-2dd4f8387b8a", "started": 17.197035107, "deadline": 197.197035107, "generation": "17380000341", "file_utc": "2026-11-13T13:01:34.763419+00:00"}, "guard": {"boot_id": "113e6995-5430-4e49-b7a5-2dd4f8387b8a", "started": 17.197035107, "deadline": 197.197035107, "generation": "17380000341", "file_utc": "2026-11-13T13:01:35.485578+00:00"}, "ready": {"boot_id": "113e6995-5430-4e49-b7a5-2dd4f8387b8a", "started": 17.197035107, "deadline": 197.197035107, "generation": "17380000341", "file_utc": "2026-11-13T13:01:41.765690+00:00"}, "signal_file_exists": false, "health_pass": true, "redis_pong": true}
+B1cef5e2d-3cdc-4b67-9019-c1a72b1eb9fd,10.20.0.146:
+failure_signal FAILURE
+ready_exists False token_file_exists False
+container_present False
+campuslink-secrets Result=success ActiveState=active
+campuslink-guard Result=success ActiveState=active
+campuslink-shlink Result=exit-code ActiveState=failed
+campuslink-ready Result=signal ActiveState=failed
+Heat resource inspection: A app/ready/member CREATE_COMPLETE; ASG-B/ready CREATE_FAILED, B member has no physical ID.
+Pool negative B chi co A10.20.0.172 ONLINE; B khong member. Stack DELETE_COMPLETE, Nova chi con DB+jump truoc case callback. Case nay khong dung thay core smoke.
+
+
+CALLBACK TIMEOUT — APP KHOE, TOKEN SIGNAL GIA
+- Stack62804b13-5da3-4a5e-8e87-13b5ad2895f6, VMc7083f29-bd60-45bb-9b05-ad67ea1ce2a1,10.20.0.212.
+- HTTPhealth va RedisPONG true; ready.json present, heat-sent.json absent, signal descriptor removed.
+- WC CREATE_IN_PROGRESS13:30:08Z -> CREATE_FAILED13:35:09Z (301s), 0of1received.
+- Pool0member, ASG-B not created. Stack da DELETE_COMPLETE. Khong dung NO_SIGNAL hoac signal SUCCESS tay.
+
+INTEGRATION CORE — DA DON, KHONG PHAI UUID LIVE H4
+- Stack471c4594-1982-4b5f-aebc-07ee1366a162: fixedA53c48511-3f60-4841-8c86-b1a7f2565a04(10.20.0.209/AZA),
+  initialB800623d1-dab5-4215-a931-4da91a2d3b2a(10.20.0.131/AZB), addedBbb3c9e58-4d82-40a9-afe3-c3b5233c9768(10.20.0.172/AZB).
+- Ca3: campus.app1vCPU/2048MiB/root10GiB, sameGlance2c43..., noFIP; HTTP200/pass5.1.8,RedisPONG,metadata host200/containerRC1/DROP0->3,
+  uid1001/RO individual secret files/root0444/parent0700, bridge/restart=no/cached image/no-pull, logJSON/UTC/guestattrs PASS.
+- Core2:60auth-deny401requestIDmatchA26/B34; core3:60matchA15/Bold22/Bnew23; afterscalein:60matchA31/Bnew29. Redirect302correct.
+- Scaleoutpolicy request13:42:17.929766Z,3ONLINEobserved13:43:29.633203Z.
+  734continuous auth-deny requests,0errors: A268/Bold273/Bnew193; newBfirstobservedLBrequest13:43:18.270823360Z.
+- Scaleinpolicy13:55:11.337736Z; cooldownelapsed696.5096s after3ONLINE. RemovedINITIALB, newBretained, fixedAunchanged.
+  memberDELETE_IN_PROGRESS13:55:14Z;memberDELETE_COMPLETE13:55:15Z;drainDELETE_IN_PROGRESS13:55:15Z;
+  drainDELETE_COMPLETE/serverDELETE_IN_PROGRESS13:55:20Z;serverDELETE_COMPLETE13:55:25Z.
+  SDKcollector saved events BEFORE nested stack purge;0collectorerrors;117smokerequests/0probeerrors.
+- ReadonlyPDOqueryfromapp atidle:roleconnections1(includingquery),rolelimit15,max_connections50; notfull-loadbudgetproof.
+- FirstnewBSSHattemptRC255/banner timeout, jumpneighborFAILED; later diagnosticSSHsuccess, noSG/networkchanges. RuntimecheckerthenPASS.
+
+WHY FINAL CREATE INSTEAD OF SG-ONLY UPDATE
+- Cleanup preview nested400; shallow previewresource_changes indicated replacement listener/pool/policies, updatedASG/appA.
+- ASG _try_rolling_update source calls _replace when RESOURCE definition changes. NO UPDATE APPLIED.
+- Chon duong CREATE da kiem: dumpintegrationevents, DELETEintegrationstack, CREATE finalsameHOT/image with diagnostic_security_groups[].
+- Gan SGSSH tam truc tiep vao ownedappports de do guest, sau do UNSET va verify chiappSG, khoi phuc dungcanonicaltemplate.
+- Integration scale proof belongsOLDstack. Finaldeployment has newUUID/handles and its ownCREATE+2backend/runtime/smoke proof.
+
+FINAL DEPLOYMENT — GIU LAI, SNAPSHOT 13/11
+- campus-app816bd58d-ca22-47b8-abe5-9729719d894e CREATE_COMPLETE.
+- A523d67b4-9234-4b09-b3dc-c814e6b868fc10.20.0.195AZA;B88d79382-b4c2-4868-988f-047421ff967b10.20.0.111AZB.
+- LBdeb301de-fb2a-430b-8bc7-2954a3afe14a;pool e7014f7e-6883-4198-861e-bf23b0247f9f;
+  VIPport9b107b20-4d06-4716-808b-a57f12a64c45,10.20.0.128;VIPFIP172.24.4.117:8080.
+- Sameimage2c43...,A/B runtime ready7.192s/7.240s,HTTP/Redis/metadata/no-pull/files/logattrs PASS.
+- AACK14:12:16.085846Z;BACK14:13:01.003365Z; perunitfreshhandles/WC/member COMPLETE.
+- 60requestIDs matchedA33/B27, UTC/guestattrsvalid; redirect2requests302correct. Finalpool2ACTIVE/ONLINE.
+
+CLEANUP AND BEFORE STOP
+- Cleanup14:17:37.709886Z->14:17:59.887759Z:jump4fd2cf64-0ab0-4425-a6f2-71bbab70d313,
+  jumpFIPfe7d0494-7ad2-461b-953f-9cfb74797766,jumpSGe392fbd5-1d3a-4827-b946-61dd4d031340,
+  appSSHSG231b501d-2d29-4483-93ab-a0ebc2178c70 da xoa; appports chi b3eb3225-3e50-4c38-b43f-3823b6022d05.
+- Generated privateenvs app-env.yaml,clean-full-env.yaml,final-core-env.yaml,cleanup-env.json removed onA; originalcampus-boot.cred retained.
+- Baseline:ONEstackcampus-app;DB+2app3VM/3CPU/6144MiB;1volume10GiB;1FIP172.24.4.117;SGDB/app/default only.
+- DB6d17a9e8-4975-4c46-afd6-be1017e2a251/port7df6ea1d-2e8c-46d5-99b9-e121855d81b5/volume f43fbbd2-b85f-4bb1-b403-ba54a2f84189 unchanged.
+  volume in-use sameDBattachment timestamp08/11;port10.20.0.10 onlyDBSG. VIPhealth200/pass aftercleanup.
+- campus-check14:18:54.666059Z:RC0,OK khongconaidung. User duocbaoStopBtruocAsau;agentNOAWSStop. ExactStopUTCnotobserved.
+
+LIMITS / RULINGS
+- PublicHTTPShealth503withcertverified;TV1needsconnectNginxtoNEWVIP. NoNginx/EC2/admin/DBconfigchanged.
+- Redirect da kiem o deployment2app. Redirect du3backend va redirectA khiBloiDB chua do, chuyen sanggiai doan6; mappingRequestID/health/member khong thaythe hai phepdo nay.
+- Aodh/automaticloadscale/portalworker/H4b/fullbenchmark/faultwholegroupNOTclaimed. Noforced409,token-expiry3600s/crosssignaltesthere.
+- RuntimeReadiness180s;nativeWC300sseparateanchor. Guard/health/Redis/statecheckedbeforeeverySUCCESSretry;retrycannotresetbudget.
+- Timeline bug fromrealdata:clientACKcanarriveAFTERengineWCcomplete;engineeventssecondsresolution. AddedRED->GREENregression;
+  validator usescausalbranchready->ACK andready->WC->member->firstrequest, notACK->WC. Noacceptancecriterionweakened.
+- VM_ACTIVEtimeline=HeatServerCREATE_COMPLETEobservation;firstrequest=firstOBSERVEDinthisprobe,notallhistory. A/Bwaitmanualprobe,nobootperformanceclaim.
+- HarnessJSONparseFAILafterdelete--waitwasnotcloudFAIL:waitoutputtext;stackshowbyUUIDreturnsDELETE_COMPLETE,notnecessarily404.
+- NoGitcommit/push/merge/PR/issuecomment/closebyagent. H4/inventory trackFINALdeployment,notdeletedlabUUIDs.
+
+Artifacts:
+  20261113-FR-INF-08-tv2-heat-checks.json (safeAPIevents,perguestchecks,requestIDs,live-deletecapture,programsources)
+  20261113-FR-INF-09-tv2-heat-timeline.json (normalizedintegrationmilestones)
+  docs/handoffs/H4-heat-lb-scaling.md; docs/inventory.yaml; infra/heat/README.md.
