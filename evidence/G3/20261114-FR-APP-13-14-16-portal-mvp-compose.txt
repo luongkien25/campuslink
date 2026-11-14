@@ -1,0 +1,63 @@
+# FR-APP-13 / FR-APP-14 / FR-APP-16 (duong lui) - campus-portal MVP phuong an B (#40) tren Compose local. TV3, 14/11/2026.
+# KHONG phai tren cum. Compose app/compose (profile portal): Shlink 5.1.8 (digest versions.lock), PostgreSQL 16, Redis 7.0,
+# portal build tu app/portal (python:3.12-slim, requirements.txt khoa phien ban). Portal goi Shlink qua http://shlink:8080.
+# Lenh: ./gen-portal-secrets.sh && docker compose --profile portal up -d --build --wait && ../portal/smoke/portal-smoke.sh
+# Smoke tu tao: admin, 2 don vi (key Shlink --author-only "portal-donvi-a/b"), unit-a, unit-b, viewer-a. Khong in key/mat khau.
+# Lan chay duoi day la lan thu 4 tren cung DB (chay lai khong loi; lan 1 co 1 FAIL do smoke lay sai CSRF, xem cuoi file).
+
+run_id=20261114T135853Z portal=http://127.0.0.1:18090 shlink=http://127.0.0.1:18080
+== healthz
+PASS  SRS-4.6  healthz portal  (=200 pass)
+== chuan bi (admin tao don vi, tai khoan)
+PASS  FR-APP-13  admin dang nhap  (=303 http://127.0.0.1:18090/)
+PASS  FR-APP-13  sai mat khau bi tu choi  (=200)
+PASS  FR-APP-13  unit-a dang nhap  (=303 http://127.0.0.1:18090/)
+PASS  FR-APP-13  unit-b dang nhap  (=303 http://127.0.0.1:18090/)
+PASS  FR-APP-13  viewer-a dang nhap  (=303 http://127.0.0.1:18090/)
+PASS  FR-APP-13  unit-a khong vao /admin  (=403)
+== FR-APP-14 chien dich 3 link
+PASS  FR-APP-14  tao chien dich  (=303)
+PASS  FR-APP-14  chien dich co 3 link  (=3)
+PASS  FR-APP-14  3 link chuyen huong 302 toi dich  (=3)
+PASS  FR-APP-14  3 link mang tag chien dich (REST key A)  (=3)
+== FR-APP-13 cach ly don vi
+PASS  FR-APP-13  unit-b xem chien dich cua A qua portal  (=404)
+PASS  FR-APP-13  unit-b khong thay chien dich A trong danh sach  (=0)
+PASS  FR-APP-13  REST key B doc link cua A  (=404)
+PASS  FR-APP-13  REST key B xem visit tag cua A  (=0)
+PASS  FR-APP-13  viewer-a xem chien dich cua A  (=200)
+PASS  FR-APP-13  viewer-a khong tao duoc chien dich  (=403)
+== FR-APP-16 phat hanh the (duong lui 1 lo)
+PASS  FR-APP-16  phat hanh 10 the  (=303)
+PASS  FR-APP-16  co link tai PDF  (=yes)
+PASS  FR-APP-16  tai PDF (unit-a)  (=200 %PDF)
+PASS  FR-APP-16  PDF co 2 trang (8 the/trang)  (=2)
+PASS  FR-APP-16  unit-b tai PDF cua A  (=404)
+PASS  FR-APP-16  10 nguoi ra 10 link khac nhau  (=10)
+PASS  FR-APP-16  moi link the 302 dung dich  (=10)
+== FR-APP-14 sua han, dong chien dich
+PASS  FR-APP-14  sua chien dich  (=303)
+PASS  FR-APP-14  link van 302 sau khi gia han  (=302)
+PASS  FR-APP-14  dong chien dich  (=303)
+PASS  FR-APP-14  3 link khong con chuyen huong sau khi dong  (=3)
+PASS  FR-APP-14  link the khong con chuyen huong  (=404)
+== FR-APP-14 het han theo gio
+PASS  FR-APP-14  truoc han: 302  (=302)
+INFO  cho het han 65s
+PASS  FR-APP-14  sau han: khong chuyen huong  (=404)
+== ket qua: 0 FAIL
+
+== QR trong PDF quet duoc (lan smoke 20261114T135606Z, N=10)
+pdftoppm -r 150 the-qr-smoke.pdf -> OpenCV QRCodeDetector.detectAndDecodeMulti:
+  10 QR giai ma duoc; 10 khac nhau
+  10 ma QR trung khop 10 short code cua link the (Shlink REST key A, searchTerm checkin?r=<run>)
+  (moi link do da 302 dung dich trong smoke truoc khi dong chien dich)
+Ban in thu: chu tieng Viet co dau (font DejaVuSans) hien dung; ban dau ten de len QR, da sua bo cuc (cards.py), xem lai bang anh.
+
+== Loi gap khi lam
+- Lan 1: FAIL "viewer-a khong tao duoc chien dich" (mong doi 403, thuc te 400): trang cua viewer khong co form nao chua CSRF
+  token, smoke gui token rong nen bi chan o buoc CSRF (van bi chan, nhung sai ly do). Them CSRF vao form Dang xuat (chong
+  logout CSRF) -> 403 dung.
+- Them don vi/tai khoan trung ten tra 500 (UniqueViolation) -> bat loi, tra 400.
+
+Chua kiem: tren cum (H1b), QR_STORAGE=swift, nhieu replica sau LB, quet QR bang dien thoai (lam khi demo).

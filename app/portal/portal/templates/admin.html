@@ -1,0 +1,41 @@
+{% extends "base.html" %}{% block title %}Quản trị{% endblock %}
+{% block body %}
+<h1>Quản trị</h1>
+<div class="grid">
+<section>
+  <h2>Thêm đơn vị</h2>
+  <form method="post" action="/admin/units">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label for="un">Tên đơn vị</label><input id="un" name="name" required>
+    <label for="k">API key Shlink của đơn vị</label><input id="k" name="api_key" type="password" required autocomplete="off">
+    <p class="muted">Tạo bằng <code>shlink api-key:generate --author-only --name=&lt;đơn vị&gt;</code>. Key được mã hóa trước khi lưu và không hiện lại.</p>
+    <button type="submit">Thêm đơn vị</button>
+  </form>
+</section>
+<section>
+  <h2>Thêm tài khoản</h2>
+  <form method="post" action="/admin/users">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label for="us">Tên đăng nhập</label><input id="us" name="username" required>
+    <label for="pw">Mật khẩu (≥ 8 ký tự)</label><input id="pw" name="password" type="password" minlength="8" required autocomplete="new-password">
+    <label for="r">Vai trò</label>
+    <select id="r" name="role"><option value="unit">Đơn vị</option><option value="viewer">Người xem</option><option value="admin">Quản trị</option></select>
+    <label for="ui">Đơn vị (bỏ trống nếu là quản trị)</label>
+    <select id="ui" name="unit_id"><option value="">—</option>{% for un in units %}<option value="{{ un.id }}">{{ un.name }}</option>{% endfor %}</select>
+    <button type="submit">Thêm tài khoản</button>
+  </form>
+</section>
+</div>
+<section class="scroll">
+  <h2>Đơn vị và tài khoản</h2>
+  <table><tr><th>Tài khoản</th><th>Vai trò</th><th>Đơn vị</th></tr>
+  {% for x in users %}<tr><td>{{ x.username }}</td><td>{{ x.role }}</td><td>{{ x.unit_name or '—' }}</td></tr>{% endfor %}</table>
+  <p class="muted">Đơn vị: {% for un in units %}{{ un.name }}{% if not loop.last %}, {% endif %}{% else %}chưa có{% endfor %}</p>
+</section>
+<section class="scroll">
+  <h2>Mọi chiến dịch</h2>
+  <table><tr><th>#</th><th>Tên</th><th>Đơn vị</th><th>Hết hạn</th><th>Trạng thái</th></tr>
+  {% for x in campaigns %}<tr><td>{{ x.id }}</td><td><a href="/campaigns/{{ x.id }}">{{ x.name }}</a></td><td>{{ x.unit_name }}</td><td>{{ x.ends_at|fmt }}</td><td><span class="tag {{ x.status }}">{{ x.status }}</span></td></tr>
+  {% else %}<tr><td colspan="5" class="muted">Chưa có</td></tr>{% endfor %}</table>
+</section>
+{% endblock %}

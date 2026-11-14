@@ -70,7 +70,46 @@ services:
     depends_on:
       shlink: { condition: service_healthy }
 
+  # --- campus-portal (FR-APP-13, 14, 16; SRS 4.6; #40 phuong an B) ---
+  # ./gen-portal-secrets.sh && docker compose --profile portal up -d --build --wait
+  portal-db-init:
+    image: postgres:16
+    profiles: [portal]
+    secrets: [db_password, portal_db_password]
+    volumes:
+      - ./portal-db-init.sh:/portal-db-init.sh:ro
+    entrypoint: ["bash", "/portal-db-init.sh"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  portal:
+    build: ../portal
+    image: campus-portal:dev
+    profiles: [portal]
+    environment:
+      ROLE: portal
+      PORTAL_PORT: "8081"
+      SHLINK_API_URL: http://shlink:8080
+      PORTAL_DB_URL_FILE: /run/secrets/portal_db_url
+      PORTAL_SECRET_KEY_FILE: /run/secrets/portal_secret_key
+      REDIS_SERVERS_FILE: /run/secrets/redis_servers
+      QR_STORAGE: local            # tren cum: swift (campus-qr, SWIFT_APP_CRED_FILE)
+      QR_LOCAL_DIR: /data/qr
+      TIMEZONE: ${PORTAL_TIMEZONE:-Asia/Ho_Chi_Minh}
+    secrets: [portal_db_url, portal_secret_key, redis_servers, portal_admin_password]
+    volumes:
+      - qrdata:/data/qr
+    ports:
+      - "127.0.0.1:${PORTAL_HOST_PORT:-18090}:8081"
+    depends_on:
+      portal-db-init: { condition: service_completed_successfully }
+      shlink: { condition: service_healthy }
+
 secrets:
+  portal_db_password:    { file: ./secrets/portal_db_password }
+  portal_db_url:         { file: ./secrets/portal_db_url }
+  portal_secret_key:     { file: ./secrets/portal_secret_key }
+  portal_admin_password: { file: ./secrets/portal_admin_password }
   db_password:    { file: ./secrets/db_password }
   redis_servers:  { file: ./secrets/redis_servers }
   redis_password: { file: ./secrets/redis_password }
@@ -79,3 +118,4 @@ secrets:
 volumes:
   pgdata:
   redisdata:
+  qrdata:

@@ -295,6 +295,9 @@ OS_AUTH_URL=http://10.11.0.10/identity
 SWIFT_APP_CRED_FILE=/run/secrets/swift_app_cred        # id + secret application credential campus-svc
 SWIFT_CONTAINER_QR=campus-qr
 SWIFT_CONTAINER_REPORTS=campus-reports
+SWIFT_URL=http://10.11.0.10:8080/v1/AUTH_<project_id>   # (14/11, TV3) endpoint Swift, cung dang campus-boot
+QR_STORAGE=swift                              # (14/11, TV3) swift tren cum; local tren Compose
+QR_LOCAL_DIR=/data/qr                         # (14/11, TV3) chi dung khi QR_STORAGE=local
 TIMEZONE=UTC
 LOGS_FORMAT=json
 
