@@ -1,0 +1,230 @@
+heat_template_version: '2021-04-16'
+description: 'App unit private: VM -> local ready -> WaitCondition -> member; DELETE
+  member -> delay -> VM.'
+parameters:
+  image:
+    type: string
+  key_name:
+    type: string
+  network:
+    type: string
+  subnet:
+    type: string
+  security_group:
+    type: string
+  pool:
+    type: string
+  app_env:
+    type: string
+  flavor:
+    type: string
+    default: campus.app
+    constraints:
+    - allowed_values:
+      - campus.app
+  availability_zone:
+    type: string
+    constraints:
+    - allowed_values:
+      - campus-az-a
+      - campus-az-b
+  readiness_timeout:
+    type: number
+    default: 180
+    constraints:
+    - allowed_values:
+      - 180
+  drain_seconds:
+    type: number
+    default: 5
+    constraints:
+    - range:
+        min: 5
+        max: 30
+  metric_group_metadata:
+    type: string
+    default: campuslink-app
+    constraints:
+    - allowed_values:
+      - campuslink-app
+  bootstrap_credential_id:
+    type: string
+    hidden: true
+    constraints:
+    - allowed_pattern: '[a-fA-F0-9]{32}'
+  bootstrap_credential_secret:
+    type: string
+    hidden: true
+    constraints:
+    - allowed_pattern: '[A-Za-z0-9_+/=-]{16,256}'
+  diagnostic_security_groups:
+    type: comma_delimited_list
+    default: []
+    description: SG SSH tam cua TV2, mac dinh rong; chi gan app port, khong doi SG
+      chung.
+resources:
+  handle:
+    type: OS::Heat::WaitConditionHandle
+    properties:
+      signal_transport: TOKEN_SIGNAL
+  port:
+    type: OS::Neutron::Port
+    properties:
+      network:
+        get_param: network
+      fixed_ips:
+      - subnet:
+          get_param: subnet
+      security_groups:
+        list_concat:
+        - - get_param: security_group
+        - get_param: diagnostic_security_groups
+  config:
+    type: OS::Heat::CloudConfig
+    properties:
+      cloud_config:
+        write_files:
+        - path: /etc/campuslink/bootstrap.pending.json
+          owner: root:root
+          permissions: '0600'
+          content:
+            str_replace:
+              template: '{"keystone_url":"http://10.11.0.10/identity/v3/auth/tokens","swift_account_url":"http://10.11.0.10:8080/v1/AUTH_07af3a3dd4c24d1ba028efcb6d28ef84","credential_id":"BOOT_ID","credential_secret":"BOOT_SECRET"}'
+              params:
+                BOOT_ID:
+                  get_param: bootstrap_credential_id
+                BOOT_SECRET:
+                  get_param: bootstrap_credential_secret
+        - path: /etc/campuslink/heat.pending.json
+          owner: root:root
+          permissions: '0600'
+          content:
+            str_replace:
+              template: '{"endpoint":"SIGNAL_ENDPOINT","token":"SIGNAL_TOKEN","readiness_timeout":READY_TIMEOUT}'
+              params:
+                SIGNAL_ENDPOINT:
+                  get_attr:
+                  - handle
+                  - endpoint
+                SIGNAL_TOKEN:
+                  get_attr:
+                  - handle
+                  - token
+                READY_TIMEOUT:
+                  get_param: readiness_timeout
+        - path: /opt/campuslink/shlink.env
+          owner: root:root
+          permissions: '0644'
+          content:
+            get_param: app_env
+        - path: /opt/campuslink/bootstrap/heat_bootstrap.py
+          owner: root:root
+          permissions: '0644'
+          content:
+            get_file: bootstrap/heat_bootstrap.py
+        - path: /opt/campuslink/bootstrap/signal_ready.py
+          owner: root:root
+          permissions: '0644'
+          content:
+            get_file: bootstrap/signal_ready.py
+        - path: /etc/systemd/system/campuslink-heat-signal.service
+          owner: root:root
+          permissions: '0644'
+          content:
+            get_file: bootstrap/systemd/campuslink-heat-signal.service
+        - path: /etc/systemd/system/campuslink-heat-failure.service
+          owner: root:root
+          permissions: '0644'
+          content:
+            get_file: bootstrap/systemd/campuslink-heat-failure.service
+        - path: /etc/systemd/system/campuslink-secrets.service.d/heat-failure.conf
+          owner: root:root
+          permissions: '0644'
+          content:
+            get_file: bootstrap/systemd/heat-failure.conf.example
+        - path: /etc/systemd/system/campuslink-guard.service.d/heat-failure.conf
+          owner: root:root
+          permissions: '0644'
+          content:
+            get_file: bootstrap/systemd/heat-failure.conf.example
+        - path: /etc/systemd/system/campuslink-shlink.service.d/heat-failure.conf
+          owner: root:root
+          permissions: '0644'
+          content:
+            get_file: bootstrap/systemd/heat-failure.conf.example
+        - path: /etc/systemd/system/campuslink-ready.service.d/heat-failure.conf
+          owner: root:root
+          permissions: '0644'
+          content:
+            get_file: bootstrap/systemd/heat-failure.conf.example
+        runcmd:
+        - - /usr/bin/python3
+          - -B
+          - /opt/campuslink/bootstrap/heat_bootstrap.py
+  server:
+    type: OS::Nova::Server
+    properties:
+      image:
+        get_param: image
+      flavor:
+        get_param: flavor
+      key_name:
+        get_param: key_name
+      availability_zone:
+        get_param: availability_zone
+      networks:
+      - port:
+          get_resource: port
+      metadata:
+        campus_role: app
+        metering.server_group:
+          get_param: metric_group_metadata
+      user_data_format: SOFTWARE_CONFIG
+      user_data:
+        get_resource: config
+  ready:
+    type: OS::Heat::WaitCondition
+    depends_on: server
+    properties:
+      handle:
+        get_resource: handle
+      count: 1
+      timeout: 300
+  drain:
+    type: OS::Heat::Delay
+    depends_on: ready
+    properties:
+      actions:
+      - DELETE
+      min_wait:
+        get_param: drain_seconds
+      max_jitter: 0
+  member:
+    type: OS::Octavia::PoolMember
+    depends_on: drain
+    properties:
+      pool:
+        get_param: pool
+      address:
+        get_attr:
+        - port
+        - fixed_ips
+        - 0
+        - ip_address
+      protocol_port: 8080
+      subnet:
+        get_param: subnet
+outputs:
+  server_id:
+    value:
+      get_resource: server
+  address:
+    value:
+      get_attr:
+      - port
+      - fixed_ips
+      - 0
+      - ip_address
+  member_id:
+    value:
+      get_resource: member
