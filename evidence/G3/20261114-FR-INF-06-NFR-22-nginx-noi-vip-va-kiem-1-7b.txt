@@ -1,0 +1,139 @@
+Evidence FR-INF-06 va NFR-22 (G3) + kiem 1.7b after-start + doi chieu last -x: noi Nginx s. vao VIP 172.24.4.117:8080
+Ngay: 2026-11-14 (08:12:25Z - 08:15:46Z; gio VN 15:12 - 15:15).
+Trang thai cum: A/B dang bat phuc vu phien GD6 cua TV2; A boot 2026-11-14 06:07:57Z (uptime -s). TV1 chi chay doc va cap nhat Nginx s. -> VIP theo yeu cau TV2 trong #4, khong Stop EC2 va khong dong tai nguyen cua TV2.
+Cach thuc hien: TV1 tu chay tv1-cloud-1411.sh (read, connect-vip) tren ubuntu@campus-a va dan output ve may cuc bo; agent khong SSH.
+
+TOM TAT KET QUA:
+1. FR-INF-06 (Ingress s. -> VIP):
+   - Sua /etc/nginx/conf.d/campus.conf tren campus-a: chuyen block s.44-198-215-187.sslip.io tu 503 sang proxy_pass http://172.24.4.117:8080 (VIP FIP cua stack campus-app 816bd58d-ca22-47b8-abe5-9729719d894e, LB campus-app-lb-wwsx4iakvt5m deb301de-fb2a-430b-8bc7-2954a3afe14a ACTIVE/ONLINE).
+   - Giu nguyen block default_server (return 444), admin.44-198-215-187.sslip.io va # app. (chua bat). Ban sao luu giu tai /root/campus.conf.bak-20261114T081545Z (ngoai /etc/nginx/conf.d/).
+   - Kiem tra sau systemctl reload nginx:
+     + https://s.44-198-215-187.sslip.io/rest/health -> HTTP=200 SSL=0, {"status":"pass","version":"5.1.8",...}
+     + https://admin.44-198-215-187.sslip.io/ -> HTTP=200 SSL=0
+2. NFR-22 ($request_time va $upstream_response_time):
+   - /etc/nginx/conf.d/00-campus-logfmt.conf dang bat log_format campus_rt ghi ra /var/log/nginx/campus-rt.log.
+   - Dong log thuc te qua upstream VIP:
+     127.0.0.1 [2026-11-14T08:15:46+00:00] s.44-198-215-187.sslip.io "GET /rest/health" 200 120 rt=0.023 urt=0.023
+3. Muc 1.7b trong docs/runbooks/after-start.md (FR-INF-15 / FR-INF-25):
+   - Kiem tra ca bang day du va cu phap rut gon `-f value -c Name -c "Last Modified"` tren Swift container campus-backups prefix db/shlink-.
+   - Ban dump moi nhat: db/shlink-20261114T080110Z.dump (94982 byte, 2026-11-14T08:01:10.882640, cach luc kiem ~11 phut < 70 phut) kem db/shlink-20261114T080110Z.dump.sha256 (95 byte).
+4. Doi chieu last -x tren campus-a (bo sung gio Stop ngay 13/11 cho #4):
+   - Phien sang 13/11 (TV1): reboot 06:26Z -> shutdown 07:10Z (14:10 gio VN), chay 44 phut.
+   - Phien toi 13/11 (TV2): reboot 12:41Z -> shutdown 14:25Z (21:25 gio VN), chay 1 gio 44 phut.
+5. Don dep: da xoa /home/ubuntu/verify-hostkey-42.py tren campus-a sau khi hoan tat #42.
+
+GIOI HAN (khong doc thanh ket luan rong hon):
+- Kiem tra https://s..../rest/health va https://admin..../ chay tu ngay campus-a voi --resolve ...:443:127.0.0.1 (de kiem TLS handshake va upstream VIP); khong thay the cho kiem tra tu mang ngoai hay benchmark tai cao.
+- Block app.44-198-215-187.sslip.io van comment (chua co campus-portal tren VIP:8081).
+- Danh sach VM trong read ghi nhan co them instance o campus-b (10.20.0.150) thuoc thao tac scale dang dien ra cua TV2 trong phien.
+
+========================================================================
+PHAN 1: OUTPUT NGUYEN VAN `sudo bash ~/tv1-cloud-1411.sh read`
+========================================================================
+ubuntu@campus-a:~$ sudo bash ~/tv1-cloud-1411.sh read
+== tv1-cloud-1411 read 2026-11-14T08:12:25Z tren campus-a
+INFO  uptime -s: 2026-11-14 06:07:57 |  08:12:25 up  2:04,  2 users,  load average: 0.23, 0.21, 0.36
+INFO  -- 1. Lich su boot/shutdown (last -x, lay gio Stop 13/11):
+INFO    reboot   system boot  7.0.0-1017-aws   Sat Nov 14 06:07   still running
+INFO    shutdown system down  7.0.0-1017-aws   Fri Nov 13 14:25 - 06:07  (15:42)
+INFO    reboot   system boot  7.0.0-1017-aws   Fri Nov 13 12:41 - 14:25  (01:44)
+INFO    shutdown system down  7.0.0-1014-aws   Fri Nov 13 07:10 - 12:41  (05:30)
+INFO    reboot   system boot  7.0.0-1014-aws   Fri Nov 13 06:26 - 07:10  (00:44)
+INFO    shutdown system down  7.0.0-1014-aws   Thu Nov 12 16:24 - 06:26  (14:02)
+INFO    reboot   system boot  7.0.0-1014-aws   Thu Nov 12 15:53 - 16:24  (00:30)
+INFO    shutdown system down  7.0.0-1014-aws   Thu Nov 12 15:21 - 15:53  (00:32)
+INFO    reboot   system boot  7.0.0-1014-aws   Thu Nov 12 14:04 - 15:21  (01:16)
+INFO    shutdown system down  7.0.0-1014-aws   Thu Nov 12 13:01 - 14:04  (01:02)
+INFO    reboot   system boot  7.0.0-1014-aws   Thu Nov 12 12:44 - 13:01  (00:17)
+INFO    shutdown system down  7.0.0-1014-aws   Wed Nov 11 11:52 - 12:44 (1+00:51)
+INFO    reboot   system boot  7.0.0-1014-aws   Wed Nov 11 10:48 - 11:52  (01:03)
+INFO    shutdown system down  7.0.0-1014-aws   Mon Nov  9 10:25 - 10:48 (2+00:23)
+INFO  da xoa file tam /home/ubuntu/verify-hostkey-42.py
+INFO  -- 2. Danh sach VM (admin, gom host A/B) va Floating IP:
+INFO    +--------------------------------------+-------------------------------------------------------+--------+--------------------------------------+----------+
+INFO    | ID                                   | Name                                                  | Status | Networks                             | Host     |
+INFO    +--------------------------------------+-------------------------------------------------------+--------+--------------------------------------+----------+
+INFO    | e7b58fbd-7c3a-4753-b4e7-f3d86c26d1ef | campus-jump                                           | ACTIVE | campus-net=10.20.0.165, 172.24.4.115 | campus-a |
+INFO    | 157e3878-4555-4e11-8186-f60b825792e3 | ca-tcyx-lh4sg3e3qym6-3nd2invjpv7l-server-ac2wd5yo4ffx | ACTIVE | campus-net=10.20.0.150               | campus-b |
+INFO    | 88d79382-b4c2-4868-988f-047421ff967b | ca-tcyx-degtru4kbtck-rrqom6gf4mxq-server-yfwmakgnw6mg | ACTIVE | campus-net=10.20.0.111               | campus-b |
+INFO    | 523d67b4-9234-4b09-b3dc-c814e6b868fc | campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26     | ACTIVE | campus-net=10.20.0.195               | campus-a |
+INFO    | 6d17a9e8-4975-4c46-afd6-be1017e2a251 | campus-db                                             | ACTIVE | campus-net=10.20.0.10                | campus-a |
+INFO    +--------------------------------------+-------------------------------------------------------+--------+--------------------------------------+----------+
+INFO    +---------------------+------------------+--------------------------------------+
+INFO    | Floating IP Address | Fixed IP Address | Port                                 |
+INFO    +---------------------+------------------+--------------------------------------+
+INFO    | 172.24.4.117        | 10.20.0.128      | 9b107b20-4d06-4716-808b-a57f12a64c45 |
+INFO    | 172.24.4.115        | 10.20.0.165      | f353b0c6-5e9b-4e86-8629-842bb28971db |
+INFO    +---------------------+------------------+--------------------------------------+
+INFO  -- 3. Trang thai LB va member:
+INFO    +--------------------------------------+----------------------------+-------------+---------------------+------------------+
+INFO    | id                                   | name                       | vip_address | provisioning_status | operating_status |
+INFO    +--------------------------------------+----------------------------+-------------+---------------------+------------------+
+INFO    | deb301de-fb2a-430b-8bc7-2954a3afe14a | campus-app-lb-wwsx4iakvt5m | 10.20.0.128 | ACTIVE              | ONLINE           |
+INFO    +--------------------------------------+----------------------------+-------------+---------------------+------------------+
+INFO  -- 4. Kiem muc 1.7b after-start.md (Swift campus-backups/db/shlink-):
+INFO    | db/shlink-20261113T140140Z.dump.sha256 |    95 | ea3adf95fef974d02d3c787cdb5b1273 | text/plain               | 2026-11-13T14:01:40.378300 |
+INFO    | db/shlink-20261114T060904Z.dump        | 36821 | edc4be6eada1c99329effc5668a59449 | application/octet-stream | 2026-11-14T06:09:05.443410 |
+INFO    | db/shlink-20261114T060904Z.dump.sha256 |    95 | 0df350c20e79bd4ba67b988bc421e659 | text/plain               | 2026-11-14T06:09:05.507280 |
+INFO    | db/shlink-20261114T061910Z.dump        | 36821 | 93a3e64ddc29dc02b80b628c8cef062d | application/octet-stream | 2026-11-14T06:19:10.927770 |
+INFO    | db/shlink-20261114T061910Z.dump.sha256 |    95 | 80c7c9a2cdcb696589970826c17169e4 | text/plain               | 2026-11-14T06:19:10.960670 |
+INFO    | db/shlink-20261114T070110Z.dump        | 36846 | 952049c9e95011e07186fd8c80581752 | application/octet-stream | 2026-11-14T07:01:10.866160 |
+INFO    | db/shlink-20261114T070110Z.dump.sha256 |    95 | 06b675f70216141a6fc00fa47604c11c | text/plain               | 2026-11-14T07:01:10.903080 |
+INFO    | db/shlink-20261114T080110Z.dump        | 94982 | 79bb7f1b86c00a9bd9ae48866e43f05b | application/octet-stream | 2026-11-14T08:01:10.882640 |
+INFO    | db/shlink-20261114T080110Z.dump.sha256 |    95 | d3974de8221ce5cddf1d29a3edb3ac19 | text/plain               | 2026-11-14T08:01:10.916770 |
+INFO    +----------------------------------------+-------+----------------------------------+--------------------------+----------------------------+
+INFO  thu cu phap -f value -c Name -c 'Last Modified':
+INFO    db/shlink-20261114T061910Z.dump.sha256 2026-11-14T06:19:10.960670
+INFO    db/shlink-20261114T070110Z.dump 2026-11-14T07:01:10.866160
+INFO    db/shlink-20261114T070110Z.dump.sha256 2026-11-14T07:01:10.903080
+INFO    db/shlink-20261114T080110Z.dump 2026-11-14T08:01:10.882640
+INFO    db/shlink-20261114T080110Z.dump.sha256 2026-11-14T08:01:10.916770
+INFO  -- 5. Kiem tra VIP truc tiep tu A (http://172.24.4.117:8080/rest/health):
+INFO    {"status":"pass","version":"5.1.8","links":{"about":"https://shlink.io","project":"https://github.com/shlinkio/shlink"}}
+INFO    HTTP=200
+PASS  VIP 172.24.4.117:8080/rest/health tra 200 status=pass
+INFO  -- 6. Trang thai Nginx va NFR-22 ($request_time):
+PASS  nginx enabled
+PASS  nginx active
+INFO    8:    listen 443 ssl default_server;
+INFO    9:    server_name _;
+INFO    15:    listen 443 ssl;
+INFO    16:    server_name admin.44-198-215-187.sslip.io;
+INFO    22:# s.: chua co app/VIP nen tam tra 503. Khi co VIP doi sang proxy_pass (SRS 4.4):
+INFO    23:#   proxy_pass http://REPLACE_VIP_FIP:8080;  proxy_http_version 1.1;
+INFO    27:    listen 443 ssl;
+INFO    28:    server_name s.44-198-215-187.sslip.io;
+INFO    29:    location / { return 503 "app chua san sang\n"; }
+PASS  co /etc/nginx/conf.d/00-campus-logfmt.conf
+INFO    log_format campus_rt '$remote_addr [$time_iso8601] $host "$request_method $uri" $status $body_bytes_sent rt=$request_time urt=$upstream_response_time';
+INFO    access_log /var/log/nginx/campus-rt.log campus_rt;
+PASS  co /var/log/nginx/campus-rt.log (21 dong)
+INFO    167.94.146.61 [2026-11-14T07:23:08+00:00] 44.198.215.187 "GET /phpinfo" 400 264 rt=0.000 urt=-
+INFO    167.86.76.26 [2026-11-14T07:25:18+00:00] admin.44-198-215-187.sslip.io "GET /index.html" 200 1297 rt=0.000 urt=-
+INFO    167.86.76.26 [2026-11-14T07:25:18+00:00] s.44-198-215-187.sslip.io "GET /" 503 18 rt=0.000 urt=-
+INFO    85.155.14.18 [2026-11-14T08:09:24+00:00] admin.44-198-215-187.sslip.io "GET /index.html" 200 1297 rt=0.000 urt=-
+INFO    85.155.14.18 [2026-11-14T08:09:24+00:00] admin.44-198-215-187.sslip.io "GET /index.html" 200 1297 rt=0.000 urt=-
+== ket qua read: 5 PASS, 0 FAIL (luu tai /home/ubuntu/tv1-read-20261114.txt)
+
+========================================================================
+PHAN 2: OUTPUT NGUYEN VAN `sudo bash ~/tv1-cloud-1411.sh connect-vip`
+========================================================================
+ubuntu@campus-a:~$ sudo bash ~/tv1-cloud-1411.sh connect-vip
+== tv1-cloud-1411 connect-vip 2026-11-14T08:15:42Z tren campus-a
+PASS  nginx -t dat truoc khi sua
+PASS  tien kiem VIP http://172.24.4.117:8080/rest/health dat 200 status=pass
+Xac nhan sua /etc/nginx/conf.d/campus.conf de noi s.44-198-215-187.sslip.io -> http://172.24.4.117:8080 (go 'yes'): yes
+PASS  sao luu /etc/nginx/conf.d/campus.conf -> /root/campus.conf.bak-20261114T081545Z
+PASS  cap nhat block s.44-198-215-187.sslip.io -> http://172.24.4.117:8080
+PASS  nginx -t dat sau khi sua
+PASS  systemctl reload nginx thanh cong
+INFO    s./rest/health: {"status":"pass","version":"5.1.8","links":{"about":"https://shlink.io","project":"https://github.com/shlinkio/shlink"}}
+INFO    s./rest/health: HTTP=200 SSL=0
+PASS  https://s.44-198-215-187.sslip.io/rest/health tra 200 status=pass verify=0
+PASS  https://admin.44-198-215-187.sslip.io/ tra HTTP=200 SSL=0
+INFO  dong log moi nhat trong /var/log/nginx/campus-rt.log (NFR-22):
+INFO    85.155.14.18 [2026-11-14T08:09:24+00:00] admin.44-198-215-187.sslip.io "GET /index.html" 200 1297 rt=0.000 urt=-
+INFO    85.155.14.18 [2026-11-14T08:09:24+00:00] admin.44-198-215-187.sslip.io "GET /index.html" 200 1297 rt=0.000 urt=-
+INFO    127.0.0.1 [2026-11-14T08:15:46+00:00] s.44-198-215-187.sslip.io "GET /rest/health" 200 120 rt=0.023 urt=0.023
+INFO    127.0.0.1 [2026-11-14T08:15:46+00:00] admin.44-198-215-187.sslip.io "GET /index.html" 200 6238 rt=0.000 urt=-
+== ket qua connect-vip: 8 PASS, 0 FAIL (luu tai /home/ubuntu/tv1-connect-vip-20261114.txt)
