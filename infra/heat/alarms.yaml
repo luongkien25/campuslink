@@ -1,82 +1,123 @@
 heat_template_version: '2021-04-16'
 description: CPU alarms mac dinh tat; query/rate/auth can kiem tren cum.
 parameters:
-  evaluation_enabled: {type: boolean, default: false}
-  actions_enabled: {type: boolean, default: false}
+  evaluation_enabled:
+    type: boolean
+    default: false
+  actions_enabled:
+    type: boolean
+    default: false
   project_id:
     type: string
     default: ''
     constraints:
-      - allowed_pattern: '(|[a-f0-9]{32})'
+    - allowed_pattern: ([a-f0-9]{32}|)
   group:
     type: string
     default: campuslink-app
     constraints:
-      - allowed_values: [campuslink-app]
+    - allowed_values:
+      - campuslink-app
   high_threshold:
     type: number
     default: 36000000000
     constraints:
-      - allowed_values: [36000000000, 600000000]
+    - allowed_values:
+      - 36000000000
+      - 600000000
   low_threshold:
     type: number
     default: 15000000000
     constraints:
-      - allowed_values: [15000000000, 250000000]
-  high_action: {type: string, hidden: true, default: ''}
-  low_action: {type: string, hidden: true, default: ''}
+    - allowed_values:
+      - 15000000000
+      - 250000000
+  high_action:
+    type: string
+    hidden: true
+    default: ''
+  low_action:
+    type: string
+    hidden: true
+    default: ''
 conditions:
   can_act:
     and:
-      - {get_param: evaluation_enabled}
-      - {get_param: actions_enabled}
-      - not: [{equals: [{get_param: high_action}, '']}]
-      - not: [{equals: [{get_param: low_action}, '']}]
+    - get_param: evaluation_enabled
+    - get_param: actions_enabled
+    - not:
+        equals:
+        - get_param: high_action
+        - ''
+    - not:
+        equals:
+        - get_param: low_action
+        - ''
 resources:
   cpu_high:
     type: OS::Aodh::GnocchiAggregationByResourcesAlarm
     properties:
       description: CPU high cua app; rate va query phai duoc kiem truoc khi bat.
-      enabled: {get_param: evaluation_enabled}
+      enabled:
+        get_param: evaluation_enabled
       metric: cpu
       resource_type: instance
       aggregation_method: rate:mean
       granularity: 60
       evaluation_periods: 2
-      threshold: {get_param: high_threshold}
+      threshold:
+        get_param: high_threshold
       comparison_operator: gt
       query:
         str_replace:
-          template: '{"and":[{"=":{"server_group":"%GROUP%"}},{"=":{"project_id":"%PROJECT%"}},{"=":{"ended_at":null}}]}'
+          template: '{"and":[{"=":{"server_group":"%GROUP%"}},{"=":{"project_id":"%PROJECT%"}},{"=":{"ended_at":null}},{"=":{"deleted_at":null}}]}'
           params:
-            '%GROUP%': {get_param: group}
-            '%PROJECT%': {get_param: project_id}
+            '%GROUP%':
+              get_param: group
+            '%PROJECT%':
+              get_param: project_id
       repeat_actions: false
-      alarm_actions: {if: [can_act, [{get_param: high_action}], []]}
+      alarm_actions:
+        if:
+        - can_act
+        - - get_param: high_action
+        - []
       ok_actions: []
       insufficient_data_actions: []
   cpu_low:
     type: OS::Aodh::GnocchiAggregationByResourcesAlarm
     properties:
       description: CPU low cua app; khong scale khi thieu du lieu.
-      enabled: {get_param: evaluation_enabled}
+      enabled:
+        get_param: evaluation_enabled
       metric: cpu
       resource_type: instance
       aggregation_method: rate:mean
       granularity: 60
       evaluation_periods: 3
-      threshold: {get_param: low_threshold}
+      threshold:
+        get_param: low_threshold
       comparison_operator: lt
       query:
         str_replace:
-          template: '{"and":[{"=":{"server_group":"%GROUP%"}},{"=":{"project_id":"%PROJECT%"}},{"=":{"ended_at":null}}]}'
+          template: '{"and":[{"=":{"server_group":"%GROUP%"}},{"=":{"project_id":"%PROJECT%"}},{"=":{"ended_at":null}},{"=":{"deleted_at":null}}]}'
           params:
-            '%GROUP%': {get_param: group}
-            '%PROJECT%': {get_param: project_id}
+            '%GROUP%':
+              get_param: group
+            '%PROJECT%':
+              get_param: project_id
       repeat_actions: false
-      alarm_actions: {if: [can_act, [{get_param: low_action}], []]}
+      alarm_actions:
+        if:
+        - can_act
+        - - get_param: low_action
+        - []
       ok_actions: []
       insufficient_data_actions: []
 outputs:
-  cpu_high_id: {value: {get_resource: cpu_high}}
-  cpu_low_id: {value: {get_resource: cpu_low}}
+  cpu_high_id:
+    value:
+      get_resource: cpu_high
+  cpu_low_id:
+    value:
+      get_resource: cpu_low

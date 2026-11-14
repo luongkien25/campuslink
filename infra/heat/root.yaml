@@ -67,48 +67,78 @@ parameters:
     default: []
     description: SG SSH tam cua TV2, mac dinh rong; chi gan app port, khong doi SG
       chung.
-  alarms_enabled: {type: boolean, default: false}
-  scaling_actions_enabled: {type: boolean, default: false}
+  alarms_enabled:
+    type: boolean
+    default: false
+  scaling_actions_enabled:
+    type: boolean
+    default: false
   telemetry_verified:
     type: boolean
     default: false
-    description: Chi bat sau khi kiem query/current resources, rate va aggregate tren cum.
+    description: Chi bat sau khi kiem query/current resources, rate va aggregate tren
+      cum.
   telemetry_project_id:
     type: string
     default: ''
     constraints:
-    - allowed_pattern: '(|[a-f0-9]{32})'
+    - allowed_pattern: ([a-f0-9]{32}|)
   cpu_rate_semantics:
     type: string
     default: unverified
     constraints:
-    - allowed_values: [unverified, delta-ns, ns-per-second]
+    - allowed_values:
+      - unverified
+      - delta-ns
+      - ns-per-second
   scaling_action_transport:
     type: string
     default: unverified
     constraints:
-    - allowed_values: [unverified, native, signed]
+    - allowed_values:
+      - unverified
+      - native
+      - signed
     description: Chi chon native/signed sau khi kiem notifier/auth tren cum.
 conditions:
   can_evaluate:
     and:
-    - {get_param: alarms_enabled}
-    - {get_param: telemetry_verified}
-    - not: [{equals: [{get_param: cpu_rate_semantics}, unverified]}]
-    - not: [{equals: [{get_param: telemetry_project_id}, '']}]
+    - get_param: alarms_enabled
+    - get_param: telemetry_verified
+    - not:
+        equals:
+        - get_param: cpu_rate_semantics
+        - unverified
+    - not:
+        equals:
+        - get_param: telemetry_project_id
+        - ''
   can_act:
     and:
     - and:
-      - {get_param: alarms_enabled}
-      - {get_param: telemetry_verified}
-      - not: [{equals: [{get_param: cpu_rate_semantics}, unverified]}]
-      - not: [{equals: [{get_param: telemetry_project_id}, '']}]
-    - {get_param: scaling_actions_enabled}
-    - not: [{equals: [{get_param: scaling_action_transport}, unverified]}]
+      - get_param: alarms_enabled
+      - get_param: telemetry_verified
+      - not:
+          equals:
+          - get_param: cpu_rate_semantics
+          - unverified
+      - not:
+          equals:
+          - get_param: telemetry_project_id
+          - ''
+    - get_param: scaling_actions_enabled
+    - not:
+        equals:
+        - get_param: scaling_action_transport
+        - unverified
   native_transport:
-    equals: [{get_param: scaling_action_transport}, native]
+    equals:
+    - get_param: scaling_action_transport
+    - native
   rate_per_second:
-    equals: [{get_param: cpu_rate_semantics}, ns-per-second]
+    equals:
+    - get_param: cpu_rate_semantics
+    - ns-per-second
 resources:
   lb:
     type: OS::Octavia::LoadBalancer
@@ -246,31 +276,65 @@ resources:
   cpu_alarms:
     type: alarms.yaml
     properties:
-      evaluation_enabled: {if: [can_evaluate, true, false]}
-      actions_enabled: {if: [can_act, true, false]}
-      project_id: {get_param: telemetry_project_id}
-      group: {get_param: metric_group_metadata}
-      high_threshold: {if: [rate_per_second, 600000000, 36000000000]}
-      low_threshold: {if: [rate_per_second, 250000000, 15000000000]}
+      evaluation_enabled:
+        if:
+        - can_evaluate
+        - true
+        - false
+      actions_enabled:
+        if:
+        - can_act
+        - true
+        - false
+      project_id:
+        get_param: telemetry_project_id
+      group:
+        get_param: metric_group_metadata
+      high_threshold:
+        if:
+        - rate_per_second
+        - 600000000
+        - 36000000000
+      low_threshold:
+        if:
+        - rate_per_second
+        - 250000000
+        - 15000000000
       high_action:
         if:
         - can_act
         - if:
           - native_transport
-          - {get_attr: [scale_out, signal_url]}
-          - {get_attr: [scale_out, alarm_url]}
+          - get_attr:
+            - scale_out
+            - signal_url
+          - get_attr:
+            - scale_out
+            - alarm_url
         - ''
       low_action:
         if:
         - can_act
         - if:
           - native_transport
-          - {get_attr: [scale_in, signal_url]}
-          - {get_attr: [scale_in, alarm_url]}
+          - get_attr:
+            - scale_in
+            - signal_url
+          - get_attr:
+            - scale_in
+            - alarm_url
         - ''
 outputs:
-  cpu_high_alarm_id: {value: {get_attr: [cpu_alarms, cpu_high_id]}}
-  cpu_low_alarm_id: {value: {get_attr: [cpu_alarms, cpu_low_id]}}
+  cpu_high_alarm_id:
+    value:
+      get_attr:
+      - cpu_alarms
+      - cpu_high_id
+  cpu_low_alarm_id:
+    value:
+      get_attr:
+      - cpu_alarms
+      - cpu_low_id
   stack_id:
     value:
       get_param: OS::stack_id

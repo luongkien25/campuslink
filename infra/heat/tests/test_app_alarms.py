@@ -1,5 +1,6 @@
 """Kiem payload alarm cua HOT; khong thay Heat validate/evaluation tren cum."""
 from pathlib import Path
+import re
 import unittest
 import yaml
 
@@ -16,7 +17,9 @@ def render(value, params, conditions):
     if set(value) == {'equals'}:
         a, b = render(value['equals'], params, conditions); return a == b
     if set(value) == {'not'}:
-        return not render(value['not'][0], params, conditions)
+        if isinstance(value['not'], list):
+            raise ValueError('Heat Not takes one condition, not a one-item list')
+        return not render(value['not'], params, conditions)
     if set(value) == {'and'}:
         return all(render(v, params, conditions) for v in value['and'])
     if set(value) == {'if'}:
@@ -112,9 +115,21 @@ class AlarmTests(unittest.TestCase):
         import json
         resources = self.alarm_payloads(project_id='a'*32, group='campuslink-app')
         expected = {'and': [{'=': {'server_group': 'campuslink-app'}},
-                             {'=': {'project_id': 'a'*32}}, {'=': {'ended_at': None}}]}
+                             {'=': {'project_id': 'a'*32}}, {'=': {'ended_at': None}},
+                             {'=': {'deleted_at': None}}]}
         for resource in resources.values():
             self.assertEqual(json.loads(resource['properties']['query']), expected)
+
+    def test_project_pattern_accepts_real_project_under_heat_match_full_length_check(self):
+        for parameter in (self.template['parameters']['project_id'], self.root['parameters']['telemetry_project_id']):
+            pattern = parameter['constraints'][0]['allowed_pattern']
+            for value in ('', '07af3a3dd4c24d1ba028efcb6d28ef84'):
+                match = re.match(pattern, value)
+                self.assertIsNotNone(match)
+                self.assertEqual(match.end(), len(value), 'Heat uses re.match then checks full input length')
+            for value in ('invalid', 'a'*31, 'a'*33, 'a'*32+'\n'):
+                match = re.match(pattern, value)
+                self.assertTrue(match is None or match.end() != len(value))
 
 
 if __name__ == '__main__':

@@ -38,6 +38,7 @@ def window_state(values, kind):
 def _series(resource, now, max_age_seconds, semantics, project_id):
     if (resource['project_id'].replace('-', '') != project_id
             or resource['group'] != 'campuslink-app' or resource['ended_at'] is not None
+            or resource['deleted_at'] is not None
             or type(resource['vcpus']) is not int or resource['vcpus'] <= 0
             or resource['unit'] != 'ns'):
         raise ValueError('resource-contract')

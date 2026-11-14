@@ -12,7 +12,7 @@ Image đầu vào đã kiểm là `campus-app-tv2-g4-20261111`, UUID `2c43a06d-1
 
 ## Lifecycle của mỗi app unit
 
-Phần [metric CPU và alarm Aodh](telemetry/README.md) đã có helper/tests và HOT mặc định disabled cho giai đoạn tiếp theo. Schema/query/đơn vị/notifier và root update chưa kiểm trên cụm; không tự áp cấu hình mới vào deployment đã bàn giao. Kết quả cloud bên trên vẫn thuộc phiên core ngày 13/11, chưa phải nghiệm thu telemetry/alarm.
+Phần [metric CPU và alarm Aodh](telemetry/README.md) đã kiểm metric/query và chuyển high/low ALARM bằng tải thật ngày 14/11. Alarm được triển khai trong stack riêng, giữ disabled/actions rỗng khi bàn giao. Core root update vẫn báo replacement nên chưa áp; notifier và autoscaling tự động chưa nghiệm thu. Kết quả core ngày 13/11 và metric/alarm ngày 14/11 được ghi riêng.
 
 ```text
 handle TOKEN_SIGNAL → CloudConfig → VM private

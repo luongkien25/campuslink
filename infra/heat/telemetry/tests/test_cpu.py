@@ -25,13 +25,14 @@ def fixture(values=(36e9, 15e9)):
                 rows.append(dict(timestamp=stamp, granularity_seconds=60,
                                  aggregation='rate:mean', value=delta))
         resources.append(dict(uuid=ident, vcpus=1, group='campuslink-app',
-                              project_id=PROJECT, ended_at=None,
+                              project_id=PROJECT, ended_at=None, deleted_at=None,
                               metric_id=ident, unit='ns', archive_policy={
                                   'name': 'fixture', 'aggregation_methods': ['mean', 'rate:mean'],
                                   'definition': [{'granularity': 60, 'points': 60, 'timespan': 3600}]}, rows=rows))
     return dict(schema_version=1, collected_at_utc=NOW.isoformat(), project_id=PROJECT,
                 query={'and': [{'=': {'server_group': 'campuslink-app'}},
-                               {'=': {'project_id': PROJECT}}, {'=': {'ended_at': None}}]},
+                               {'=': {'project_id': PROJECT}}, {'=': {'ended_at': None}},
+                               {'=': {'deleted_at': None}}]},
                 resources=resources)
 
 
@@ -96,7 +97,7 @@ class CpuTests(unittest.TestCase):
         cases.append(fixture((36e9, 15e9, 6e9)))
         data = fixture(); data['resources'].append(deepcopy(data['resources'][0])); cases.append(data)
         for key, bad in [('group', 'campus-db'), ('project_id', 'b'*32),
-                         ('ended_at', '2026-11-14T11:00:00Z'), ('vcpus', 0),
+                         ('ended_at', '2026-11-14T11:00:00Z'), ('deleted_at', '2026-11-14T11:00:00Z'), ('vcpus', 0),
                          ('vcpus', True), ('unit', 'percent')]:
             data = fixture(); data['resources'][0][key] = bad; cases.append(data)
         for data in cases:

@@ -23,7 +23,17 @@ def identifier(value):
 
 def active_query(project_id):
     return {'and': [{'=': {'server_group': 'campuslink-app'}},
-                    {'=': {'project_id': uuid.UUID(project_id).hex}}, {'=': {'ended_at': None}}]}
+                    {'=': {'project_id': uuid.UUID(project_id).hex}}, {'=': {'ended_at': None}},
+                    {'=': {'deleted_at': None}}]}
+
+
+def seconds(value):
+    if isinstance(value, str):
+        match = re.fullmatch(r'(?:(\d+) days?, )?(\d+):(\d{2}):(\d{2}(?:\.\d+)?)', value)
+        if not match or int(match[3]) >= 60 or float(match[4]) >= 60:
+            raise ValueError('invalid-duration')
+        return int(match[1] or 0)*86400 + int(match[2])*3600 + int(match[3])*60 + float(match[4])
+    return number(value)
 
 
 def collect(api, project_id, *, start, stop, now):
@@ -34,13 +44,15 @@ def collect(api, project_id, *, start, stop, now):
                 raise ValueError('utc-required')
         if not 0 < (stop-start).total_seconds() <= 3600 or stop > now:
             raise ValueError('window-contract')
+        # Gnocchi tra bucket chua start; yeu cau moc phut ro rang truoc khi doc.
+        start = start.replace(second=0, microsecond=0)
         query = active_query(project_id)
         resources = []; seen = set()
         for raw in api.resource.search(resource_type='instance', query=query):
             ident = identifier(raw['id'])
             if (ident in seen or uuid.UUID(raw['project_id']).hex != project_id
-                    or raw['ended_at'] is not None or raw['server_group'] != 'campuslink-app'
-                    or type(raw['vcpus']) is not int or raw['vcpus'] <= 0):
+                    or raw['ended_at'] is not None or raw['deleted_at'] is not None
+                    or raw['server_group'] != 'campuslink-app'):
                 raise ValueError('resource-contract')
             seen.add(ident)
             if len(seen) > 6:
@@ -58,7 +70,8 @@ def collect(api, project_id, *, start, stop, now):
                 raise ValueError('policy-methods')
             definition = []
             for row in policy['definition']:
-                definition.append({key: number(row[key]) for key in ('granularity', 'points', 'timespan')})
+                definition.append(dict(granularity=seconds(row['granularity']),
+                                       points=number(row['points']), timespan=seconds(row['timespan'])))
             rows = []
             for aggregation in ('mean', 'rate:mean'):
                 measures = api.metric.get_measures(metric_id, aggregation=aggregation,
@@ -74,8 +87,29 @@ def collect(api, project_id, *, start, stop, now):
                         continue
                     rows.append(dict(timestamp=parsed.isoformat(), granularity_seconds=number(granularity),
                                      value=number(value), aggregation=aggregation))
-            resources.append(dict(uuid=ident, project_id=project_id, vcpus=raw['vcpus'],
-                group=raw['server_group'], ended_at=None, metric_id=metric_id, unit='ns',
+            vcpu_metric_id = identifier(raw['metrics']['vcpus'])
+            vcpu_metric = api.metric.get(vcpu_metric_id)
+            if identifier(vcpu_metric['id']) != vcpu_metric_id or vcpu_metric['unit'] != 'vcpu':
+                raise ValueError('vcpu-metric-contract')
+            vcpu_rows = api.metric.get_measures(vcpu_metric_id, aggregation='mean', granularity=60,
+                                              start=start.isoformat(), stop=stop.isoformat())
+            if len(vcpu_rows) > 61:
+                raise ValueError('unexpected-vcpu-measure-count')
+            vcpu_points = {}
+            for stamp, granularity, value in vcpu_rows:
+                stamp = timestamp(str(stamp))
+                if stamp in vcpu_points or granularity != 60 or not start <= stamp < stop:
+                    raise ValueError('vcpu-series-contract')
+                if (now-stamp).total_seconds() >= 60:
+                    vcpu_points[stamp] = number(value)
+            counts = {vcpu_points[timestamp(row['timestamp'])] for row in rows if row['aggregation'] == 'mean'}
+            if len(counts) != 1:
+                raise ValueError('missing-or-changing-vcpu')
+            vcpus = counts.pop()
+            if vcpus <= 0 or int(vcpus) != vcpus:
+                raise ValueError('vcpu-not-positive-integer')
+            resources.append(dict(uuid=ident, project_id=project_id, vcpus=int(vcpus), vcpus_metric_id=vcpu_metric_id,
+                group=raw['server_group'], ended_at=None, deleted_at=None, metric_id=metric_id, unit='ns',
                 archive_policy=dict(name=policy['name'], aggregation_methods=methods, definition=definition), rows=rows))
         return dict(schema_version=1, collected_at_utc=now.isoformat(), project_id=project_id,
                     query=query, resources=resources)
@@ -102,8 +136,8 @@ def main():
         session.timeout = 10
         if uuid.UUID(session.get_project_id()).hex != uuid.UUID(args.project).hex:
             raise ValueError('wrong-project')
-        api = Client(session=session, interface=cloud.config.get('interface', 'public'),
-                     region_name=cloud.region_name)
+        api = Client(session=session, adapter_options={
+            'interface': cloud.config.get('interface', 'public'), 'region_name': cloud.region_name})
         snapshot = collect(api, args.project, start=timestamp(args.start), stop=timestamp(args.stop),
                            now=datetime.now(timezone.utc))
     except Exception:
