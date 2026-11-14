@@ -20,6 +20,13 @@ class NegativeFixtureTests(unittest.TestCase):
                 dest = Path(temp)/'fixture'
                 mod.build(dest, side)
                 root = yaml.safe_load((dest/'root.yaml').read_text())
+                self.assertNotIn('cpu_alarms', root['resources'])
+                group = 'campuslink-tv2-negative-'+side
+                self.assertEqual(root['resources']['app_a']['properties']['metric_group_metadata'], group)
+                self.assertEqual(root['resources']['asg_b']['properties']['resource']['properties']['metric_group_metadata'], group)
+                unit = yaml.safe_load((dest/'app-unit.yaml').read_text())
+                self.assertEqual(unit['parameters']['metric_group_metadata']['default'], group)
+                self.assertEqual(unit['parameters']['metric_group_metadata']['constraints'], [{'allowed_values': [group]}])
                 a = root['resources']['app_a']['properties']['app_env']
                 b = root['resources']['asg_b']['properties']['resource']['properties']['app_env']
                 bad, good = (a,b) if side=='a' else (b,a)

@@ -30,6 +30,15 @@ def build(destination, side):
     destination.mkdir(mode=0o700)
     root = yaml.safe_load((HEAT/'root.yaml').read_text())
     unit = yaml.safe_load((HEAT/'app-unit.yaml').read_text())
+    # Lab khong tao alarm va khong lam ban query metric cua deployment that.
+    root['resources'].pop('cpu_alarms', None)
+    for key in ('cpu_high_alarm_id', 'cpu_low_alarm_id'):
+        root['outputs'].pop(key, None)
+    group = 'campuslink-tv2-negative-' + side
+    unit['parameters']['metric_group_metadata']['default'] = group
+    unit['parameters']['metric_group_metadata']['constraints'] = [{'allowed_values': [group]}]
+    root['resources']['app_a']['properties']['metric_group_metadata'] = group
+    root['resources']['asg_b']['properties']['resource']['properties']['metric_group_metadata'] = group
     env = (HEAT/'../../app/shlink.env.example').resolve().read_text()
     fault = env.replace('\nDB_HOST=10.20.0.10\n', '\nDB_HOST=127.0.0.1\n')
     if fault == env:

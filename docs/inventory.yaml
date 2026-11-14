@@ -85,7 +85,7 @@ aws:
 openstack:
   release: stable/2026.1
   devstack_sha: "da2f4d73f5ad74fc8ecfbe15bd7e20f6b0982dbb"   # cung SHA tren A va B (24/10/2026)
-  gnocchi_sha: "4a41c1d05052bcabf19fbe2e5bfb5a036a321d32"    # tag 4.7.1, TAM, cho TV2 chot (O-06)
+  gnocchi_sha: "4a41c1d05052bcabf19fbe2e5bfb5a036a321d32"    # tag 4.7.1; TV2 kiem O-06 tren A 14/11: CPU60s A/B + group aggregate + high/low Aodh; giu pin
   repo_shas_file: docs/versions.lock
   keystone_auth_url: "http://10.11.0.10/identity"   # doc lai tu catalog
   nova:
@@ -157,7 +157,7 @@ shlink:                         # Lab 9.5
     root_dir_in_zip: shlink-web-client_4.8.1_dist
   app_instances:
     app-a: { uuid: "523d67b4-9234-4b09-b3dc-c814e6b868fc", ip: "10.20.0.195", az: campus-az-a }
-    app-b: { uuid: "88d79382-b4c2-4868-988f-047421ff967b", ip: "10.20.0.111", az: campus-az-b }
+    app-b: { uuid: "157e3878-4555-4e11-8186-f60b825792e3", ip: "10.20.0.150", az: campus-az-b }   # Heat giu B moi sau manual3->2 ngay14/11, B88d... da xoa
 
 load_balancer:                  # TV2 dien sau Heat (H4)
   provider: ovn
@@ -186,5 +186,29 @@ heat:
   readiness_seconds: 180
   wait_condition_seconds: 300
   diagnostic_security_groups: []
-  ingress_status: "HTTPS cert verified; health 503, cho TV1 noi VIP moi"
-  checked_utc: "2026-11-13T14:18:54Z"
+  ingress_status: "HTTPS cert verified; health200/pass, redirect302 dung dich"
+  ingress_checked_utc: "2026-11-14T08:32:55.530910Z"
+  checked_utc: "2026-11-14T08:32:38.324048Z"
+  cpu_alarm_stack:
+    name: campus-app-cpu-alarms
+    id: "f5b0c4cf-558b-46b2-a4e2-c28d835fc275"
+    scope: "standalone CPU alarms; app root update NOT applied due preview replacement"
+    high: { id: "37680d7a-7c46-4cf8-a789-035c7d990219", threshold: 36000000000, comparison: gt, periods: 2 }
+    low: { id: "90f9060e-af83-4bba-834c-52753144421c", threshold: 15000000000, comparison: lt, periods: 3 }
+    metric: cpu
+    aggregation: "rate:mean"
+    granularity_seconds: 60
+    rate_semantics: delta-ns
+    group: campuslink-app
+    cpu_metric_ids: { app-a: "123ecdaf-efc2-4815-931e-cd846de6e910", app-b: "bd3a4524-7121-42ea-aba3-344525fcdd25" }
+    vcpus_metric_ids: { app-a: "05418399-d872-4659-a41a-e1b71d91c229", app-b: "d4340a4e-0fe2-46f8-9368-ba3d6845b03a" }
+    lifecycle_filter: "ended_at=null AND deleted_at=null"
+    enabled_at_handoff: false
+    action_count: 0
+    disabled_utc: "2026-11-14T07:58:40.025171Z"
+    high_alarm_history_utc: "2026-11-14T07:49:13.738777Z"
+    low_after_load_alarm_history_utc: "2026-11-14T07:54:13.692679Z"
+    evidence: "evidence/G4/20261114-FR-INF-10-tv2-metric-alarm.txt"
+  app_ssh_host_fingerprints:
+    app-a: { type: ed25519, sha256: "SHA256:chWPXeef/ZDCO9ee4smKz6ilsIAQvBvZorzmDZEzyb0", source: "TV1 hypervisor check issue42, matched strict SSH14/11" }
+    app-b: { type: ed25519, sha256: "SHA256:Acr0rxOaQt0BT5z8kLImaSx0xErhyMuV8cLPAJ32H8k", source: "Nova console first boot14/11, matched strict SSH" }

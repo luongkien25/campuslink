@@ -66,6 +66,26 @@ class ProbeTests(unittest.TestCase):
             report = self.mod.sample(url, count=2, host='s.example.test',
                                      path='/test-link', redirect_target='https://example.org/target')
             self.assertTrue(report['passed']); self.assertEqual(handler.count, 2)
+            self.assertTrue(all(r['location_matches_target'] for r in report['requests']))
+
+    def test_cli_correlates_saved_redirect_and_rejects_unverified_location(self):
+        with tempfile.TemporaryDirectory() as temp:
+            temp = Path(temp)
+            report = temp/'report.json'; guests = temp/'guests.json'
+            saved = {'passed': True, 'mode': 'redirect', 'requests': [
+                {'request_id': 'redirect-1', 'status': 302, 'passed': True, 'location_matches_target': True},
+                {'request_id': 'redirect-2', 'status': 302, 'passed': True, 'location_matches_target': True}]}
+            guests.write_text(json.dumps({'vm-a': ['redirect-1'], 'vm-b': ['redirect-2']}))
+            command = [sys.executable, '-B', str(HEAT/'probe_app_pool.py'), '--report', str(report),
+                       '--guest-request-ids', str(guests), '--expect-guest', 'vm-a', '--expect-guest', 'vm-b']
+            report.write_text(json.dumps(saved))
+            result = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+            self.assertEqual(json.loads(result.stdout)['backends']['counts'], {'vm-a': 1, 'vm-b': 1})
+            saved['requests'][0]['location_matches_target'] = False
+            report.write_text(json.dumps(saved))
+            result = subprocess.run(command, capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
 
     def test_mapping_requires_each_request_exactly_one_guest_and_all_expected_guests(self):
         ids = ['req-1', 'req-2', 'req-3']
