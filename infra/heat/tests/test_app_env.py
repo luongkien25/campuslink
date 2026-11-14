@@ -60,6 +60,30 @@ class AppEnvTests(unittest.TestCase):
         with self.assertRaises(self.mod.Invalid):
             self.mod.make_env(self.cred, self.out, self.params)
 
+    def test_telemetry_defaults_cannot_enable_unverified_evaluation_or_action(self):
+        self.mod.make_env(self.cred, self.out, self.params)
+        result = json.loads(self.out.read_text())['parameters']
+        self.assertFalse(result['alarms_enabled'])
+        self.assertFalse(result['scaling_actions_enabled'])
+        self.assertEqual(result['cpu_rate_semantics'], 'unverified')
+
+    def test_only_verified_shadow_or_explicit_action_transport_can_be_published(self):
+        invalid = [dict(alarms_enabled=True), dict(scaling_actions_enabled=True),
+                   dict(telemetry_project_id='bad'), dict(cpu_rate_semantics='guess'),
+                   dict(telemetry_verified='true'), dict(scaling_action_transport='http://secret'),
+                   dict(alarms_enabled=True, telemetry_verified=True, telemetry_project_id='a'*32,
+                        cpu_rate_semantics='delta-ns', scaling_actions_enabled=True)]
+        for extra in invalid:
+            with self.subTest(extra=extra), self.assertRaises(self.mod.Invalid):
+                self.mod.make_env(self.cred, self.out, dict(self.params, **extra))
+            self.assertFalse(self.out.exists())
+        ready = dict(alarms_enabled=True, telemetry_verified=True,
+                     telemetry_project_id='a'*32, cpu_rate_semantics='delta-ns')
+        self.mod.make_env(self.cred, self.out, dict(self.params, **ready))
+        result = json.loads(self.out.read_text())['parameters']
+        self.assertTrue(result['alarms_enabled'])
+        self.assertFalse(result['scaling_actions_enabled'])
+
 
 if __name__ == '__main__':
     unittest.main()

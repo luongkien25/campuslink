@@ -35,6 +35,7 @@ def sample(url, count=60, host=None, *, path='/rest/v3/short-urls', redirect_tar
                 request_id = None
             row.update(status=response.status, request_id=request_id)
             if redirect_target is not None:
+                row['location_matches_target'] = response.getheader('Location') == redirect_target
                 row['passed'] = response.status == 302 and response.getheader('Location') == redirect_target
             else:
                 row['passed'] = response.status == 401 and request_id is not None and request_id not in ids
@@ -71,7 +72,7 @@ def correlate(request_ids, per_vm_logs, expected_guests):
 def main():
     parser = argparse.ArgumentParser(description='Shlink native traffic probe; no API key')
     parser.add_argument('--url'); parser.add_argument('--host')
-    parser.add_argument('--report',type=Path,help='Correlate a saved auth-deny report; never send new requests')
+    parser.add_argument('--report',type=Path,help='Correlate a saved auth-deny/redirect report; no new requests')
     parser.add_argument('--count', type=int, default=60); parser.add_argument('--path', default='/rest/v3/short-urls')
     parser.add_argument('--redirect-target')
     parser.add_argument('--guest-request-ids', type=Path, help='JSON map VM UUID -> filtered Request ID list')
@@ -83,13 +84,15 @@ def main():
                 raise ValueError('invalid-report-mode')
             report = json.loads(args.report.read_text())
             if (not isinstance(report,dict) or set(report) != {'passed','mode','requests'}
-                    or report['mode'] != 'auth-deny' or type(report['passed']) is not bool
+                    or report['mode'] not in ('auth-deny', 'redirect') or type(report['passed']) is not bool
                     or not isinstance(report['requests'],list)):
                 raise ValueError('invalid-saved-report')
             for row in report['requests']:
-                if (not isinstance(row,dict) or set(row) - {'utc','status','request_id','passed','elapsed_seconds','error'}
+                if (not isinstance(row,dict) or set(row) - {'utc','status','request_id','passed','elapsed_seconds','error','location_matches_target'}
                         or type(row.get('passed')) is not bool
-                        or row.get('status') != 401 or not isinstance(row.get('request_id'),str)
+                        or row.get('status') != (302 if report['mode'] == 'redirect' else 401)
+                        or (report['mode'] == 'redirect' and row.get('location_matches_target') is not True)
+                        or not isinstance(row.get('request_id'),str)
                         or not re.fullmatch(r'[A-Za-z0-9_.:-]{1,128}',row['request_id'])):
                     raise ValueError('invalid-saved-request')
             report['passed'] = report['passed'] and all(r['passed'] for r in report['requests'])
