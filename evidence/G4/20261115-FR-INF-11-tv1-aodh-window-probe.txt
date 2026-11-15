@@ -8,7 +8,7 @@ Day la MO PHONG truy van kieu Aodh (cung operations, granularity 60, needed_over
 Hai alarm disabled, actions rong (TV2 bao o #47 va #44; TV4 bao state cpu_high=ok, cpu_low=alarm o #44). TV1 chua doi chieu threshold, repeat_actions va state that.
 
 NEN
-Aodh: git rev-parse HEAD cua /opt/stack/aodh tren A = e07aeb6d118b4b9099947028e6e809a6bdd8fe22; git status --short rong (cay lam viec sach), TV1 kiem 15/11.
+Aodh: git rev-parse HEAD cua /opt/stack/aodh tren A = e07aeb6d118b4b9099947028e6e809a6bdd8fe22; git status --short rong (cay lam viec sach), TV1 chay sau 07:56Z ngay 15/11 (gio chinh xac chua ghi).
 Gnocchi 4.7.1 commit 4a41c1d05052bcabf19fbe2e5bfb5a036a321d32 (theo evidence G4/20261114-FR-INF-10). /etc/aodh/aodh.conf chua doc duoc (can sudo).
 
 CACH DO VA DINH NGHIA
@@ -19,7 +19,7 @@ Tu lan 2 co them phep UNG VIEN: [aggregate, mean, [metric, cpu, rate:mean]] (rat
 Quyet dinh mo phong ban sao _process_statistics (threshold.py:100-119): high gt 36000000000 ns/2 diem; low lt 15000000000 ns/3 diem.
 
 ==============================================================================
-LAN 1: 06:29:48Z-06:49:44Z, 2 app VM on dinh, CPU dung ~0,6%, 80 mau, script chua co phep ung vien
+LAN 1: 06:29:48Z-06:49:44Z, 2 app VM on dinh, CPU dung ~0,6% (tru bucket 06:27 va 06:28: 12,9% va 11,2%), 80 mau, script chua co phep ung vien
 ==============================================================================
 Dong tom tat do chinh probe in luc chay (dung sai luc do la 2,0 diem CPU, nen "open mismatch" chi dem cac dong am):
   samples_used=80 sample_errors=0 aborted=False unstable=0 skipped_no_cpu=0
@@ -41,7 +41,7 @@ Phan bo dong lech cua bucket dang ghi theo giay trong phut cua mau (giay: so don
 LAN 2: 07:06:13Z-07:56:05Z, xuyen luot scale tay 2->3->2 cua TV2, 198 mau
 ==============================================================================
 Moc gio do TV2 bao o #47 (08:05Z) va #44 (08:08Z): scale-out 07:35:59; lan dau du 3 VM ACTIVE va 3 member ONLINE 07:38:22;
-scale-in 07:45:22; ve 2 app ONLINE 07:47:03; "tai da dung". TV2 bao co tai trong luot do (loai, muc, luc bat dau chua ro). Chua co evidence cua TV2
+scale-in 07:45:22; ve 2 app ONLINE 07:47:03; TV2 ghi "tai da dung" cung dong moc 07:47:03, khong neu gio dung. CPU dung 0,6% -> 21,5% -> 61,8% cho thay co tai (loai, muc, luc bat dau chua ro). Chua co evidence cua TV2
 trong repo, TV1 chua doi chieu Heat events. Probe thay VM thu ba trong tap truy van tu 07:36:20Z (mau cuoi con thay 07:45:28Z, mau dau khong con 07:45:43Z).
 Dong tom tat cua probe (script ban co phep ung vien, dung sai 0,01 diem CPU):
   samples_used=198 sample_errors=0 aborted=False unstable=0 skipped_no_cpu=4
@@ -95,11 +95,11 @@ high: chua tung co hai bucket lien tiep > 60%, nen "0 sai" khong chung minh gi v
 GIOI HAN
 - Mo phong truy van, khong phai evaluator that; chua co alarm history luc VM thu ba tham gia.
 - Mot lan VM tham gia; co tai do TV2 trong khoang 07:36-07:47 (loai, muc, luc bat dau chua ro); chua chung minh scale-in sai khi scale do alarm.
-- "Dung" = khop tham chieu cua probe, chua doi chieu doc lap. Phep ung vien dung cung cong thuc nen khop la dieu da dinh san.
+- "Dung" = khop tham chieu cua probe, chua doi chieu doc lap. Phep ung vien dung cung cong thuc nen khop la dieu da dinh san: gia tri cua phep do la so voi Aodh hien tai va viec truy van chay duoc tren Gnocchi that (error_samples=0), khong phai kiem doc lap.
 - Hai app VM khoi dong lai cung luc cum bat (console log VM A: cloud-init 06:18:01Z; chua kiem VM B, chua doc counter).
 - Chu ky danh gia 60 s moi suy tu alarm history GD6 (07:49:13, 07:52:13, 07:54:13), chua kiem aodh.conf; threshold/repeat_actions/state that chua doi chieu.
 - 1 dong dang ghi cua ung vien lech (07:43:26Z: 39,9% so voi 27,0%): mau ke 07:43:41Z cho ca tham chieu, Aodh va ung vien deu 39,9%.
 
 TAI LAP
 Hai file JSONL cung thu muc: moi dong la mot mau (rows, decisions, cand_decisions, resources, sample_utc), dong cuoi la tom tat.
-Chay 1 dung script truoc khi co phep ung vien (khong co truong cand_*). File chi co timestamp bucket, gia tri CPU, so VM; khong co ID VM/project/credential.
+Script probe chua nam trong repo (o ngoai repo cua TV1); dua vao ops/ neu nhom muon. Chay 1 dung script truoc khi co phep ung vien (khong co truong cand_*). File chi co timestamp bucket, gia tri CPU, so VM; khong co ID VM/project/credential.
