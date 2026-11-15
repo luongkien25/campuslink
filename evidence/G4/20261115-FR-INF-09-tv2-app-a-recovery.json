@@ -1,0 +1,381 @@
+{
+  "scope": "FR-INF-09 app A recovery before manual GĐ7 diagnosis; not autoscale acceptance",
+  "vm_id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+  "diagnosis": {
+    "checked_utc": "2026-11-15T07:24:51.954501+00:00",
+    "unit_states": "Result=success\nNRestarts=0\nExecMainCode=1\nExecMainStatus=0\nId=campuslink-secrets.service\nActiveState=active\nSubState=exited\n\nResult=success\nNRestarts=0\nExecMainCode=1\nExecMainStatus=0\nId=campuslink-guard.service\nActiveState=active\nSubState=exited\n\nResult=exit-code\nNRestarts=0\nExecMainCode=1\nExecMainStatus=1\nId=campuslink-shlink.service\nActiveState=failed\nSubState=failed\n\nResult=exit-code\nNRestarts=0\nExecMainCode=1\nExecMainStatus=1\nId=campuslink-ready.service\nActiveState=failed\nSubState=failed\n\nResult=success\nNRestarts=0\nExecMainCode=0\nExecMainStatus=0\nId=campuslink-heat-signal.service\nActiveState=inactive\nSubState=dead\n\nResult=success\nNRestarts=0\nExecMainCode=0\nExecMainStatus=0\nId=docker.service\nActiveState=active\nSubState=running\n",
+    "container_inspect_rc": 1,
+    "container_log_indicators": {
+      "database_generation_error": false,
+      "db_auth_failed": false,
+      "db_connection_refused": false,
+      "redis_wrongpass": false,
+      "redis_noauth": false,
+      "no_such_file": false,
+      "permission_denied": false,
+      "port_in_use": false
+    },
+    "journals": {
+      "campuslink-shlink.service": {
+        "rc": 0,
+        "error_indicators": {
+          "database_generation_error": false,
+          "db_auth_failed": false,
+          "db_connection_refused": false,
+          "redis_wrongpass": false,
+          "redis_noauth": false,
+          "no_such_file": true,
+          "permission_denied": false,
+          "port_in_use": false
+        },
+        "failure_codes": [
+          "runtime"
+        ]
+      },
+      "campuslink-ready.service": {
+        "rc": 0,
+        "error_indicators": {
+          "database_generation_error": false,
+          "db_auth_failed": false,
+          "db_connection_refused": false,
+          "redis_wrongpass": false,
+          "redis_noauth": false,
+          "no_such_file": false,
+          "permission_denied": false,
+          "port_in_use": false
+        },
+        "failure_codes": [
+          "runtime"
+        ]
+      },
+      "campuslink-guard.service": {
+        "rc": 0,
+        "error_indicators": {
+          "database_generation_error": false,
+          "db_auth_failed": false,
+          "db_connection_refused": false,
+          "redis_wrongpass": false,
+          "redis_noauth": false,
+          "no_such_file": false,
+          "permission_denied": false,
+          "port_in_use": false
+        },
+        "failure_codes": []
+      }
+    },
+    "local_http": {
+      "error_class": "ConnectionRefusedError",
+      "errno": 111
+    },
+    "redis_probe": {
+      "returncode": 0,
+      "pong": true
+    }
+  },
+  "preconditions": {
+    "utc": "2026-11-15T07:25:33.584485+00:00",
+    "files": {
+      "/etc/campuslink/bootstrap.json": {
+        "exists": true,
+        "regular": true,
+        "uid": 0,
+        "mode": "0o600"
+      },
+      "/run/campuslink/secrets.json": {
+        "exists": true,
+        "regular": true,
+        "uid": 0,
+        "mode": "0o600"
+      },
+      "/run/campuslink/guard.json": {
+        "exists": true,
+        "regular": true,
+        "uid": 0,
+        "mode": "0o600"
+      },
+      "/run/campuslink/ready.json": {
+        "exists": false
+      },
+      "/run/cloud-init/instance-data.json": {
+        "exists": true,
+        "regular": true,
+        "uid": 0,
+        "mode": "0o644"
+      },
+      "/opt/campuslink/shlink.env": {
+        "exists": true,
+        "regular": true,
+        "uid": 0,
+        "mode": "0o644"
+      },
+      "/opt/campuslink/bootstrap/start-shlink.sh": {
+        "exists": true,
+        "regular": true,
+        "uid": 0,
+        "mode": "0o755"
+      },
+      "/opt/campuslink/bootstrap/start_shlink.py": {
+        "exists": true,
+        "regular": true,
+        "uid": 0,
+        "mode": "0o644"
+      },
+      "/run/secrets/db_password": {
+        "exists": true,
+        "regular": true,
+        "uid": 0,
+        "mode": "0o444"
+      },
+      "/run/secrets/redis_servers": {
+        "exists": true,
+        "regular": true,
+        "uid": 0,
+        "mode": "0o444"
+      }
+    },
+    "secrets_state": {
+      "boot_id_matches": true,
+      "deadline_expired": true
+    },
+    "guard_state": {
+      "boot_id_matches": true,
+      "deadline_expired": true
+    },
+    "missing_file_indicators": {
+      "/opt/campuslink/bootstrap/start-shlink.sh": false,
+      "/opt/campuslink/bootstrap/start_shlink.py": false,
+      "/run/cloud-init/instance-data.json": false,
+      "docker": false
+    },
+    "journal_fixed_indicators": {
+      "No such file or directory": true,
+      "cannot open": false,
+      "not found": true,
+      "Failed at step EXEC": false
+    }
+  },
+  "filtered_current_boot_journal": {
+    "campuslink-shlink.service": {
+      "rc": 0,
+      "filtered_lines": [
+        "2026-11-15T06:18:04+00:00 [LONG VALUE OMITTED] systemd[1]: Starting campuslink-shlink.service - CampusLink Shlink (cached digest, bridge)...",
+        "2026-11-15T06:18:04+00:00 [LONG VALUE OMITTED] systemd[1]: Started campuslink-shlink.service - CampusLink Shlink (cached digest, bridge).",
+        "2026-11-15T06:18:08+00:00 [LONG VALUE OMITTED] sh[1041]: Initializing database if needed... Success!",
+        "2026-11-15T06:18:08+00:00 [LONG VALUE OMITTED] sh[1041]: Updating database... Success!",
+        "2026-11-15T06:18:08+00:00 [LONG VALUE OMITTED] sh[1041]: Generating proxies... Success!",
+        "2026-11-15T06:18:09+00:00 [LONG VALUE OMITTED] sh[1041]: Clearing entities cache... Success!",
+        "2026-11-15T06:18:09+00:00 [LONG VALUE OMITTED] sh[1041]: {\"time\":\"2026-11-15T06:18:09.520966776Z\",\"level\":\"INFO\",\"msg\":\"lock backend initialized\",\"logger\":\"lock\",\"driver\":\"memory\"}",
+        "2026-11-15T06:18:09+00:00 [LONG VALUE OMITTED] sh[1041]: {\"time\":\"2026-11-15T06:18:09.532310799Z\",\"level\":\"DEBUG\",\"msg\":\"plugin was started\",\"logger\":\"rpc\",\"address\":\"[URI OMITTED] of the plugins with RPC methods:\":[\"lock\",\"resetter\",\"app\",\"jobs\",\"informer\"]}",
+        "2026-11-15T06:18:09+00:00 [LONG VALUE OMITTED] sh[1041]: {\"time\":\"2026-11-15T06:18:09.537986787Z\",\"level\":\"DEBUG\",\"msg\":\"pipeline was started\",\"logger\":\"memory\",\"driver\":\"memory\",\"pipeline\":\"shlink\",\"start\":\"2026-11-15 06:18:09.537956954 +0000 UTC\",\"elapsed\":\"21.124µs\"}",
+        "2026-11-15T06:18:09+00:00 [LONG VALUE OMITTED] sh[1041]: time=2026-11-15T06:18:09.537Z level=DEBUG msg=\"initializing driver\" logger=jobs pipeline=shlink driver=memory",
+        "2026-11-15T06:18:09+00:00 [LONG VALUE OMITTED] sh[1041]: time=2026-11-15T06:18:09.537Z level=DEBUG msg=\"driver ready\" logger=jobs pipeline=shlink driver=memory start=2026-11-15T06:18:09.537Z elapsed=0",
+        "2026-11-15T06:18:09+00:00 [LONG VALUE OMITTED] sh[1041]: [INFO] RoadRunner server started; version: 3.0.1, buildtime: 2026-10-21T19:34:12+0000",
+        "2026-11-15T06:27:39+00:00 [LONG VALUE OMITTED] sh[1041]: stop signal received, grace timeout is: 30 seconds",
+        "2026-11-15T06:27:41+00:00 [LONG VALUE OMITTED] systemd[1]: Stopping campuslink-shlink.service - CampusLink Shlink (cached digest, bridge)...",
+        "2026-11-15T06:27:41+00:00 [LONG VALUE OMITTED] docker[6741]: Flag --time has been deprecated, use --timeout instead",
+        "2026-11-15T06:27:41+00:00 [LONG VALUE OMITTED] docker[6741]: shlink",
+        "2026-11-15T06:27:41+00:00 [LONG VALUE OMITTED] systemd[1]: campuslink-shlink.service: Deactivated successfully.",
+        "2026-11-15T06:27:41+00:00 [LONG VALUE OMITTED] systemd[1]: Stopped campuslink-shlink.service - CampusLink Shlink (cached digest, bridge).",
+        "2026-11-15T06:27:41+00:00 [LONG VALUE OMITTED] systemd[1]: Starting campuslink-shlink.service - CampusLink Shlink (cached digest, bridge)...",
+        "2026-11-15T06:27:41+00:00 [LONG VALUE OMITTED] systemd[1]: Started campuslink-shlink.service - CampusLink Shlink (cached digest, bridge).",
+        "2026-11-15T06:27:42+00:00 [LONG VALUE OMITTED] sh[6749]: FAIL: runtime precondition or operation failed",
+        "2026-11-15T06:27:42+00:00 [LONG VALUE OMITTED] systemd[1]: campuslink-shlink.service: Main process exited, code=exited, status=1/FAILURE",
+        "2026-11-15T06:27:42+00:00 [LONG VALUE OMITTED] systemd[1]: campuslink-shlink.service: Failed with result 'exit-code'.",
+        "2026-11-15T06:27:42+00:00 [LONG VALUE OMITTED] systemd[1]: campuslink-shlink.service: Triggering OnFailure= dependencies."
+      ]
+    },
+    "campuslink-ready.service": {
+      "rc": 0,
+      "filtered_lines": [
+        "2026-11-15T06:18:04+00:00 [LONG VALUE OMITTED] systemd[1]: Starting campuslink-ready.service - CampusLink local readiness (HTTP and Redis)...",
+        "2026-11-15T06:18:11+00:00 [LONG VALUE OMITTED] python3[1042]: OK",
+        "2026-11-15T06:18:11+00:00 [LONG VALUE OMITTED] systemd[1]: Finished campuslink-ready.service - CampusLink local readiness (HTTP and Redis).",
+        "2026-11-15T06:27:39+00:00 [LONG VALUE OMITTED] systemd[1]: Stopping campuslink-ready.service - CampusLink local readiness (HTTP and Redis)...",
+        "2026-11-15T06:27:39+00:00 [LONG VALUE OMITTED] docker[6568]: Flag --time has been deprecated, use --timeout instead",
+        "2026-11-15T06:27:41+00:00 [LONG VALUE OMITTED] docker[6568]: shlink",
+        "2026-11-15T06:27:41+00:00 [LONG VALUE OMITTED] systemd[1]: campuslink-ready.service: Deactivated successfully.",
+        "2026-11-15T06:27:41+00:00 [LONG VALUE OMITTED] systemd[1]: Stopped campuslink-ready.service - CampusLink local readiness (HTTP and Redis).",
+        "2026-11-15T06:27:41+00:00 [LONG VALUE OMITTED] systemd[1]: Starting campuslink-ready.service - CampusLink local readiness (HTTP and Redis)...",
+        "2026-11-15T06:27:42+00:00 [LONG VALUE OMITTED] python3[6750]: FAIL: runtime precondition or operation failed",
+        "2026-11-15T06:27:42+00:00 [LONG VALUE OMITTED] systemd[1]: campuslink-ready.service: Main process exited, code=exited, status=1/FAILURE",
+        "2026-11-15T06:27:42+00:00 [LONG VALUE OMITTED] docker[6778]: Flag --time has been deprecated, use --timeout instead",
+        "2026-11-15T06:27:42+00:00 [LONG VALUE OMITTED] docker[6778]: Error response from daemon: No such container: shlink",
+        "2026-11-15T06:27:42+00:00 [LONG VALUE OMITTED] systemd[1]: campuslink-ready.service: Failed with result 'exit-code'.",
+        "2026-11-15T06:27:42+00:00 [LONG VALUE OMITTED] systemd[1]: Stopped campuslink-ready.service - CampusLink local readiness (HTTP and Redis).",
+        "2026-11-15T06:27:42+00:00 [LONG VALUE OMITTED] systemd[1]: campuslink-ready.service: Triggering OnFailure= dependencies."
+      ]
+    }
+  },
+  "deadline_proof": {
+    "utc": "2026-11-15T07:28:05.627213+00:00",
+    "deadline_expired": true,
+    "deadline_utc_estimate": "2026-11-15T06:21:03.857732+00:00",
+    "active_state_passed": false,
+    "failure_code": "deadline"
+  },
+  "recovery": {
+    "checked_utc": "2026-11-15T07:29:44.269065+00:00",
+    "recovery_started_utc": "2026-11-15T07:29:44.269195+00:00",
+    "recovery_returncode": 0,
+    "recovery_finished_utc": "2026-11-15T07:29:47.907645+00:00",
+    "boot_id_unchanged": true,
+    "unit_states": "Result=success\nNRestarts=0\nExecMainCode=1\nExecMainStatus=0\nId=campuslink-secrets.service\nActiveState=active\nSubState=exited\n\nResult=success\nNRestarts=0\nExecMainCode=1\nExecMainStatus=0\nId=campuslink-guard.service\nActiveState=active\nSubState=exited\n\nResult=success\nNRestarts=0\nExecMainCode=0\nExecMainStatus=0\nId=campuslink-shlink.service\nActiveState=active\nSubState=running\n\nResult=success\nNRestarts=0\nExecMainCode=1\nExecMainStatus=0\nId=campuslink-ready.service\nActiveState=active\nSubState=exited\n\nResult=success\nNRestarts=0\nExecMainCode=0\nExecMainStatus=0\nId=campuslink-heat-signal.service\nActiveState=inactive\nSubState=dead\n\nResult=success\nNRestarts=0\nExecMainCode=0\nExecMainStatus=0\nId=docker.service\nActiveState=active\nSubState=running\n",
+    "container_inspect_rc": 0,
+    "container": {
+      "status": "running",
+      "exit_code": 0,
+      "oom_killed": false,
+      "restarts": 0,
+      "error_present": false,
+      "started": "2026-11-15T07:29:45.92956164Z",
+      "finished": "0001-01-01T00:00:00Z"
+    },
+    "container_log_indicators": {
+      "database_generation_error": false,
+      "db_auth_failed": false,
+      "db_connection_refused": false,
+      "redis_wrongpass": false,
+      "redis_noauth": false,
+      "no_such_file": false,
+      "permission_denied": false,
+      "port_in_use": false
+    },
+    "journals": {
+      "campuslink-shlink.service": {
+        "rc": 0,
+        "error_indicators": {
+          "database_generation_error": false,
+          "db_auth_failed": false,
+          "db_connection_refused": false,
+          "redis_wrongpass": false,
+          "redis_noauth": false,
+          "no_such_file": true,
+          "permission_denied": false,
+          "port_in_use": false
+        },
+        "failure_codes": [
+          "runtime"
+        ]
+      },
+      "campuslink-ready.service": {
+        "rc": 0,
+        "error_indicators": {
+          "database_generation_error": false,
+          "db_auth_failed": false,
+          "db_connection_refused": false,
+          "redis_wrongpass": false,
+          "redis_noauth": false,
+          "no_such_file": false,
+          "permission_denied": false,
+          "port_in_use": false
+        },
+        "failure_codes": [
+          "runtime"
+        ]
+      },
+      "campuslink-guard.service": {
+        "rc": 0,
+        "error_indicators": {
+          "database_generation_error": false,
+          "db_auth_failed": false,
+          "db_connection_refused": false,
+          "redis_wrongpass": false,
+          "redis_noauth": false,
+          "no_such_file": false,
+          "permission_denied": false,
+          "port_in_use": false
+        },
+        "failure_codes": []
+      }
+    },
+    "local_http": {
+      "status": 200,
+      "app_status": "pass",
+      "version": "5.1.8"
+    },
+    "redis_probe": {
+      "returncode": 0,
+      "pong": true
+    }
+  },
+  "post_recovery_baseline": {
+    "snapshot": {
+      "utc": "2026-11-15T07:30:25.073333+00:00",
+      "apps": [
+        {
+          "id": "157e3878-4555-4e11-8186-f60b825792e3",
+          "status": "ACTIVE",
+          "az": "campus-az-b",
+          "ips": [
+            "10.20.0.150"
+          ],
+          "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+        },
+        {
+          "id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+          "status": "ACTIVE",
+          "az": "campus-az-a",
+          "ips": [
+            "10.20.0.195"
+          ],
+          "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+        }
+      ],
+      "members": [
+        {
+          "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+          "address": "10.20.0.195",
+          "status": "ONLINE",
+          "enabled": true
+        },
+        {
+          "id": "0f4a7056-af4d-4dc3-8d6e-bc4274582b78",
+          "address": "10.20.0.150",
+          "status": "ONLINE",
+          "enabled": true
+        }
+      ],
+      "alarms": [
+        {
+          "id": "90f9060e-af83-4bba-834c-52753144421c",
+          "state": "alarm",
+          "enabled": false,
+          "action_count": 0
+        },
+        {
+          "id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+          "state": "ok",
+          "enabled": false,
+          "action_count": 0
+        }
+      ],
+      "ready": true
+    },
+    "directory_exists": false
+  },
+  "temporary_access_cleanup": {
+    "created_utc": "2026-11-15T07:22:15.523151+00:00",
+    "app_port": "6c352539-4367-4b6b-8405-ac4e507f0e78",
+    "app_original_sgs": [
+      "b3eb3225-3e50-4c38-b43f-3823b6022d05"
+    ],
+    "image": "10ed8a67-8808-480b-b04d-1faf7d118ba1",
+    "flavor": "c1",
+    "keypair": "campus-tv2",
+    "jump_sg": "821b13a4-ecb0-4567-9d67-24ce6085bfdb",
+    "app_ssh_sg": "9dccbf25-219b-4c1f-846b-25812045ac01",
+    "jump_id": "c7deac48-fc16-4db0-b8b6-0191c351a74a",
+    "jump_port": "511188ea-5a72-4952-902c-1f927faf1c03",
+    "jump_fip_id": "6526bc2a-5f21-4323-b2fb-78b3a3bcec3c",
+    "jump_fip": "172.24.4.188",
+    "app_ssh_attached": false,
+    "cleaned_utc": "2026-11-15T07:31:23.621105+00:00"
+  },
+  "limitations": [
+    "No actor identified for stop/restart at06:27; do not assign blame.",
+    "No raw env/secret/credential read into model output.",
+    "Full unit journal contains historical failure indicators even after recovery; current unit states/HTTP/Redis verify recovery.",
+    "Both direct private HTTP probes from hostA timed out; that path is not proof A app alone failed.",
+    "No VM reboot, config/code change or Heat callback resend; service-chain restart explicitly approved."
+  ]
+}

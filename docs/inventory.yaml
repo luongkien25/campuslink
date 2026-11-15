@@ -157,7 +157,7 @@ shlink:                         # Lab 9.5
     root_dir_in_zip: shlink-web-client_4.8.1_dist
   app_instances:
     app-a: { uuid: "523d67b4-9234-4b09-b3dc-c814e6b868fc", ip: "10.20.0.195", az: campus-az-a }
-    app-b: { uuid: "157e3878-4555-4e11-8186-f60b825792e3", ip: "10.20.0.150", az: campus-az-b }   # Heat giu B moi sau manual3->2 ngay14/11, B88d... da xoa
+    app-b: { uuid: "c6d98b28-a4c1-456f-b044-4b2affbb391a", ip: "10.20.0.185", az: campus-az-b }   # Heat giu B moi sau manual3->2 ngay15/11, B157e... da xoa
 
 load_balancer:                  # TV2 dien sau Heat (H4)
   provider: ovn
@@ -188,7 +188,7 @@ heat:
   diagnostic_security_groups: []
   ingress_status: "HTTPS cert verified; health200/pass, redirect302 dung dich"
   ingress_checked_utc: "2026-11-14T08:32:55.530910Z"
-  checked_utc: "2026-11-14T08:32:38.324048Z"
+  checked_utc: "2026-11-15T07:50:00.095635Z"
   cpu_alarm_stack:
     name: campus-app-cpu-alarms
     id: "f5b0c4cf-558b-46b2-a4e2-c28d835fc275"
@@ -200,8 +200,8 @@ heat:
     granularity_seconds: 60
     rate_semantics: delta-ns
     group: campuslink-app
-    cpu_metric_ids: { app-a: "123ecdaf-efc2-4815-931e-cd846de6e910", app-b: "bd3a4524-7121-42ea-aba3-344525fcdd25" }
-    vcpus_metric_ids: { app-a: "05418399-d872-4659-a41a-e1b71d91c229", app-b: "d4340a4e-0fe2-46f8-9368-ba3d6845b03a" }
+    cpu_metric_ids: { app-a: "123ecdaf-efc2-4815-931e-cd846de6e910", app-b: "4ee9e4f4-6558-4d33-a08f-bfcb75b41c46" }
+    vcpus_metric_ids: { app-a: "05418399-d872-4659-a41a-e1b71d91c229", app-b: "6cf28252-8ec2-48e6-9d88-4dd3596cdf0d" }
     lifecycle_filter: "ended_at=null AND deleted_at=null"
     enabled_at_handoff: false
     action_count: 0
@@ -211,4 +211,4 @@ heat:
     evidence: "evidence/G4/20261114-FR-INF-10-tv2-metric-alarm.txt"
   app_ssh_host_fingerprints:
     app-a: { type: ed25519, sha256: "SHA256:chWPXeef/ZDCO9ee4smKz6ilsIAQvBvZorzmDZEzyb0", source: "TV1 hypervisor check issue42, matched strict SSH14/11" }
-    app-b: { type: ed25519, sha256: "SHA256:Acr0rxOaQt0BT5z8kLImaSx0xErhyMuV8cLPAJ32H8k", source: "Nova console first boot14/11, matched strict SSH" }
+    app-b: { type: ed25519, sha256: "SHA256:u2L3oDsXR76+bRBibhcKx8ws+VzDkWWnsLhVf/VPLLs", source: "Nova console first boot15/11; SSH to new B not checked" }
