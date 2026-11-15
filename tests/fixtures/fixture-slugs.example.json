@@ -1,0 +1,31 @@
+{
+  "description": "Mau 5 slug fixture chuan cho FR-INF-16 (restore test) va NFR-03/NFR-04 (benchmark). Sao chep va doi chieu voi H5 cua TV3.",
+  "tag": "campus-open-day",
+  "fixtures": [
+    {
+      "shortCode": "tv4fix1",
+      "longUrl": "https://example.org/campuslink-fixture-1",
+      "tags": ["campus-open-day", "load-test"]
+    },
+    {
+      "shortCode": "tv4fix2",
+      "longUrl": "https://example.org/campuslink-fixture-2",
+      "tags": ["campus-open-day", "load-test"]
+    },
+    {
+      "shortCode": "tv4fix3",
+      "longUrl": "https://example.org/campuslink-fixture-3",
+      "tags": ["campus-open-day", "load-test"]
+    },
+    {
+      "shortCode": "tv4fix4",
+      "longUrl": "https://example.org/campuslink-fixture-4",
+      "tags": ["campus-open-day", "load-test"]
+    },
+    {
+      "shortCode": "tv4fix5",
+      "longUrl": "https://example.org/campuslink-fixture-5",
+      "tags": ["campus-open-day", "load-test"]
+    }
+  ]
+}
