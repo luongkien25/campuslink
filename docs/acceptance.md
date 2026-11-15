@@ -46,6 +46,26 @@ Bảng dưới đây theo dõi 8 hạng mục bắt buộc của môn học kèm
 2. **Kịch bản chạy liên tục 24/7 (`730 giờ/tháng`):**
    - $\text{Chi phí tháng} = (0{,}615 \times 730 + 18{,}56) \times 1{,}2 = (448{,}95 + 18{,}56) \times 1{,}2 = \mathbf{561{,}01\text{–}562{,}32\text{ USD/tháng}}$ (gồm dự phòng 20%; tách biệt với khoản AWS Credit của tài khoản sinh viên/nhóm).
 
+### 2.3 So sánh với kiến trúc AWS Managed tương đương (`NFR-16` bản 1.4, giá `us-east-1` lấy ngày 15/11/2026)
+
+Để đối chiếu việc tự vận hành OpenStack trên 2 EC2 (`m7i.2xlarge` + `m7i.xlarge`) với phương án dùng dịch vụ AWS thuần tương đương về mặt chức năng (Multi-AZ LB, Auto Scaling 2–3 app, PostgreSQL + Redis riêng, Object Storage):
+
+| Thành phần chức năng | Kiến trúc CampusLink (OpenStack trên 2 EC2) | Kiến trúc AWS Managed tương đương (`us-east-1`) | Ước tính AWS Managed (730 giờ/tháng, USD) | Ước tính AWS Managed theo Lab (~50 giờ bật, USD) |
+| --- | --- | --- | --- | --- |
+| **Ingress + Load Balancer (Multi-AZ)** | Nginx trên Host A + Octavia OVN LB (nằm chung trong 2 EC2) | Application Load Balancer (ALB, 2 AZ, `$0.0225/giờ` + `~0.5 LCU` `$0.008/LCU-giờ`) | `~19,35 USD` | `~1,53 USD` (nếu xóa ALB sau mỗi phiên) hoặc `~19,35 USD` (giữ cố định) |
+| **Compute ứng dụng (2–3 replica ở 2 AZ)** | 2–3 Nova VM `campus.app` (1 vCPU, 2 GiB RAM) chạy trên 2 host KVM | 2 × `t3.small` (2 vCPU, 2 GiB, `$0.0208/giờ` × 2) + 1 × `t3.small` scale-out (~15% thời gian) | `~32,65 USD` | `~2,24 USD` (50 giờ) + EBS 30 GiB (`2,40 USD`) = `~4,64 USD` |
+| **Cơ sở dữ liệu PostgreSQL 16** | Nova VM `campus-db` (1 vCPU, 2 GiB) + Cinder 10 GiB | Amazon RDS for PostgreSQL `db.t4g.small` (Single-AZ `$0.032/giờ` hoặc Multi-AZ `$0.064/giờ`) + 20 GiB `gp3` (`$0.115/GiB-tháng`) | `~25,66 USD` (Single-AZ) / `~51,32 USD` (Multi-AZ) | `~3,90 USD` (Single-AZ, Stop 7 ngày/lần + storage) |
+| **Redis (Cache + Pub/Sub + Streams)** | Redis 7.0 trên `campus-db` | Amazon ElastiCache Redis `cache.t4g.small` (`$0.032/giờ`, **không hỗ trợ Stop/Start giữ trạng thái**) | `~23,36 USD` | `~23,36 USD` (phải chạy liên tục hoặc tạo/xóa bằng IaC: `~1,60 USD`) |
+| **Object Storage + Backup** | Swift (`campus-backups`, `campus-qr`, `campus-reports`, `campus-secrets`) + EBS Snapshot | Amazon S3 Standard (`< 5 GiB`, `$0.023/GiB-tháng` + Versioning/Object Lock) + RDS Snapshot | `~0,50 USD` | `~0,15 USD` |
+| **Mạng liên AZ (NAT cho private subnet)** | `campus-nat` (iptables MASQUERADE trên Host A, không tốn phí dịch vụ) | AWS NAT Gateway (`$0.045/giờ` + `$0.045/GB`) | `~33,85 USD` | `~2,50 USD` (nếu xóa/tạo lại) hoặc `~33,85 USD` |
+| **Tổng cộng (chưa dự phòng)** | **467,51 USD/tháng** (730 giờ) / **~28–49 USD** (40–60 giờ lab) | — | **~135,37 USD/tháng** (Single-AZ DB) / **~161,03 USD/tháng** (Multi-AZ DB) | **~14,32 USD** (tạo/xóa mỗi phiên) – **~85,79 USD** (giữ ALB/NAT/ElastiCache) |
+| **Tổng cộng (gồm dự phòng 20%)** | **561,01–562,32 USD/tháng** (730 giờ) / **51,79–66,55 USD** (lab) | — | **~162,44–193,24 USD/tháng** | **~17,18–102,95 USD** |
+
+**Nhận xét kinh tế – kỹ thuật:**
+- Ở kịch bản **24/7 (730 giờ/tháng)**, tự dựng IaaS OpenStack trên 2 EC2 trần cónested KVM (`m7i.2xlarge` + `m7i.xlarge`) đắt hơn khoảng **2,9–3,4 lần** so với dùng dịch vụ AWS Managed cỡ nhỏ (`t3.small`/`t4g.small`), do OpenStack control plane (Keystone, Nova, Neutron/OVN, Cinder, Swift, Octavia, Heat, Ceilometer/Gnocchi/Aodh) chiếm phần lớn RAM/CPU nền (`reserve A 16 GiB/4 vCPU, B 8 GiB/1 vCPU`).
+- Ngược lại, ở kịch bản **Lab môn học bật theo phiên (40–60 giờ)**, đóng gói toàn bộ đám mây OpenStack vào 2 EC2 có thể **Stop/Start nguyên trạng trong 2 phút** mà không tốn phí giữ ALB, NAT Gateway hay ElastiCache 24/7, giúp tổng chi phí thực tế đến ngày 09/11 chỉ tốn **~19,00 USD** (nằm gọn trong mục tiêu `≤ 70 USD`).
+- Với đề xuất mở rộng **tầng 3 DR bằng S3 (`O-22`, `FR-INF-25`)**: với dung lượng dump `< 50 MB` và giữ 7 ngày, chi phí S3 phát sinh **dưới `0,05 USD/tháng`**, không làm ảnh hưởng ngân sách `C-08`.
+
 ---
 
 ## 3. Hai mục TV4 xác nhận theo Issue #32
