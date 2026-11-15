@@ -3,6 +3,8 @@
 # Chay tren Compose local sau: ./gen-portal-secrets.sh && docker compose --profile portal up -d --build --wait
 # Lan dau tu tao: admin, 2 don vi (key Shlink --author-only), tai khoan unit A/B va viewer A.
 # Chi in PASS/FAIL va gia tri khong nhay cam.
+# Mat khau va API key KHONG nam tren argv cua curl (ps thay duoc): ghi bang printf (lenh builtin, khong tao
+# tien trinh) vao file trong $work (0700), roi curl doc bang --data-urlencode "k@file" va -H @file.
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 cd "$here/../../compose"
@@ -11,6 +13,8 @@ S=${SHLINK:-http://127.0.0.1:18080}
 sec=secrets
 run_id=$(date -u +%Y%m%dT%H%M%SZ); rid=${run_id,,}
 work=$(mktemp -d); trap 'rm -rf "$work"' EXIT
+umask 077
+sf() { local f; f=$(mktemp "$work/s.XXXXXX"); printf '%s' "$1" > "$f"; echo "$f"; }   # gia tri -> file khong xuong dong
 fails=0
 check() { if [[ $3 == "$4" ]]; then echo "PASS  $1  $2  (=$4)"; else echo "FAIL  $1  $2  (mong doi $3, thuc te $4)"; fails=$((fails+1)); fi; }
 dc() { docker compose --profile portal "$@"; }
@@ -25,7 +29,7 @@ csrf() { curl -sS -b "$(jar "$1")" -c "$(jar "$1")" "$P$2" | sed -n 's/.*name="c
 login() { # ten, mat khau -> 0 neu vao duoc
   local t; t=$(csrf "$1" /login)
   curl -sS -o /dev/null -b "$(jar "$1")" -c "$(jar "$1")" -w '%{http_code} %{redirect_url}' "$P/login" \
-    --data-urlencode "csrf=$t" --data-urlencode "username=$1" --data-urlencode "password=$2"
+    --data-urlencode "csrf=$t" --data-urlencode "username=$1" --data-urlencode "password@$(sf "$2")"
 }
 post() { # ai, duong dan, [--data-urlencode k=v ...] -> "code location"
   local who=$1 path=$2; shift 2; local t; t=$(csrf "$who" "${CSRF_PAGE:-/campaigns}")
@@ -51,9 +55,9 @@ done
 uid_a=$(get admin /admin >/dev/null; sed -n 's/.*<option value="\([0-9]*\)">Don vi a<.*/\1/p' "$work/out" | head -1)
 uid_b=$(sed -n 's/.*<option value="\([0-9]*\)">Don vi b<.*/\1/p' "$work/out" | head -1)
 pa=$(pwfile portal_pw_unit_a); pb=$(pwfile portal_pw_unit_b); pv=$(pwfile portal_pw_viewer_a)
-CSRF_PAGE=/admin post admin /admin/users --data-urlencode username=unit-a --data-urlencode "password=$pa" --data-urlencode role=unit --data-urlencode "unit_id=$uid_a" >/dev/null
-CSRF_PAGE=/admin post admin /admin/users --data-urlencode username=unit-b --data-urlencode "password=$pb" --data-urlencode role=unit --data-urlencode "unit_id=$uid_b" >/dev/null
-CSRF_PAGE=/admin post admin /admin/users --data-urlencode username=viewer-a --data-urlencode "password=$pv" --data-urlencode role=viewer --data-urlencode "unit_id=$uid_a" >/dev/null
+CSRF_PAGE=/admin post admin /admin/users --data-urlencode username=unit-a --data-urlencode "password@$(sf "$pa")" --data-urlencode role=unit --data-urlencode "unit_id=$uid_a" >/dev/null
+CSRF_PAGE=/admin post admin /admin/users --data-urlencode username=unit-b --data-urlencode "password@$(sf "$pb")" --data-urlencode role=unit --data-urlencode "unit_id=$uid_b" >/dev/null
+CSRF_PAGE=/admin post admin /admin/users --data-urlencode username=viewer-a --data-urlencode "password@$(sf "$pv")" --data-urlencode role=viewer --data-urlencode "unit_id=$uid_a" >/dev/null
 check FR-APP-13 "sai mat khau bi tu choi" 200 "$(login unit-a sai-mat-khau | cut -d' ' -f1)"
 check FR-APP-13 "unit-a dang nhap" "303 $P/" "$(login unit-a "$pa")"
 check FR-APP-13 "unit-b dang nhap" "303 $P/" "$(login unit-b "$pb")"
@@ -72,17 +76,17 @@ check FR-APP-14 "chien dich co 3 link" 3 "${#shorts[@]}"
 ok=0; for s in "${shorts[@]}"; do [[ $(loc "${s/localhost/127.0.0.1}") == "302 https://example.org/a"* ]] && ok=$((ok+1)); done
 check FR-APP-14 "3 link chuyen huong 302 toi dich" 3 "$ok"
 tag="campaign-$cid"
-key_a=$(cat "$sec/api_key_portal-donvi-a")
+hk_a=$(sf "X-Api-Key: $(cat "$sec/api_key_portal-donvi-a")")
+hk_b=$(sf "X-Api-Key: $(cat "$sec/api_key_portal-donvi-b")")
 check FR-APP-14 "3 link mang tag chien dich (REST key A)" 3 \
-  "$(curl -sS -H "X-Api-Key: $key_a" "$S/rest/v3/short-urls?tags%5B%5D=$tag&itemsPerPage=50" | jq '.shortUrls.data | length')"
+  "$(curl -sS -H @"$hk_a" "$S/rest/v3/short-urls?tags%5B%5D=$tag&itemsPerPage=50" | jq '.shortUrls.data | length')"
 
 echo "== FR-APP-13 cach ly don vi"
 check FR-APP-13 "unit-b xem chien dich cua A qua portal" 404 "$(get unit-b "/campaigns/$cid")"
 check FR-APP-13 "unit-b khong thay chien dich A trong danh sach" 0 "$(get unit-b /campaigns >/dev/null; grep -c "Smoke $rid" "$work/out")"
 code1=${shorts[0]##*/}
-key_b=$(cat "$sec/api_key_portal-donvi-b")
-check FR-APP-13 "REST key B doc link cua A" 404 "$(curl -sS -o /dev/null -w '%{http_code}' -H "X-Api-Key: $key_b" "$S/rest/v3/short-urls/$code1")"
-check FR-APP-13 "REST key B xem visit tag cua A" 0 "$(curl -sS -H "X-Api-Key: $key_b" "$S/rest/v3/short-urls?tags%5B%5D=$tag" | jq '.shortUrls.data | length')"
+check FR-APP-13 "REST key B doc link cua A" 404 "$(curl -sS -o /dev/null -w '%{http_code}' -H @"$hk_b" "$S/rest/v3/short-urls/$code1")"
+check FR-APP-13 "REST key B xem visit tag cua A" 0 "$(curl -sS -H @"$hk_b" "$S/rest/v3/short-urls?tags%5B%5D=$tag" | jq '.shortUrls.data | length')"
 check FR-APP-13 "viewer-a xem chien dich cua A" 200 "$(get viewer-a "/campaigns/$cid")"
 check FR-APP-13 "viewer-a khong tao duoc chien dich" 403 "$(CSRF_PAGE=/campaigns post viewer-a /campaigns --data-urlencode name=x --data-urlencode "ends_at=$end" | cut -d' ' -f1)"
 
@@ -98,7 +102,7 @@ code=$(curl -sS -o "$work/the.pdf" -w '%{http_code}' -b "$(jar unit-a)" "$P$pdf"
 check FR-APP-16 "tai PDF (unit-a)" "200 %PDF" "$code $(head -c4 "$work/the.pdf")"
 check FR-APP-16 "PDF co $(( (N+7)/8 )) trang (8 the/trang)" "$(( (N+7)/8 ))" "$(python3 -c 'import re,sys; print(len(re.findall(rb"/Type\s*/Page(?![a-z])", open(sys.argv[1],"rb").read())))' "$work/the.pdf")"
 check FR-APP-16 "unit-b tai PDF cua A" 404 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$(jar unit-b)" "$P$pdf")"
-mapfile -t cl < <(curl -sS -H "X-Api-Key: $key_a" "$S/rest/v3/short-urls?tags%5B%5D=$tag&itemsPerPage=100" \
+mapfile -t cl < <(curl -sS -H @"$hk_a" "$S/rest/v3/short-urls?tags%5B%5D=$tag&itemsPerPage=100" \
   | jq -r --arg u "https://example.org/checkin?r=$rid" '.shortUrls.data[] | select(.longUrl == $u) | .shortCode')
 check FR-APP-16 "$N nguoi ra $N link khac nhau" "$N" "$(printf '%s\n' "${cl[@]}" | sort -u | grep -c .)"
 ok=0; for s in "${cl[@]}"; do [[ $(loc "$S/$s") == "302 https://example.org/checkin?r=$rid" ]] && ok=$((ok+1)); done

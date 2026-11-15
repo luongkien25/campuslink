@@ -61,3 +61,17 @@ Ban in thu: chu tieng Viet co dau (font DejaVuSans) hien dung; ban dau ten de le
 - Them don vi/tai khoan trung ten tra 500 (UniqueViolation) -> bat loi, tra 400.
 
 Chua kiem: tren cum (H1b), QR_STORAGE=swift, nhieu replica sau LB, quet QR bang dien thoai (lam khi demo).
+
+== Chay lai 15/11/2026 sau khi sua theo review TV2 (PR #45): mat khau va API key khong con tren argv cua curl
+# smoke ghi gia tri vao file 0600 trong thu muc mktemp, curl doc bang --data-urlencode "password@file" va -H @file.
+# Trong luc chay, lay mau 'ps -eo args' moi 50 ms: bat duoc 20 dong curl (trong do 4 dong login dang password@file);
+# dem so lan xuat hien cua tung secret trong cac dong nay (khong in secret):
+#   portal_admin_password: 0
+#   portal_pw_unit_a: 0
+#   portal_pw_unit_b: 0
+#   portal_pw_viewer_a: 0
+#   api_key_portal-donvi-a: 0
+#   api_key_portal-donvi-b: 0
+# Lay mau chi bat duoc mot phan tien trinh (curl ngan); ket luan dua tren ma: khong con "$key"/"password=$..." trong argv.
+run_id=20261115T154654Z portal=http://127.0.0.1:18090 shlink=http://127.0.0.1:18080
+Ket qua: 31 PASS, 0 FAIL
