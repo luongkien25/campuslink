@@ -216,7 +216,9 @@ Làm theo `docs/runbooks/db-vm.md`. Evidence: `evidence/G3/20261108-FR-INF-12-db
 Chưa kiểm, người nhận (TV2) làm khi chạy clone:
 - Kết nối 5432/6379 từ VM có `campus-app-sg` (SG `campus-db-sg` chỉ nhận từ SG này; VM ngoài SG sẽ timeout, không phải lỗi mật khẩu).
 - Shlink chạy migration trên DB thật (local đã chạy được với cùng cấu hình, `evidence/G3/20261107-FR-INF-12-db-vm-thu-local.txt`).
-- "Reboot: link còn" của FR-INF-12: sau khi có link, TV3 reboot `campus-db` và so dòng `short_urls=` trước/sau.
+- ~~"Reboot: link còn" của FR-INF-12~~: **đã kiểm 12/11** với link `tv2g4-20261111` của TV2, `short_urls=1 visits=2` trước và sau reboot (`evidence/G3/20261112-FR-INF-15-16-backup-restore-cum.txt`).
+
+Backup (FR-INF-15, 12/11): timer trên `campus-db` dump `shlink` mỗi giờ lên `campus-backups/db/`, giữ 48 bản; restore thử vào `campus_restore_test` bằng `campus-db-restore-test`. Thủ tục: `docs/runbooks/db-backup.md`.
 
 Lưu ý vận hành:
 - Mật khẩu đưa vào VM qua user-data (rủi ro chấp nhận như ADR-10, runbook mục "Thiết kế"); đổi mật khẩu về sau bằng `ALTER ROLE` trên VM rồi ghi lại object Swift, không qua user-data.

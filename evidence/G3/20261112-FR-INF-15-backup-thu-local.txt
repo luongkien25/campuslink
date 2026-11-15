@@ -1,0 +1,44 @@
+# FR-INF-15 / FR-INF-16 / O-19 - thu backup + restore trong container (CHUA PHAI tren cum). TV3, 12/11/2026 ~22:35 gio VN.
+# Muc dich: bat loi script app/db/backup/ truoc phien cloud (issue #38).
+# Cach thu:
+#   - mang Docker 10.20.0.0/24; "DB VM" = ubuntu:24.04 privileged tai 10.20.0.10, chay campus-db-setup tu user-data.tmpl.yaml
+#   - Shlink 5.1.8 (digest versions.lock) tai 10.20.0.101 tao schema + 5 link bk-a..bk-e
+#   - Keystone + Swift GIA (python, 10.20.0.50): kiem credential, mo phong access rules (chi db/* va GET container),
+#     PUT kiem ETag (md5) nhu Swift, luu metadata X-Object-Meta-*
+#   - install.sh --cred-stdin voi credential gia; KEEP_REMOTE=2 de thu retention
+# Chua thu duoc o day: Keystone/Swift that, access rules that, systemd timer, mang VM -> 10.11.0.10.
+
+== install
+OK da cai; cred: 2/2 dong hop le; timer:            (timer chua bat, dung y do)
+/root/campus-backup/cred -> -rw-------
+
+== campus-db-backup x3 (KEEP_REMOTE=2)
+campus-db-backup: dump shlink-20261112T153517Z.dump 36798 byte sha256=c4a222a2...
+campus-db-backup: OK campus-backups/db/shlink-20261112T153517Z.dump etag khop md5, meta sha256 khop
+campus-db-backup: retention: Swift co 1 ban, xoa 0 (giu 2); dia giu 2
+campus-db-backup: dump shlink-20261112T153518Z.dump 36798 byte sha256=2a672e38...
+campus-db-backup: OK campus-backups/db/shlink-20261112T153518Z.dump etag khop md5, meta sha256 khop
+campus-db-backup: retention: Swift co 2 ban, xoa 0 (giu 2); dia giu 2
+campus-db-backup: dump shlink-20261112T153520Z.dump 36798 byte sha256=4b4e578d...
+campus-db-backup: OK campus-backups/db/shlink-20261112T153520Z.dump etag khop md5, meta sha256 khop
+campus-db-backup: retention: Swift co 3 ban, xoa 1 (giu 2); dia giu 2
+/var/lib/campus-backup/last -> OK 20261112T153520Z campus-backups/db/shlink-20261112T153520Z.dump ...
+/var/backups/campus: 2 dump (postgres, 0600) + 2 .sha256 (root, 0600)
+
+== campus-db-restore-test latest, SLUGS="bk-a bk-b bk-c bk-d bk-e khong-co"
+OK tai campus-backups/db/shlink-20261112T153520Z.dump 36798 byte, sha256 khop (4b4e578d...)
+OK pg_restore vao campus_restore_test trong 337 ms
+shlink: short_urls=5 visits=0 migration=ShlinkMigrations\Version20260607082210
+campus_restore_test: short_urls=5 visits=0 migration=ShlinkMigrations\Version20260607082210
+slug bk-a..bk-e: campus_restore_test -> https://example.org/bk-a .. bk-e (5/5 dung)
+slug khong-co: campus_restore_test -> KHONG CO
+rc=0
+chay lai lan 2 (campus_restore_test da ton tai) -> OK pg_restore ... 431 ms
+
+== loi co chu dich
+dump tren Swift bi ghi de bang noi dung khac -> sha256sum FAILED; FAIL sha256 KHONG khop; rc=1 (khong restore)
+credential sai -> FAIL Keystone tra 401; rc=1; /var/lib/campus-backup/last = "FAIL ... Keystone tra 401"
+DB shlink sau tat ca phep thu -> short_urls=5 (khong bi dong)
+
+Ket luan: logic dump/checksum/retention/restore dung trong container. FR-INF-15 CHUA PASS: con chay voi Keystone/Swift
+that tren cum (docs/runbooks/db-backup.md muc 2-5).

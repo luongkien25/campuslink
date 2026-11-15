@@ -150,6 +150,7 @@ shlink:                         # Lab 9.5
   db_vm: { name: campus-db, uuid: "6d17a9e8-4975-4c46-afd6-be1017e2a251", flavor: campus.db, az: campus-az-a, port: campus-db-port, volume: campus-db-data, key_name: tv3, created: "2026-11-08" }   # FR-INF-12, TV3; cloud-init app/db/user-data.tmpl.yaml, runbook docs/runbooks/db-vm.md
   redis: { endpoint: "10.20.0.10:6379", auth: required, version: "7.0.15 (apt)", appendonly: true, maxmemory: 256mb, policy: noeviction }   # policy de xuat, chot cung TV4
   secrets_core: [ "campus-secrets/app/db_password", "campus-secrets/app/redis_servers" ]   # TV3 ghi 08/11/2026 (ADR-10, H1 muc 6); chi ghi ten, khong ghi gia tri
+  db_backup: { container: campus-backups, prefix: "db/shlink-<UTC>.dump (+ .sha256)", schedule: "OnBootSec=10min + hourly, Persistent", keep_swift: 48, keep_disk: 2, app_credential: { name: campus-db-backup, id: "380fe7eea91f417cb4619e6542bfd5d0", owner: campus-tv3, expires: "2026-12-31", rules: "PUT/GET/HEAD/DELETE campus-backups/db/*; GET campus-backups" }, cred_file: "/root/campus-backup/cred tren campus-db (0600)" }   # FR-INF-15, TV3 12/11/2026; runbook docs/runbooks/db-backup.md
   image: { tag: "shlinkio/shlink:5.1.8", repo_digest: "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee" }   # cached trong Glance image app, clone A/B da kiem 11/11/2026
   webclient_dist:
     file: shlink-web-client_4.8.1_dist.zip
