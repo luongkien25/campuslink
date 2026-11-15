@@ -1,0 +1,105 @@
+CampusLink TV1 - probe cua so evaluator Aodh cho issue #47 (FR-INF-10, FR-INF-11, NFR-05; ADR-12)
+Ngay 15/11/2026, gio trong file la UTC. File nay la TOM TAT sinh tu hai file JSONL tho di kem (cung thu muc).
+
+PHAM VI
+Chi doc: resource.search, aggregates.fetch, metric.get_measures (gnocchiclient 7.2.0). Cloud campus-tv2 (member) qua user tv2 tren A,
+do TV1 chay. Khong tao/sua/xoa gi, khong cham alarm, khong goi action, khong in credential.
+Day la MO PHONG truy van kieu Aodh (cung operations, granularity 60, needed_overlap=0, cua so 60*(periods+1) den now), KHONG phai do Aodh dang chay.
+Hai alarm disabled, actions rong (TV2 bao o #47 va #44; TV4 bao state cpu_high=ok, cpu_low=alarm o #44). TV1 chua doi chieu threshold, repeat_actions va state that.
+
+NEN
+Aodh: git rev-parse HEAD cua /opt/stack/aodh tren A = e07aeb6d118b4b9099947028e6e809a6bdd8fe22; git status --short rong (cay lam viec sach), TV1 kiem 15/11.
+Gnocchi 4.7.1 commit 4a41c1d05052bcabf19fbe2e5bfb5a036a321d32 (theo evidence G4/20261114-FR-INF-10). /etc/aodh/aodh.conf chua doc duoc (can sudo).
+
+CACH DO VA DINH NGHIA
+Moi 15 s probe goi truy van Aodh cho cua so 180 s (high, 2 ky) va 240 s (low, 3 ky), roi tinh "gia tri dung" rieng tung VM:
+trung binh, tren cac VM co du hai diem lien tiep, cua hieu counter cpu mean cua CHINH VM giua hai bucket. "Dung" = khop tham chieu nay,
+CHUA doi chieu doc lap (vi du do trong guest). Bucket "dong" = da ket thuc theo dong ho. Dung sai 0,01 diem CPU (6e6 ns) cho 1 vCPU/60 s.
+Tu lan 2 co them phep UNG VIEN: [aggregate, mean, [metric, cpu, rate:mean]] (rate tung VM roi moi trung binh), chua ap vao Aodh.
+Quyet dinh mo phong ban sao _process_statistics (threshold.py:100-119): high gt 36000000000 ns/2 diem; low lt 15000000000 ns/3 diem.
+
+==============================================================================
+LAN 1: 06:29:48Z-06:49:44Z, 2 app VM on dinh, CPU dung ~0,6%, 80 mau, script chua co phep ung vien
+==============================================================================
+Dong tom tat do chinh probe in luc chay (dung sai luc do la 2,0 diem CPU, nen "open mismatch" chi dem cac dong am):
+  samples_used=80 sample_errors=0 aborted=False unstable=0 skipped_no_cpu=0
+  rows closed total=240 mismatch=0 negative=0 no_expected=0
+  rows open   total=63 mismatch=17 negative=17 no_expected=0
+  closed_buckets distinct=23 mismatch_ever=0 persistent=0 healed=0 unsettled=0 max_bad_age_s=0 negative_ever=0 negative_persistent=0
+  closed_buckets causes_ever={} causes_persistent={}
+  aodh high evaluated=80 unknown=0 no_expected=0 wrong_unequivocal=0(0 win) missed_unequivocal=0(0 win) wrong_trend=0(0 win)
+  aodh low  evaluated=80 unknown=0 no_expected=0 wrong_unequivocal=0(0 win) missed_unequivocal=0(0 win) wrong_trend=0(0 win)
+Tinh lai tu file tho voi dung sai 0,01 diem CPU:
+  bucket dong: 240 dong, 0 lech, 0 am
+  bucket dang ghi: 63 dong, 18 lech, 17 am; gia tri nhan -23.61% den -22.04%, gia tri dung 0.63% den 0.75%
+  Dong lech thu 18 (mau 06:44:26Z) nhieu kha nang do diem cua VM thu hai den giua hai truy van tuan tu cua probe (high thay -22,3%, low thay 0,8% vai giay sau).
+Phan bo dong lech cua bucket dang ghi theo giay trong phut cua mau (giay: so dong / lech / am):
+  co dong lech o giay :12 den :26; khong co dong lech nao o cac giay :27 den :58 (chi tinh cac giay co mau)
+  chi tiet: :12=1/1/1 :13=2/2/2 :19=2/2/2 :20=2/2/2 :21=2/2/2 :22=2/2/2 :23=2/2/2 :24=2/2/2 :25=2/2/2 :26=2/1/0 :27=2/0/0 :28=2/0/0 :34=2/0/0 :35=2/0/0 :36=2/0/0 :37=2/0/0 :38=2/0/0 :39=2/0/0 :40=2/0/0 :41=1/0/0 :42=2/0/0 :43=2/0/0 :44=1/0/0 :48=1/0/0 :49=2/0/0 :50=2/0/0 :51=2/0/0 :52=2/0/0 :53=2/0/0 :54=2/0/0 :55=2/0/0 :56=1/0/0 :57=2/0/0 :58=2/0/0
+
+==============================================================================
+LAN 2: 07:06:13Z-07:56:05Z, xuyen luot scale tay 2->3->2 cua TV2, 198 mau
+==============================================================================
+Moc gio do TV2 bao o #47 (08:05Z) va #44 (08:08Z): scale-out 07:35:59; lan dau du 3 VM ACTIVE va 3 member ONLINE 07:38:22;
+scale-in 07:45:22; ve 2 app ONLINE 07:47:03; "tai da dung". TV2 bao co tai trong luot do (loai, muc, luc bat dau chua ro). Chua co evidence cua TV2
+trong repo, TV1 chua doi chieu Heat events. Probe thay VM thu ba trong tap truy van tu 07:36:20Z (mau cuoi con thay 07:45:28Z, mau dau khong con 07:45:43Z).
+Dong tom tat cua probe (script ban co phep ung vien, dung sai 0,01 diem CPU):
+  samples_used=198 sample_errors=0 aborted=False unstable=0 skipped_no_cpu=4
+  rows closed total=594 mismatch=12 negative=0 no_expected=0 missing=0
+  rows open   total=157 mismatch=49 negative=46 no_expected=0 missing=0
+  closed_buckets distinct=53 mismatch_ever=1 persistent=1 healed=0 unsettled=0 max_bad_age_s=174 negative_ever=0 negative_persistent=0 causes_ever={"membership_change": 1} causes_persistent={"membership_change": 1}
+  aodh high evaluated=198 unknown=0 no_expected=0 wrong_unequivocal=0(0 win) missed_unequivocal=0(0 win) wrong_trend=0(0 win)
+  aodh low  evaluated=198 unknown=0 no_expected=0 wrong_unequivocal=5(2 win) missed_unequivocal=0(0 win) wrong_trend=5(5 win)
+  CANDIDATE (rate tung VM roi trung binh) error_samples=0
+  cand rows closed total=594 mismatch=0 negative=0 no_expected=0 missing=0
+  cand rows open   total=157 mismatch=1 negative=0 no_expected=0 missing=0
+  cand closed_buckets distinct=53 mismatch_ever=0 persistent=0 healed=0 unsettled=0 max_bad_age_s=0 negative_ever=0 negative_persistent=0 causes_ever={} causes_persistent={}
+  cand aodh high evaluated=198 unknown=0 no_expected=0 wrong_unequivocal=0(0 win) missed_unequivocal=0(0 win) wrong_trend=0(0 win)
+  cand aodh low  evaluated=198 unknown=0 no_expected=0 wrong_unequivocal=0(0 win) missed_unequivocal=0(0 win) wrong_trend=0(0 win)
+
+Bucket da dong, lan quan sat cuoi (gia tri nhan cua Aodh | tham chieu | ung vien):
+  07:33 aodh=    0.62%  tham_chieu=  0.62%  ung_vien=  0.62%  present_vms=2 previous_vms=2 expected_vms=2  match
+  07:34 aodh=    0.62%  tham_chieu=  0.62%  ung_vien=  0.62%  present_vms=2 previous_vms=2 expected_vms=2  match
+  07:35 aodh=    0.62%  tham_chieu=  0.62%  ung_vien=  0.62%  present_vms=2 previous_vms=2 expected_vms=2  match
+  07:36 aodh=   21.48%  tham_chieu= 21.48%  ung_vien= 21.48%  present_vms=2 previous_vms=2 expected_vms=2  match
+  07:37 aodh=   10.12%  tham_chieu= 61.76%  ung_vien= 61.76%  present_vms=3 previous_vms=2 expected_vms=2  mismatch
+  07:38 aodh=   40.33%  tham_chieu= 40.33%  ung_vien= 40.33%  present_vms=3 previous_vms=3 expected_vms=3  match
+  07:39 aodh=   40.30%  tham_chieu= 40.30%  ung_vien= 40.30%  present_vms=3 previous_vms=3 expected_vms=3  match
+  07:40 aodh=   40.89%  tham_chieu= 40.89%  ung_vien= 40.89%  present_vms=3 previous_vms=3 expected_vms=3  match
+  07:41 aodh=   40.67%  tham_chieu= 40.67%  ung_vien= 40.67%  present_vms=3 previous_vms=3 expected_vms=3  match
+  07:42 aodh=   33.10%  tham_chieu= 33.10%  ung_vien= 33.10%  present_vms=2 previous_vms=2 expected_vms=2  match
+  07:43 aodh=   33.08%  tham_chieu= 33.08%  ung_vien= 33.08%  present_vms=2 previous_vms=2 expected_vms=2  match
+  07:44 aodh=   33.09%  tham_chieu= 33.09%  ung_vien= 33.09%  present_vms=2 previous_vms=2 expected_vms=2  match
+  07:45 aodh=   32.69%  tham_chieu= 32.69%  ung_vien= 32.69%  present_vms=2 previous_vms=2 expected_vms=2  match
+  07:46 aodh=   37.13%  tham_chieu= 37.13%  ung_vien= 37.13%  present_vms=2 previous_vms=2 expected_vms=2  match
+  07:47 aodh=   33.24%  tham_chieu= 33.24%  ung_vien= 33.24%  present_vms=2 previous_vms=2 expected_vms=2  match
+  07:48 aodh=    5.56%  tham_chieu=  5.56%  ung_vien=  5.56%  present_vms=2 previous_vms=2 expected_vms=2  match
+  07:49 aodh=    0.65%  tham_chieu=  0.65%  ung_vien=  0.65%  present_vms=2 previous_vms=2 expected_vms=2  match
+  07:50 aodh=    0.65%  tham_chieu=  0.65%  ung_vien=  0.65%  present_vms=2 previous_vms=2 expected_vms=2  match
+Luu y: o bucket 07:37 tham chieu chi gom 2 VM cu (expected_vms=2) du present_vms=3; 61,8% la CPU cua 2 VM cu.
+
+Quyet dinh mo phong cua Aodh (mau, cua so 3 diem low, tham chieu):
+  ALARM sai   07:37:20Z aodh=[0.617, 21.483, -35.125] tham_chieu=[0.617, 21.483, 56.417]
+  ALARM sai   07:37:36Z aodh=[0.617, 21.483, 10.119] tham_chieu=[0.617, 21.483, 61.758]
+  ALARM sai   07:37:51Z aodh=[0.617, 21.483, 10.119] tham_chieu=[0.617, 21.483, 61.758]
+  ALARM sai   07:38:06Z aodh=[0.617, 21.483, 10.119] tham_chieu=[0.617, 21.483, 61.758]
+  ALARM sai   07:38:21Z aodh=[21.483, 10.119, -17.861] tham_chieu=[21.483, 61.758, 27.383]
+  trending sai 07:39:22Z aodh=[10.119, 40.328, -30.747] tham_chieu=[61.758, 40.328, 27.442] (aodh=mixed, tham chieu=ok)
+  trending sai 07:40:23Z aodh=[40.328, 40.3, -43.272] tham_chieu=[40.328, 40.3, 27.775] (aodh=mixed, tham chieu=ok)
+  trending sai 07:41:24Z aodh=[40.3, 40.889, -56.319] tham_chieu=[40.3, 40.889, 27.842] (aodh=mixed, tham chieu=ok)
+  trending sai 07:42:25Z aodh=[40.889, 40.667, -69.869] tham_chieu=[40.889, 40.667, 27.117] (aodh=mixed, tham chieu=ok)
+  trending sai 07:45:12Z aodh=[39.878, 39.778, -108.519] tham_chieu=[39.878, 39.778, 27.025] (aodh=mixed, tham chieu=ok)
+Truoc 07:37:00Z low dung (va Aodh) da la ALARM lien tuc 122 mau tu 07:06:13Z (CPU thap), nen cac cua so ALARM sai khong tao chuyen state trong luot do nay.
+high: chua tung co hai bucket lien tiep > 60%, nen "0 sai" khong chung minh gi ve an toan.
+
+GIOI HAN
+- Mo phong truy van, khong phai evaluator that; chua co alarm history luc VM thu ba tham gia.
+- Mot lan VM tham gia; co tai do TV2 trong khoang 07:36-07:47 (loai, muc, luc bat dau chua ro); chua chung minh scale-in sai khi scale do alarm.
+- "Dung" = khop tham chieu cua probe, chua doi chieu doc lap. Phep ung vien dung cung cong thuc nen khop la dieu da dinh san.
+- Hai app VM khoi dong lai cung luc cum bat (console log VM A: cloud-init 06:18:01Z; chua kiem VM B, chua doc counter).
+- Chu ky danh gia 60 s moi suy tu alarm history GD6 (07:49:13, 07:52:13, 07:54:13), chua kiem aodh.conf; threshold/repeat_actions/state that chua doi chieu.
+- 1 dong dang ghi cua ung vien lech (07:43:26Z: 39,9% so voi 27,0%): mau ke 07:43:41Z cho ca tham chieu, Aodh va ung vien deu 39,9%.
+
+TAI LAP
+Hai file JSONL cung thu muc: moi dong la mot mau (rows, decisions, cand_decisions, resources, sample_utc), dong cuoi la tom tat.
+Chay 1 dung script truoc khi co phep ung vien (khong co truong cand_*). File chi co timestamp bucket, gia tri CPU, so VM; khong co ID VM/project/credential.
