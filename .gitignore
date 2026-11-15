@@ -52,3 +52,7 @@ __pycache__/
 *.pyc
 # Anh evidence CHUA che (account ID, IP nha, billing) de o day
 evidence/**/raw/
+
+# Load test credentials (TV4)
+ops/load-test/credentials.env
+ops/load-test/logs/
