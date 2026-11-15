@@ -134,3 +134,13 @@ SSH hai app cũ dùng ED25519 được TV1 xác minh từ disk hypervisor tại 
 Chưa chứng minh FR-INF-11 tự động2→3→2: **ALARM và lượt scale tay là hai phép thử tách biệt**. Không lấy RPS/p95 từ generator trên A làm benchmark HTTPS của nhóm. Chưa fault pipeline/mất metric: bucket đang ghi từng có aggregate âm, phải loại khỏi CPU hợp lệ; `needed_overlap=0` của evaluator upstream chưa được nhận an toàn trong mọi tình huống thiếu dữ liệu. H4b/worker và ngân sách kết nối DB dưới workload đầy đủ còn thuộc phần kiểm riêng.
 
 Evidence14/11: [bản ngắn](../../evidence/G4/20261114-FR-INF-10-tv2-metric-alarm.txt), [metric/history/preview/final checks](../../evidence/G4/20261114-FR-INF-10-tv2-metric-alarm.json), [redirect carryover](../../evidence/G4/20261114-FR-INF-09-tv2-redirect-carryover.json).
+
+## GĐ7 — kiểm chỉ đọc ngày 15/11/2026
+
+Hai app/DB, image, VIP và pool giữ các UUID ở trên; hai member ONLINE, cả AZ available. Collector/analyzer kiểm sáu bucket đầy đủ05:37–05:42 UTC: PASS, CPU nhóm khoảng0,62–0,71%. Đây là dữ liệu nền, không phải workload nghiệm thu autoscaling.
+
+Đã kiểm source/plugin cho ứng viên native signal qua `trust+http`/`trust+https`; chưa tạo trust, lấy target thật, POST action hoặc update stack. `trust+heat` là autohealing, không dùng thay ScalingPolicy signal. Source evaluator còn nhận bucket chưa kết thúc/âm khi xử lý dữ liệu giả trong characterization, nên chưa đủ căn cứ bật action; TV1 xác minh/chốt qua [#47](https://github.com/luongkien25/campuslink/issues/47). Không suy phép kiểm mã thành việc daemon đã false alarm hoặc scale sai.
+
+Hậu kiểm05:44:55 UTC: cả hai alarm disabled/actions0; campus-check05:44:56 UTC: RC0/OK. Không tạo lab/jump/FIP/SG/env thật, không thay core/DB/volume/EC2; SSH đã đóng. FR-INF-11 runtime còn chờ gate trên và workload/lịch TV4 [#44](https://github.com/luongkien25/campuslink/issues/44).
+
+Nguồn: [evidence ngắn](../../evidence/G4/20261115-FR-INF-11-tv2-notifier-preflight.txt) và [JSON đã lọc](../../evidence/G4/20261115-FR-INF-11-tv2-notifier-preflight.json). HTTPS mới nhất TV2 đã kiểm vẫn là lượt14/11 ở trên; không nhận snapshot chỉ đọc15/11 là phép đo HTTPS mới.

@@ -178,3 +178,15 @@ Analyzer tính lại CPU từ snapshot bằng `analyze_cpu.py`; kiểm đúng co
 Exit0 nghĩa là **các dữ liệu đầu vào đã chuẩn hóa nhất quán**, không xác thực nguồn log hoặc chứng minh field `origin=aodh` là thật. Người thu evidence phải đối chiếu notifier/history/Heat event/raw client logs cùng run và ghi nguồn kiểm; chỉ một boolean hoặc không thấy signal tay không đủ chứng minh tự scale. Thời gian lấy từ polling ghi rõ first-observed/độ phân giải nguồn; không tự biến thành timestamp chính xác của Nova. Chưa quan sát notifier runtime, missing-data fault hoặc scale tự động thì vẫn ghi chưa kiểm dù fixture PASS.
 
 Bộ kiểm này phục vụ một lượt core theo FR-INF-11/NFR-06. Nó không thay benchmark static-vs-auto >=3lượt của TV4, không chứng minh request đang xử lý không mất visit và không hoàn tất phần portal/worker NFR-19.
+
+## Kiểm chỉ đọc trước bật action — 15/11/2026
+
+Đã đối chiếu source Heat/Aodh trên A và plugin notifier đang cài: `trust+http`/`trust+https` dùng `TrustRestAlarmNotifier`, lấy token qua Keystone trust rồi POST tới native signal URL. Native `signal_url` riêng lẻ không có chữ ký và vẫn cần auth. `trust+heat` phục vụ autohealing/mark-unhealthy, không phải đường gọi ScalingPolicy trong phép thử này. Đây mới là xác minh source/plugin; chưa kiểm quyền tạo trust hoặc POST thực, chưa chọn transport là đã nghiệm thu.
+
+Không lấy signed `alarm_url` để thử: source REST notifier ghi action URL ở INFO, và Heat có thể tạo key khi resolve signed URL. Các target thật chưa được lấy hoặc ghi vào env trong lượt kiểm này. Native trust action cũng cần kiểm scope/visibility trước mutation, dù API Aodh có bước scrub trust ID khi trả dữ liệu.
+
+Gate dữ liệu chưa đủ căn cứ để bật action: source `_bound_duration` kết thúc query tại now; `additional_ingestion_lag` chỉ kéo start. `_sanitize` của Gnocchi evaluator lọc granularity/lấy n điểm cuối, không loại timestamp hiện tại hoặc giá trị âm; aggregation dùng `needed_overlap=0`. API thật trả bucket của phút đang chạy. Characterization các hàm đang cài với dữ liệu giả nhận hai bucket đầy đủ cộng một bucket hiện tại thành ba điểm, và low comparator nhận ba điểm âm thành ALARM. Phép kiểm này không tạo/sửa alarm, không phải bằng chứng đã xảy ra false alarm hoặc scale sai trên cloud.
+
+Collector/analyzer vẫn PASS trên sáu bucket đầy đủ của đúng hai app. Điều đó không chứng minh evaluator Aodh xử lý an toàn mọi trường hợp thiếu metric hoặc VM mới tham gia. Hai alarm giữ disabled/actions rỗng. [Issue #47](https://github.com/luongkien25/campuslink/issues/47) yêu cầu xác minh/chốt phương án trước bật action; workload chung theo [#44](https://github.com/luongkien25/campuslink/issues/44).
+
+Evidence: [bản ngắn](../../../evidence/G4/20261115-FR-INF-11-tv2-notifier-preflight.txt), [snapshot/source/characterization đã lọc](../../../evidence/G4/20261115-FR-INF-11-tv2-notifier-preflight.json). Chưa thực hiện nghiệm thu FR-INF-11 tự2→3→2.
