@@ -57,7 +57,7 @@ aws:
       nested_virtualization: enabled
       imds: { tokens: required, hop_limit: 1 }
       iam_instance_profile: CampusLinkBackup      # da gan 26/10/2026 (Lab 10, FR-INF-17), evidence G2/20261026-FR-INF-17-...
-      iam_lab_snapshot: "snap-03f8a6038bec5b942"  # tao 26/10/2026 cho bang chung FR-INF-17 (30 GiB, tag Project=CampusLink); CHUA xoa, role khong xoa duoc: xoa tren console sau khi TV4 ghi ID/size
+      iam_lab_snapshot: { id: "snap-03f8a6038bec5b942", volume_id: "vol-0875752f0e893ca17", size_gib: 30, state: "completed", tag_project: "CampusLink" }  # tao 26/10/2026 cho bang chung FR-INF-17; TV4 da ghi nhan ID va size 30 GiB (issue #32, docs/acceptance.md), TV1 co the xoa tren console
       volumes:
         root:   { size_gib: 60, type: gp3, id: "vol-0c5a8fc0973e3603e", encrypted: "aws/ebs" }
         cinder: { size_gib: 30, type: gp3, id: "vol-0875752f0e893ca17", encrypted: "aws/ebs", nvme_serial: "vol0875752f0e893ca17", delete_on_termination: false }
@@ -148,7 +148,7 @@ shlink:                         # Lab 9.5
   vip_lab_fip: "172.24.4.117"        # FIP cua VIP do Heat tao, khong phai LB smoke
   db: { host: 10.20.0.10, name: shlink, engine: "PostgreSQL 16", version: "16.15 (apt Ubuntu 24.04)", max_connections: 50, role_shlink_conn_limit: 15 }   # SRS 1.3 them DB campus_portal + user rieng (TV3)
   db_vm: { name: campus-db, uuid: "6d17a9e8-4975-4c46-afd6-be1017e2a251", flavor: campus.db, az: campus-az-a, port: campus-db-port, volume: campus-db-data, key_name: tv3, created: "2026-11-08" }   # FR-INF-12, TV3; cloud-init app/db/user-data.tmpl.yaml, runbook docs/runbooks/db-vm.md
-  redis: { endpoint: "10.20.0.10:6379", auth: required, version: "7.0.15 (apt)", appendonly: true, maxmemory: 256mb, policy: noeviction }   # policy de xuat, chot cung TV4
+  redis: { endpoint: "10.20.0.10:6379", auth: required, version: "7.0.15 (apt)", appendonly: true, maxmemory: 256mb, policy: noeviction }   # TV4 da chot maxmemory 256mb + noeviction cung ADR-09 (issue #32)
   secrets_core: [ "campus-secrets/app/db_password", "campus-secrets/app/redis_servers" ]   # TV3 ghi 08/11/2026 (ADR-10, H1 muc 6); chi ghi ten, khong ghi gia tri
   db_backup: { container: campus-backups, prefix: "db/shlink-<UTC>.dump (+ .sha256)", schedule: "OnBootSec=10min + hourly, Persistent", keep_swift: 48, keep_disk: 2, app_credential: { name: campus-db-backup, id: "380fe7eea91f417cb4619e6542bfd5d0", owner: campus-tv3, expires: "2026-12-31", rules: "PUT/GET/HEAD/DELETE campus-backups/db/*; GET campus-backups" }, cred_file: "/root/campus-backup/cred tren campus-db (0600)" }   # FR-INF-15, TV3 12/11/2026; runbook docs/runbooks/db-backup.md
   image: { tag: "shlinkio/shlink:5.1.8", repo_digest: "shlinkio/shlink@sha256:68a722f7677008a50ccf3a9e570966bc37d7627fe6a870b86be28c5dcf9085ee" }   # cached trong Glance image app, clone A/B da kiem 11/11/2026
