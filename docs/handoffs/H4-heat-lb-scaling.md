@@ -1,12 +1,12 @@
 # H4 — Heat core, LB, metric/alarm và scale thủ công
 
-TV2 → TV1, TV3, TV4. Yêu cầu FR-INF-07/08/09/10/22, NFR-05/08/15 và O-06. Kiểm trên cụm ngày 13–15/11/2026; hậu kiểm tài nguyên cuối **15/11 07:50:00 UTC**. `campus-check`07:52:43 UTC chặn tắt máy vì còn hai phiên SSH ubuntu. Giá trị thật trong [inventory](../inventory.yaml), image pin trong [versions.lock](../versions.lock).
+TV2 → TV1, TV3, TV4. Yêu cầu FR-INF-07/08/09/10/11/22, NFR-05/08/15 và O-06. Kiểm trên cụm ngày 13–16/11/2026; hậu kiểm tài nguyên cuối **16/11 15:28:41 UTC**, HTTPS sau cleanup 15:30:09–17 UTC. `campus-check` trả 1 vì còn phiên/việc khác trên A. Giá trị thật trong [inventory](../inventory.yaml), image pin trong [versions.lock](../versions.lock).
 
 ## Trạng thái bàn giao
 
-Core Shlink giữ một app cố định AZ-A và một app ASG-B tại AZ-B, min 1/max 2. Hai app dùng image G4 đã kiểm, không FIP; pool có hai member ACTIVE/ONLINE. Sau lượt chẩn đoán scale tay ngày15/11, B mới `10.20.0.185` được giữ lại; B `10.20.0.150` đã xóa. Lượt14/11 trước đó đã xóa B `10.20.0.111`. Ba backend trước scale-in đã được đối chiếu60RequestID redirect: A21/Bcũ15/Bmới24. Hậu kiểm hai app còn lại: health200/pass và12redirect302/Location đúng; batch hậu kiểm này không được nhận là phép đối chiếu log riêng mới.
+Core Shlink giữ một app cố định AZ-A và một app ASG-B tại AZ-B, min1/max2. Sau lượt baseline có tải TV1 ngày 16/11, B mới `10.20.0.102` được giữ lại; B `10.20.0.185` đã xóa. Hai app/member ONLINE; image/VIP giữ nguyên. Đã ghép một request302 từ CSVTV1 với log app mới. Lượt này scale tay2→3→2, không phải autoscaling tự động. Evidence và các phép đối chiếu backend ngày14/11 thuộc các UUID lịch sử ở mục tương ứng bên dưới.
 
-**HTTPS:** health từng503 ở lượt13/11; kiểm lại14/11 08:27:30Z trả200/pass và redirect08:32:55Z trả302 đúng đích, chứng thư được verify đầy đủ. TV2 chỉ kiểm, không sửa Nginx hoặc dịch vụ nền trên A. Portal/worker/listener8081 thuộc H4b, chưa có trong core. Metric và high/low alarm đã kiểm trong stack riêng; action rỗng nên chưa chứng minh autoscaling tự động theo tải.
+**HTTPS:** hậu kiểm16/11 sau cleanup đạt8/8 (health200/pass và redirect302đúngđích), chứng thư được verify đầy đủ. Health từng503 ở lượt13/11; kiểm lại14/11 08:27:30Z trả200/pass và redirect08:32:55Z trả302 đúng đích, chứng thư được verify đầy đủ. TV2 chỉ kiểm, không sửa Nginx hoặc dịch vụ nền trên A. Portal/worker/listener8081 thuộc H4b, chưa có trong core. Metric và high/low alarm đã kiểm trong stack riêng; action rỗng nên chưa chứng minh autoscaling tự động theo tải.
 
 ## Deployment đang giữ
 
@@ -16,7 +16,7 @@ Core Shlink giữ một app cố định AZ-A và một app ASG-B tại AZ-B, mi
 | Image app | `campus-app-tv2-g4-20261111`, `2c43a06d-1db8-4c01-bd31-98803325d932` |
 | Flavor | `campus.app`: 1 vCPU/2048 MiB/root10 GiB |
 | App A | `523d67b4-9234-4b09-b3dc-c814e6b868fc`, `10.20.0.195`, `campus-az-a` |
-| App B hiện tại | `c6d98b28-a4c1-456f-b044-4b2affbb391a`, `10.20.0.185`, `campus-az-b` |
+| App B hiện tại | `6ed60f3b-aa27-4679-b762-ca7e88264785`, `10.20.0.102`, `campus-az-b` |
 | ASG-B | `479438e0-37fe-47d3-a0a3-fcaf53e756b1`, min 1/max 2, current1 |
 | LB | `deb301de-fb2a-430b-8bc7-2954a3afe14a`, provider `ovn` |
 | VIP port / địa chỉ | `9b107b20-4d06-4716-808b-a57f12a64c45` / `10.20.0.128` |
@@ -25,7 +25,7 @@ Core Shlink giữ một app cố định AZ-A và một app ASG-B tại AZ-B, mi
 | Pool | `e7014f7e-6883-4198-861e-bf23b0247f9f`, TCP/SOURCE_IP_PORT |
 | Monitor | `558c8bab-9cbf-4730-94be-4d705c8d51d4`, TCP, delay5/timeout3/retries3 |
 | Member A | `7f3cb4ba-bd65-4f59-b37b-caeccde23d00`, `10.20.0.195:8080` |
-| Member B | `88445d87-f93f-4aae-8229-f45cb9a58e29`, `10.20.0.185:8080` |
+| Member B | `1d1b931f-9702-4d05-852c-2f8edc479b81`, `10.20.0.102:8080` |
 
 FIP trên là mạng ảo OpenStack, không phải IP public AWS và laptop không route trực tiếp tới. Ingress dự kiến: Internet → EIP A → Nginx443 → `http://172.24.4.117:8080`. Giữ Host/forwarded headers theo H1 và [mẫu Nginx](../../infra/nginx/campus.conf.example); TLS vẫn kết thúc tại Nginx.
 
@@ -171,3 +171,44 @@ Tải redirect Shlink thật từ A qua VIP HTTP, ApacheBench keep-alive/concurr
 Tải dừng 07:47:03Z; jump/FIP/hai SG SSH tạm đã dọn, mỗi port app chỉ còn app SG, DB/volume/port nền giữ nguyên. Hậu kiểm 07:50Z còn DB + 2 app, 1 volume 10 GiB, 1 VIP FIP và 2 top-level stack. `campus-check` 07:52:43Z trả 1 vì còn hai phiên SSH ubuntu, nên phải phối hợp người đang dùng trước khi Stop EC2; không diễn giải thành lỗi health app.
 
 Evidence: [bản ngắn](../../evidence/G4/20261115-FR-INF-11-tv2-manual-probe.txt), [API/timeline/CPU/cleanup](../../evidence/G4/20261115-FR-INF-11-tv2-manual-probe.json). GĐ7 vẫn còn gate evaluator ở issue #47 và workload/phối hợp issue #44, sau đó mới kiểm notifier/action và chuỗi tự động.
+
+## Hậu kiểm chỉ đọc và cấp key H5 — 16/11/2026
+
+Snapshot Aodh 05:42:08Z xác nhận high state `ok` (>36e9ns/2 kỳ) và low state `alarm` (<15e9ns/3 kỳ), granularity60s, aggregation `rate:mean`; cả hai `enabled=false`, `repeat_actions=false`, ba danh sách actions rỗng. Không thay cấu hình alarm hoặc áp ADR-12. Xem [snapshot đã lọc](../../evidence/G4/20261116-FR-INF-11-tv2-alarm-config-readonly.json).
+
+Theo yêu cầu53, tạo key admin Shlink tên `tv3-admin`, không author-only, chuyển thẳng qua pipeSSH tới `campus-secrets/ops/shlink_api_key_tv3-admin` lúc05:49:34Z. PUT201/HEAD200, độ dài37byte; API xác thực qua VIP nội bộ trả200. Không in giá trị key, không đưa vào argv hoặc evidence. Bản key tạm trong guest đã xóa. TV3 còn cần nhận vào file0600, kiểm qua HTTPS và xóa object trung chuyển theo tiêu chí H5; chưa nhận là HTTPS PASS hoặc đóng issue53.
+
+Hậu kiểm05:56:51Z: jump/FIP/haiSGSSH riêng đã dọn, SG app giữ nguyên; DB+2app ACTIVE, hai member ONLINE, health200/pass và hai alarm vẫn disabled/actionsrỗng. `campus-check`rc0: có thể StopB→A sau khi phối hợp nhóm. Không thao tác EC2. [Evidence cấp key/cleanup](../../evidence/G4/20261116-FR-INF-16-tv2-tv3-key-handoff.json).
+
+## Điều kiện sau Start và khi chỉ bật A — yêu cầu #56
+
+Khi chỉ EC2 A chạy, không coi Nova app B `ACTIVE` hoặc member B `ONLINE` là bằng chứng backend B đang phục vụ. TV3 ghi nhận timeout xen kẽ khi B tắt trong lượt16/11; nguyên nhân chính xác của trạng thái health monitor chưa được xác minh. Không tái hiện tắt B trong phiên benchmark.
+
+Quy trình mặc định trước khi dùng VIP hoặc đo NFR-03/04: bật A trước, chờ checks đạt, bật B và hoàn tất after-start; kiểm hai guest/member và gửi request thật qua HTTPS bằng kết nối mới, verify TLS. Health phải200/pass, redirect phải302 đúng Location, không timeout. Nếu chỉ bật A, không nhận hệ thống đã sẵn sàng cho benchmark hai AZ; ưu tiên bật B, không tự sửa pool/monitor hoặc tạm disable memberB trong phiên đo. Một phương án vận hành chỉ A cần được duyệt riêng và có bước khôi phục member trước benchmark.
+
+Lượt kiểm16/11 lúc13:42:05–13:42:22Z với A/B đã bật:24requestHTTPS kết nối mới đạt (12health200/pass,12redirect302 tới fixturetv4fix1 đúng đích), không timeout. Đây là kiểm chức năng giới hạn, chưa có tương quan log từng backend và không thay benchmark/p95. [Evidence baseline](../../evidence/G4/20261116-FR-INF-11-tv2-evening-baseline.json). Việc kiểm riêng từng backend và timeline phiên tối đang tiếp tục; chưa gọi issue56 hoặc phiên đo hoàn tất.
+
+## Baseline Aodh chưa vá dưới tải TV1 — tối 16/11/2026
+
+TV1 phát tải từ Windows, mục tiêu30 RPS, warm-up120 s; steady bắt đầu **14:53:04Z**, yêu cầu1200 s. RUN_START14:50:59.5796622Z, RUN_END15:13:05.0281007Z do TV1 cung cấp. Probe TV1 đã xác nhận thu nền hơn9phút trước lượt. TV2 chỉ gửi request chức năng trước/sau steady; không chạy thêm workload đồng thời. Aodh giữ đúng SHA `e07aeb6d118b4b9099947028e6e809a6bdd8fe22`, cây làm việc sạch.
+
+| Mốc | UTC ngày 16/11 | Nguồn |
+| --- | --- | --- |
+| Bắt đầu scale-out | 14:56:17.725232 | Trước signal thủ công, CLI rc0 |
+| App mới ACTIVE | 14:57:01.314729 | Lần đầu quan sát Nova |
+| Request302 khớp app mới | 14:57:02.561767 | Timestamp client TV1, ghép Request ID |
+| Ba app/member ONLINE | 14:57:06.538306 | Lần đầu quan sát API |
+| Bắt đầu scale-in | 15:04:06.809375 | Trước signal thủ công, CLI rc0 |
+| Hai app/member ONLINE hậu kiểm | 15:07:52.252237 | Lần đầu hậu kiểm sau scale-in, không phải thời điểm engine chính xác |
+
+Giữ 3 app khoảng 7 phút (420.271069s tính từ marker UTC). Request ID `3b405014-611f-448e-8342-06662e3bd3a2` trong CSV TV1 có302/Location `https://example.org/campuslink-fixture-3`, khớp log guest mới `6ed60f3b…`/`.102`, GET `/tv4fix3`/302 lúc 14:57:03.159917198Z. Request thực có thể tới trước lần poll thấy đủ 3 ONLINE; không sửa timestamp để ép thứ tự. Đây là request đầu khớp trong cửa sổ log đã kiểm, không suy thành thời điểm đầu tiên tuyệt đối của mọi traffic.
+
+Low chuyển `ok` 14:55:23.019524Z và về `alarm` 15:16:23.010644Z sau dừng tải; high không có transitionALARM trong lượt. Actions luôn rỗng, repeat_actions=false. CPU bucket 14:54 trước scale-out là A 48.5333% / B 47.0833% (mỗi VM 1 vCPU); không đổi ngưỡng. Collector TV2 có 97 snapshot thành công / 98 attempt, một KeyError giữa các mẫu lúc VM mới tham gia; chưa xác minh nguyên nhân, không nhận 0 lỗi hoặc dùng collector làm guard của evaluator.
+
+TV1 báo 36000 request, 28764 redirect 302, p50=847.38ms, p95=1080.74ms,47 lỗi 5xx/timeout (0.13056%). P95 **chưa đạt 500 ms**; ratio theo báo cáo dưới 1% không có nghĩa toàn bộ nghiệm thu hiệu năng đạt. Chỉ nhận một dòng CSV và summary do TV1 cung cấp, chưa nhận full CSV hoặc tính lại quantile. Không thu được log B`.185` trước khi Heat xóa, nên không nhận phép mapping đầy đủ 3 backend cho lượt30 RPS. Phép xác minh hai backend `.195`/`.185` trước tải đã có 32 request ghép log 15/17 trong evidence.
+
+Evaluation bật 13:42:05Z, tắt 15:25:03Z; actions_enabled giữfalse trong mọi lần update. Cleanup 15:26:04Z xóa đúng jump/FIP/port/hai SG SSH, port app trở về app SG. Hậu kiểm 15:28:41Z giữ A`.195`+B`.102`, DB VM/volume 10 GiB và VIP gốc; health 200/pass, hai member ONLINE, cả hai alarm disabled/actions 0. HTTPS sau cleanup 8/8 đạt, verifyTLS. `campus-check` rc1 vì còn phiên/việc khác: phối hợp TV1 trước Stop B→A, không coi đây là lỗi health.
+
+Key `tv1-load` được cấp riêng, không author-only, chuyển kín qua object `campus-secrets/ops/shlink_api_key_tv1-load`; HEAD 37 byte và GET visits của năm fixture trả 200. Bản key tạm trong guest đã xóa; không đưa giá trị vào tài liệu/evidence. Object trung chuyển dành cho TV1 nhận/xóa, chưa tự xóa hoặc revoke key.
+
+Nguồn: [bản ngắn](../../evidence/G4/20261116-FR-INF-11-tv2-evening-baseline.txt), [API/CPU/history/client-row/guest-log/cleanup](../../evidence/G4/20261116-FR-INF-11-tv2-evening-baseline.json). Đây là baseline và scale tay đã hoàn tất; không nghiệm thu tự scale hoặc đóng gate dữ liệu #47, không áp ADR-12 lên cụm.

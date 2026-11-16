@@ -157,7 +157,7 @@ shlink:                         # Lab 9.5
     root_dir_in_zip: shlink-web-client_4.8.1_dist
   app_instances:
     app-a: { uuid: "523d67b4-9234-4b09-b3dc-c814e6b868fc", ip: "10.20.0.195", az: campus-az-a }
-    app-b: { uuid: "c6d98b28-a4c1-456f-b044-4b2affbb391a", ip: "10.20.0.185", az: campus-az-b }   # Heat giu B moi sau manual3->2 ngay15/11, B157e... da xoa
+    app-b: { uuid: "6ed60f3b-aa27-4679-b762-ca7e88264785", ip: "10.20.0.102", az: campus-az-b }   # Heat giu B moi sau manual3->2 ngay16/11, Bc6d... da xoa
 
 load_balancer:                  # TV2 dien sau Heat (H4)
   provider: ovn
@@ -187,8 +187,8 @@ heat:
   wait_condition_seconds: 300
   diagnostic_security_groups: []
   ingress_status: "HTTPS cert verified; health200/pass, redirect302 dung dich"
-  ingress_checked_utc: "2026-11-14T08:32:55.530910Z"
-  checked_utc: "2026-11-15T07:50:00.095635Z"
+  ingress_checked_utc: "2026-11-16T15:30:17.348935Z"
+  checked_utc: "2026-11-16T15:28:41.899127Z"
   cpu_alarm_stack:
     name: campus-app-cpu-alarms
     id: "f5b0c4cf-558b-46b2-a4e2-c28d835fc275"
@@ -200,15 +200,15 @@ heat:
     granularity_seconds: 60
     rate_semantics: delta-ns
     group: campuslink-app
-    cpu_metric_ids: { app-a: "123ecdaf-efc2-4815-931e-cd846de6e910", app-b: "4ee9e4f4-6558-4d33-a08f-bfcb75b41c46" }
-    vcpus_metric_ids: { app-a: "05418399-d872-4659-a41a-e1b71d91c229", app-b: "6cf28252-8ec2-48e6-9d88-4dd3596cdf0d" }
+    cpu_metric_ids: { app-a: "123ecdaf-efc2-4815-931e-cd846de6e910", app-b: "5a78700a-ad78-41a2-80d0-e5a8464aff36" }
+    vcpus_metric_ids: { app-a: "05418399-d872-4659-a41a-e1b71d91c229", app-b: "016f4491-70e2-4f7e-8329-cc3af73cda20" }
     lifecycle_filter: "ended_at=null AND deleted_at=null"
     enabled_at_handoff: false
     action_count: 0
-    disabled_utc: "2026-11-14T07:58:40.025171Z"
+    disabled_utc: "2026-11-16T15:25:03.573070Z"
     high_alarm_history_utc: "2026-11-14T07:49:13.738777Z"
     low_after_load_alarm_history_utc: "2026-11-14T07:54:13.692679Z"
     evidence: "evidence/G4/20261114-FR-INF-10-tv2-metric-alarm.txt"
   app_ssh_host_fingerprints:
     app-a: { type: ed25519, sha256: "SHA256:chWPXeef/ZDCO9ee4smKz6ilsIAQvBvZorzmDZEzyb0", source: "TV1 hypervisor check issue42, matched strict SSH14/11" }
-    app-b: { type: ed25519, sha256: "SHA256:u2L3oDsXR76+bRBibhcKx8ws+VzDkWWnsLhVf/VPLLs", source: "Nova console first boot15/11; SSH to new B not checked" }
+    app-b: { type: ed25519, sha256: "SHA256:ZEjuvC4PVgV0WruuxdJ2YltCg4+MQL4mTqogO+uRZEw", source: "Nova console first boot16/11, matched strict SSH" }

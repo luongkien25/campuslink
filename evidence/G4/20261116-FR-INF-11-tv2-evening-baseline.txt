@@ -1,0 +1,35 @@
+Lượt baseline Aodh chưa vá — TV2 — 16/11/2026 UTC
+
+Tải TV1 trên Windows: RUN_START=2026-11-16T14:50:59.5796622Z; steady14:53:04Z/30RPS/1200s;
+RUN_END=2026-11-16T15:13:05.0281007Z. Không có workload thứ hai của TV2 trong cửa sổsteady.
+
+Mốc manual:
+- Scale-out: 2026-11-16T14:56:17.725232+00:00 (CLIrc0).
+- NovaACTIVE appmới lầnđầuquan sát: 14:57:01.314729Z.
+- Ba app/memberONLINE lầnđầuquan sát: 2026-11-16T14:57:06.538306+00:00.
+- Scale-in: 2026-11-16T15:04:06.809375+00:00 (CLIrc0); giữ3app 420.271069s (~7phút).
+- Hai app/memberONLINE hậukiểm: 2026-11-16T15:07:52.252237+00:00 (không coi là thời điểm engine chính xác).
+
+Appmới6ed60f3b-aa27-4679-b762-ca7e88264785/10.20.0.102:
+client14:57:02.561767Z/302/3b405014-611f-448e-8342-06662e3bd3a2/Locationfixture3
+khớp guestlog14:57:03.159917198Z/GET /tv4fix3/302 trên đúng guest đã pinSSH.
+Không ép mốc client phải sau lần poll3ONLINE.
+
+CPU baseline bucket14:54:A48.5333%,B47.0833%; không sửa ngưỡng.
+Alarm history: lowOK14:55:23.019524Z; lowALARM15:16:23.010644Z;
+highkhôngcótransitionALARMtronglượt. Actionsrỗng/repeatfalse trongmọisnapshot.
+TV1báo36000request;28764redirect302;p50=847.38ms;p95=1080.74ms;
+47/36000lỗi5xx/timeout≈0.13056%. p95chưađạt500ms; chỉratio<1%theobáocáo,
+khôngnhậnnghiệmthuhiệunăngtổngthểhoặcautoscaletựđộng.
+
+Collector98attempt/97success/1KeyError;khônggọilà0lỗi,nguyênnhânchưachốt.
+KhôngthuđượclogB185trướckhibịxóa;khôngnhậnmappingđủ3backendtronglượt30RPS.
+FullCSVchưanhận,chưatínhlạip95;summaryvà1rowdoTV1cấplànguồnđộc lập.
+
+Evaluationdisabled15:25:03.573070Z;cleanup15:26:04.931385Z.
+Finalcheck15:28:41.899127Z: A195+B102healthy/memberONLINE,appSGkhôiphục,
+jump/FIP/port/haiSGtạmđềuvắng;DBVM+volume10GiB/VIPgiữnguyên,khôngthao tácEC2.
+HTTPSsaucleanup8/8đạt,verifyTLS;requestcuối15:30:17.348935Z.
+campus-checkrc1:cònphiên/việckhác,phốihợpTV1trướckhiStopB→A.
+
+JSONnguồn:20261116-FR-INF-11-tv2-evening-baseline.json.

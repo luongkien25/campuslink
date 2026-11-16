@@ -1,0 +1,131 @@
+{
+  "requirements": [
+    "FR-INF-16",
+    "NFR-08"
+  ],
+  "issue": 53,
+  "scope": "Create Shlink admin key tv3-admin and hand off through Swift; no secret value in evidence",
+  "key_handoff": {
+    "completed_utc": "2026-11-16T05:49:34.130203+00:00",
+    "key_name": "tv3-admin",
+    "author_only": false,
+    "object": "campus-secrets/ops/shlink_api_key_tv3-admin",
+    "put_status": 201,
+    "head_status": 200,
+    "content_length": 37,
+    "authenticated_internal_api_status": 200,
+    "secret_printed": false
+  },
+  "transient_guest_key_removed": true,
+  "temporary_access": {
+    "created_utc": "2026-11-16T05:44:10.718096+00:00",
+    "app_port": "6c352539-4367-4b6b-8405-ac4e507f0e78",
+    "app_original_sgs": [
+      "b3eb3225-3e50-4c38-b43f-3823b6022d05"
+    ],
+    "jump_sg": "cf1d51c4-b769-444f-a9a2-eb8508780dee",
+    "app_ssh_sg": "1323812c-390b-46ab-a817-09128e762c28",
+    "jump_port": "d03b7ab7-62bb-4e05-be06-12019eb412e6",
+    "jump_id": "dbf7d1f8-9bf0-4426-8189-1ba6d63738f1",
+    "jump_fip_id": "d6d19601-eede-44d3-8726-7b17e92230b3",
+    "jump_fip": "172.24.4.189",
+    "app_ssh_attached": true,
+    "active_observed_utc": "2026-11-16T05:44:25.501190+00:00"
+  },
+  "cleanup_registry": {
+    "created_utc": "2026-11-16T05:44:10.718096+00:00",
+    "app_port": "6c352539-4367-4b6b-8405-ac4e507f0e78",
+    "app_original_sgs": [
+      "b3eb3225-3e50-4c38-b43f-3823b6022d05"
+    ],
+    "jump_sg": "cf1d51c4-b769-444f-a9a2-eb8508780dee",
+    "app_ssh_sg": "1323812c-390b-46ab-a817-09128e762c28",
+    "jump_port": "d03b7ab7-62bb-4e05-be06-12019eb412e6",
+    "jump_id": "dbf7d1f8-9bf0-4426-8189-1ba6d63738f1",
+    "jump_fip_id": "d6d19601-eede-44d3-8726-7b17e92230b3",
+    "jump_fip": "172.24.4.189",
+    "app_ssh_attached": false,
+    "active_observed_utc": "2026-11-16T05:44:25.501190+00:00",
+    "cleaned_utc": "2026-11-16T05:56:14.279569+00:00"
+  },
+  "final_check": {
+    "checked_utc": "2026-11-16T05:56:51.993902+00:00",
+    "cleanup": {
+      "jump_absent": true,
+      "jump_port_absent": true,
+      "temporary_fip_absent": true,
+      "temporary_sgs_absent": true,
+      "app_sgs_restored": true
+    },
+    "object": {
+      "head_status": 200,
+      "content_length": "37"
+    },
+    "alarms": [
+      {
+        "id": "90f9060e-af83-4bba-834c-52753144421c",
+        "state": "alarm",
+        "enabled": false,
+        "repeat_actions": false,
+        "action_count": 0
+      },
+      {
+        "id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "state": "ok",
+        "enabled": false,
+        "repeat_actions": false,
+        "action_count": 0
+      }
+    ],
+    "members": [
+      {
+        "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+        "address": "10.20.0.195",
+        "status": "ONLINE"
+      },
+      {
+        "id": "88445d87-f93f-4aae-8229-f45cb9a58e29",
+        "address": "10.20.0.185",
+        "status": "ONLINE"
+      }
+    ],
+    "servers": [
+      {
+        "id": "c6d98b28-a4c1-456f-b044-4b2affbb391a",
+        "name": "ca-tcyx-6ft552tig63y-65qfdhkg7kzw-server-gx73k7qtvjmm",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "name": "campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26",
+        "status": "ACTIVE"
+      },
+      {
+        "id": "6d17a9e8-4975-4c46-afd6-be1017e2a251",
+        "name": "campus-db",
+        "status": "ACTIVE"
+      }
+    ],
+    "health": {
+      "status": 200,
+      "health_status": "pass"
+    },
+    "campus_check": {
+      "returncode": 0,
+      "diagnostics": [
+        "OK: khong con ai dung. Tat duoc: B truoc, A sau."
+      ]
+    }
+  },
+  "ssh_verification": {
+    "host_a": "Matches user-verified SHA256:gW49fIVoerNVuAjMh+jjss2w49V0mAVJwCo4BHxT2hM",
+    "jump": "Public ECDSA host key read from Nova console; strict verification",
+    "app_a": "Matches TV1 verified SHA256:chWPXeef/ZDCO9ee4smKz6ilsIAQvBvZorzmDZEzyb0",
+    "private_key_copied": false
+  },
+  "limits": [
+    "Authenticated API check used internal HTTP VIP, not TV3 HTTPS acceptance.",
+    "TV3 must retrieve into a0600file, verify HTTPS and delete the transfer object, then confirm issue completion.",
+    "No alarm changes, Aodh patch, stack update, service restart, sharedSG edit or EC2 operation."
+  ]
+}
