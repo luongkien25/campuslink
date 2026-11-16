@@ -1,6 +1,6 @@
 # H5 – Fixture, bản backup và thủ tục restore (TV3 → TV4)
 
-Ngày (UTC): 2026-11-15 (bản nháp, chưa có số liệu cụm) · Gate: G4, G5 · Commit: `REPLACE_SAU_MERGE` · Yêu cầu: #50
+Ngày (UTC): 2026-11-16 · Gate: G4, G5 · Commit: `REPLACE_SAU_MERGE` · Yêu cầu: #50
 Không ghi secret. API key Shlink và credential backup **không** nằm trong file này (SRS O-02, ADR-10).
 
 ## 1. Đã sẵn sàng
@@ -19,16 +19,16 @@ Lấy đúng 5 slug đã có trong `tests/fixtures/fixture-slugs.example.json` v
 
 - Tạo bằng key **admin** do TV3 giữ (SRS 4.2, dòng "TV3 giữ 1 key admin để chuẩn bị fixture chung"). Key `--author-only` chỉ thấy link do chính nó tạo, nên **không** thấy fixture. TV4 đọc thống kê fixture (`GET .../visits`) bằng key admin hoặc key không giới hạn của TV4, không dùng key đơn vị.
 - Không đặt `validUntil`, `maxVisits`: fixture không bao giờ hết hạn.
-- Trên cụm: **chưa tạo** (phiên cloud trước 16/11 19:30). Số liệu ở 1.2 điền sau phiên đó.
+- Trên cụm: **đã tạo 16/11/2026 khoảng 08:38 UTC** qua `https://s.44-198-215-187.sslip.io` bằng key `tv3-admin` (TV2 cấp, #53; TV3 giữ ở `~tv3/campus-db-secrets/shlink_admin_key` trên A, 0600). Đọc lại đúng đích và tag, `validUntil`/`maxVisits` rỗng; mỗi slug được gọi 1 lần để kiểm `302` nên lúc bàn giao **mỗi slug có 1 visit**. Evidence: `evidence/G3/20261116-FR-INF-16-H5-fixture-restore-cum.txt`.
 
 ### 1.2. Bản backup dùng cho kiểm restore
 
 | Thứ | Giá trị | Kiểm bằng |
 | --- | --- | --- |
 | Container Swift | `campus-backups`, object `db/shlink-<UTC>.dump` + `db/shlink-<UTC>.dump.sha256` | `openstack object list campus-backups --prefix db/` (TV3, `OS_CLOUD=campus-tv3`) |
-| Bản đã kiểm có đủ 5 fixture | `REPLACE_SAU_PHIEN_CLOUD` (vd `db/shlink-20261116T...Z.dump`) | dòng `OK tai ...` của `campus-db-restore-test` |
-| sha256 của bản đó | `REPLACE_SAU_PHIEN_CLOUD` | như trên |
-| Phiên bản migration Shlink | `ShlinkMigrations\Version20260607082210` (Shlink 5.1.8; local 15/11, cụm điền sau) | dòng `migration=` |
+| Bản đã kiểm có đủ 5 fixture | `db/shlink-20261116T084155Z.dump` (177266 byte, timer tự chạy sau khi tạo fixture) | dòng `OK tai ...` của `campus-db-restore-test` |
+| sha256 của bản đó | `1130799d6f7e10c77629bad6b8bd5759d33e433a2d72ad817db6ee49091c55dd` | như trên |
+| Phiên bản migration Shlink | `ShlinkMigrations\Version20260607082210` (Shlink 5.1.8; giống nhau ở local và cụm) | dòng `migration=` |
 | Lịch backup | 10 phút sau boot DB VM, rồi mỗi giờ (`Persistent`), giữ 48 bản trong Swift; RPO ≤ 1 giờ 02 phút | `docs/runbooks/db-backup.md` |
 | Snapshot EBS (FR-INF-17, TV1) | `snap-03f8a6038bec5b942` (lab IAM 26/10, không chứa fixture) | `docs/inventory.yaml` dòng `iam_lab_snapshot` |
 
@@ -91,9 +91,10 @@ Chạy 3.1 trước và sau `docker restart` Shlink (TV2 làm trên app VM). Mon
 
 ## 4. Đã biết còn thiếu hoặc lỗi
 
-- Mục 1.2 chưa có số liệu cụm: điền sau phiên cloud (trước 16/11 19:30), cùng evidence `evidence/G3/<ngay>-FR-INF-16-H5-...-cum.txt`.
+- Bản dump trong 1.2 nằm trong vòng giữ 48 bản (khoảng 2 ngày timer chạy) rồi bị retention xóa. Kiểm lại thì dùng `latest`, không dùng tên cố định.
+- Khi **chỉ bật A** (B tắt), member B vẫn báo `ONLINE` và khoảng một nửa request qua `https://s.…` timeout/`504` (quan sát 16/11, nguyên nhân chưa kiểm). Đo tải NFR-03/04 phải bật cả B và kiểm member trước.
 - Chưa chạy Shlink trỏ vào `campus_restore_test` (Redis namespace khác) để thử redirect từ bản khôi phục. Script hiện kiểm ở mức dữ liệu (schema version, số bản ghi, 5 slug/đích). Diễn tập tầng 2 FR-INF-25 của TV1 (`ops/dr/dr-tier2.sh`, PR #37) restore dump vào PostgreSQL tạm trên A, cũng ở mức dữ liệu.
-- DB VM đang chạy bản `campus-db-restore-test` cũ (chưa có kiểm visit, FAIL theo slug, `DROP_AFTER`): cài lại bằng `install.sh` trong phiên cloud trước khi chạy 3.2.
+- DB VM chạy bản `campus-db-restore-test` của PR này (cài 15/11, sha256 `8720d6e9…`). Sau khi merge, bản trong repo và trên VM trùng nhau.
 - `campus_restore_test` có tên cố định: hai người chạy restore thử cùng lúc sẽ ghi đè nhau. Chỉ TV3 chạy.
 
 ## 5. Lỗi đã gặp khi làm
