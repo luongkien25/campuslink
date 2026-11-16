@@ -13,13 +13,19 @@ Issue #47 (TV2) nêu rủi ro bucket CPU thiếu hoặc âm. TV1 đã đọc sou
 - `needed_overlap=0` (`gnocchi.py:167`) cho phép VM thiếu điểm vẫn được gộp, và `_sanitize` (`gnocchi.py:42-63`) không lọc bucket đang ghi hay giá trị âm.
 - Khi alarm đang `insufficient data` và cửa sổ lẫn lộn, state mới lấy theo **điểm cuối** (`threshold.py:100-119`, `:146-157`).
 
+### Cập nhật review ngày 16/11/2026
+
+- [TV4 đã APPROVE](https://github.com/luongkien25/campuslink/pull/51#pullrequestreview-5911937928) phần evidence và hướng ADR. [TV2 đồng ý hướng sửa để thử có kiểm soát](https://github.com/luongkien25/campuslink/pull/51#pullrequestreview-5915451775), đồng thời yêu cầu chốt gate cho metric thiếu/âm/cũ trước khi bật action. Review TV2 có trạng thái GitHub `COMMENTED`; không diễn giải thành bản vá đã nghiệm thu.
+- [TV2 bổ sung nguồn tải và cấu hình alarm](https://github.com/luongkien25/campuslink/issues/47#issuecomment-6908651479): ApacheBench trên host A, GET redirect qua VIP nội bộ, keep-alive/concurrency 32, từ `15/11 07:35:59.053906Z` đến `07:47:03.262872Z`; 23.173 request/664,204 s, khoảng 34,89 RPS. Đây không phải workload 80/15/5 hay benchmark HTTPS/p95 của TV4. Snapshot `16/11 05:42:08.609980Z` do TV2 báo: high `ok`, low `alarm`, cả hai `enabled=False`, mọi actions rỗng, `repeat_actions=False`; ngưỡng high/low và số kỳ khớp NFR-05. TV1 chưa kiểm độc lập snapshot này trên A; không dùng nó thay cấu hình cần đọc ngay trước phiên đo.
+- Cập nhật lịch 16/11 theo xác nhận của TV1: TV2 và TV4 đã thống nhất lùi giờ bắt đầu xuống **20:30 giờ VN**, giữ thời lượng dự kiến hai giờ (**20:30–22:30**, 13:30–15:30 UTC). TV1 bật probe trước **20:25**; vẫn đo baseline chưa vá, chỉ bật đánh giá, mọi actions rỗng. Lịch mới được cập nhật tại #44. TV4 cũng rảnh tối 17/11 hoặc sáng 18/11; khung nghiệm thu sau vá vẫn cần TV2 xác nhận.
+
 ## Quyết định
 
 1. Áp một bản vá cục bộ lên `aodh/evaluator/gnocchi.py` (chỉ lớp `GnocchiAggregationResourcesThresholdEvaluator`, 10 dòng thêm, 5 dòng xóa): với aggregation `rate:X`, `operations` thành `['aggregate', 'X', ['metric', <metric>, 'rate:X']]`, tức rate từng VM rồi mới gộp. Aggregation không có tiền tố `rate:` cho đúng kết quả cũ. Bản vá ở `infra/devstack/patches/aodh-adr12-rate-per-vm.patch` (sha256 `9afebdfcd1e9ceeab495c4353e393034d64500becce3b66cb6a20a41ddc96d20`), áp bằng `git apply`.
 2. Chỉ áp trên host A (nơi chạy `aodh-evaluator`). Không sửa Gnocchi, Ceilometer, template Heat. **Không đổi** ngưỡng, granularity, `evaluation_periods`, cooldown: NFR-05 giữ nguyên; bản vá đưa giá trị Aodh về đúng định nghĩa CPU của NFR-05 (từng VM, từ Δcpu_ns), không đổi tiêu chí.
 3. `docs/versions.lock` ghi `aodh_sha=e07aeb6d118b4b9099947028e6e809a6bdd8fe22` (đang `REPLACE_SHA`), `aodh_patch` (đường dẫn) và `aodh_patch_sha256`. `.gitattributes` thêm `*.patch text eol=lf` để Windows không đổi bản vá sang CRLF (làm lệch sha256).
 4. Áp ngoài lúc đang đo, trước khi bật action của hai alarm. Mọi lệnh đổi trạng thái do TV1 chạy sau khi ADR được duyệt (`AGENTS.md` mục 6).
-5. Action của alarm (tự scale, FR-INF-11) chỉ được bật khi bản vá đạt các điều kiện ở mục "Điều kiện nghiệm thu bản vá".
+5. Bản vá này chỉ sửa phép tính rate; không bổ sung kiểm độ phủ metric, timestamp, counter reset hoặc giá trị âm. **Chưa cho bật action của cả high và low.** Muốn bật tự scale (FR-INF-11) phải đạt cả kiểm phép tính và gate dữ liệu ở mục "Điều kiện nghiệm thu bản vá"; vài lượt tải không có lỗi không chứng minh evaluator tự từ chối dữ liệu sai.
 
 ## Căn cứ (đã đo)
 
@@ -83,18 +89,39 @@ Bản vá đã thử `git apply --check`, áp và `git apply -R --check` trên b
 
 ## Điều kiện nghiệm thu bản vá
 
-**Lịch đề xuất (cần TV1, TV2, TV4 xác nhận):** phiên 16/11 chỉ đo baseline **chưa vá** (alarm history thật dưới tải, chế độ đánh giá). Nghiệm thu sau vá là một lượt ngắn (TV1 bật cụm và probe, TV2 scale tay, TV4 tải nền) vào tối 17/11 hoặc sáng 18/11, trước snapshot EBS 18/11 và freeze 19/11.
+**Lịch:** phiên 16/11 chỉ đo baseline **chưa vá** (alarm history thật dưới tải, chế độ đánh giá), theo xác nhận ở mục cập nhật review. Nghiệm thu sau vá dự kiến tối 17/11 hoặc sáng 18/11 (TV4 đã rảnh, chờ TV2 xác nhận), trước snapshot EBS 18/11 và freeze 19/11. Không làm gián đoạn lượt benchmark để thử lỗi telemetry.
 
-Đạt đủ cả năm thì TV2 mới bật action:
+### 1. Kiểm phép tính sau vá (chưa đủ để bật action)
+
+Trong tất cả các lượt dưới đây, `alarm_actions`, `ok_actions` và `insufficient_data_actions` phải rỗng:
+
 1. `git diff` trên A chỉ khác đúng bản vá; `aodh-evaluator` `active` và không có traceback sau 5 phút.
 2. Hai alarm bật **chỉ đánh giá** (actions rỗng) ít nhất 15 phút: không kẹt `insufficient data`, state hợp lý với CPU.
 3. Một lần VM thứ ba tham gia (scale tay) **khi CPU nền không thấp hơn ngưỡng low** (cần tải nền khoảng 30–60%, ví dụ của TV4, để alarm low đang ở `ok`; lúc rảnh low đúng đã là ALARM nên không kiểm được gì): alarm history **không** có low chuyển sang ALARM trong khoảng VM tham gia; `most recent` trong lý do chuyển state khớp tham chiếu của probe.
 4. Dưới tải của TV4: high chuyển ALARM đúng lúc, không bị chặn; nếu tải không vượt 60% thì ghi vào O-10, không hạ ngưỡng.
 5. TV2 xác nhận `openstack alarm show` của hai alarm (`alarm_actions`, `ok_actions`, `insufficient_data_actions` rỗng cho tới khi bật action; `repeat_actions=false`).
 
+### 2. Gate dữ liệu trước khi cho phép tự scale
+
+Đối chiếu lại đúng source Aodh `e07aeb6d118b4b9099947028e6e809a6bdd8fe22` ngày 16/11: `_sanitize` lấy giá trị theo granularity rồi lấy N điểm cuối; `evaluate_rule` kiểm số điểm, không kiểm tính liên tiếp, độ mới hoặc độ phủ VM. Bản vá giữ `needed_overlap=0` và giữ nguyên các hàm này. Vì vậy **gate dữ liệu hiện CHƯA ĐẠT**. Probe bên ngoài chỉ phát hiện lỗi; người vận hành nhìn probe không phải cơ chế tự bảo vệ evaluator.
+
+| Trường hợp phải kiểm | Kết quả bắt buộc trước bật action | Tình trạng ở bản vá hiện tại |
+| --- | --- | --- |
+| CPU thấp hợp lệ | 3 bucket 60 s liên tiếp đã đóng, không âm, đủ dữ liệu từng VM trong cohort; mỗi bucket < 25% thì low mới được coi hợp lệ | Cần đối chiếu dữ liệu từng VM và alarm history; probe hiện có chỉ tham chiếu trên VM đủ hai điểm |
+| VM mới chưa có metric `cpu`, hoặc thiếu một trong hai điểm counter | Không thay metric thiếu bằng 0, không bỏ VM âm thầm để kết luận cả nhóm CPU thấp | `needed_overlap=0` cho phép gộp trên phần còn lại; chưa có chốt tự bảo vệ |
+| Counter reset/giá trị âm hoặc không hữu hạn | Không tính là CPU thấp hợp lệ và không sinh quyết định high/low từ cửa sổ sai | `_sanitize` chưa lọc; đổi vị trí rate không xử lý reset counter |
+| Bucket đang ghi, thiếu bucket giữa hoặc chỉ còn điểm cũ | Không đủ N bucket liên tiếp đã đóng theo thời gian đánh giá thì không dùng cửa sổ đó để scale | Chỉ đếm N điểm; chưa có kiểm timestamp/độ mới. Đọc `evaluation_interval`/`additional_ingestion_lag` bằng allowlist khi cụm bật; không in toàn bộ `aodh.conf` |
+| VM rời cohort trong lượt 3→2 | Đối chiếu cohort trước/sau bằng tài nguyên thật và metric từng VM; không sinh ALARM từ phép gộp sai | Chưa nghiệm thu; phải đo cả chiều rời cohort, không chỉ VM tham gia |
+
+TV1 và TV2 cần chốt **cơ chế chạy tự động từ chối cửa sổ sai trước khi evaluator có thể phát action**, cùng định nghĩa cohort, mốc độ mới và cách quay lại đánh giá sau khi đủ dữ liệu. Đây là phần bổ sung cần nhóm review; không tự coi một script giám sát, `repeat_actions=false`, hoặc việc bật action lúc state `ok` là đã giải quyết. Nếu sửa thêm mã evaluator thì cập nhật ADR, bản vá và checksum, chạy kiểm tái lập rồi mới xin phép áp lên A.
+
+Phép kiểm metric thiếu/reset/cũ trước hết làm offline với source đúng SHA hoặc trên môi trường thử riêng. Trên cụm dùng chung chỉ đo thụ động và lượt scale tay đã hẹn; không dừng collector, reboot app hay đổi metric để gây lỗi trong phiên G5. Mọi thử lỗi hoặc thay đổi dịch vụ phải có kế hoạch và được TV1/người dùng cho phép riêng. Offline characterization không thay bằng chứng evaluator chạy trên A.
+
+Chỉ khi cả hai phần đạt, TV1 xác nhận bằng evidence và TV2 đối chiếu độc lập thì mới **đề xuất** bật actions theo `AGENTS.md` mục 6. Trước đó giữ actions rỗng, kể cả khi bản vá đã được phép thử có kiểm soát. Giữ #47 mở cho tới khi có kết luận và bằng chứng tương ứng.
+
 ## Nếu không duyệt kịp, hoặc không đạt
 
-Không áp bản vá. Giữ action tắt. Báo cáo FR-INF-11 là **đạt một phần**: alarm đúng khi tập VM ổn định (bucket đã đóng), sai khi VM tham gia và ở bucket đang ghi (số đo ở mục Căn cứ); lượt scale tay 2→3→2 có timeline thật; không nhận autoscaling tự động là PASS. Nhóm (và giảng viên nếu cần) quyết định phạm vi.
+Nếu chưa được duyệt thì không áp bản vá. Nếu được phép thử nhưng kiểm phép tính hoặc gate dữ liệu chưa đạt thì giữ action tắt; lùi bản vá nếu gây lỗi dịch vụ, sai kết quả hoặc vượt phạm vi đã duyệt. Báo cáo FR-INF-11 là **đạt một phần** theo evidence có thật: đã có lượt scale tay 2→3→2 và các giới hạn alarm nêu trên; không nhận autoscaling tự động là PASS. Nhóm (và giảng viên nếu cần) quyết định phạm vi.
 
 ## Hệ quả
 
@@ -102,4 +129,4 @@ Không áp bản vá. Giữ action tắt. Báo cáo FR-INF-11 là **đạt một
 - `docs/versions.lock` điền `aodh_sha`, thêm `aodh_patch` và `aodh_patch_sha256`; khi áp bản vá sẽ thêm vào `docs/runbooks/after-start.md` (phần telemetry) kiểm `git -C /opt/stack/aodh diff --stat` (1 file); PR này không đổi runbook để tránh xung đột với PR #46.
 - SRS không đổi: NFR-05 và FR-INF-11 giữ nguyên tiêu chí; chỉ đổi cách Aodh tính giá trị đưa vào tiêu chí đó.
 - Chủ review của PR: `docs/decisions/` và `docs/versions.lock` (mặc định TV1), `infra/devstack/patches/` (TV1, TV2), `evidence/` (TV4).
-- Vấn đề mở mới: tương tác của bản vá với `needed_overlap=0` khi VM bị xóa giữa chừng (FIXME của upstream) chưa kiểm; đo ở điều kiện nghiệm thu 3 và 4.
+- Vấn đề còn mở trước bật action: độ phủ VM (`needed_overlap=0`), bucket chưa đóng/không liên tiếp/cũ, counter reset và VM rời cohort; theo gate dữ liệu ở phần nghiệm thu. Bản vá sửa phép tính không tự giải quyết các vấn đề này.
