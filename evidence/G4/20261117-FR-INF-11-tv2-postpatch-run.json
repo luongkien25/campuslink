@@ -1,0 +1,966 @@
+{
+  "scope": "postpatch calculation check and manual2->3->2 only",
+  "issue": 61,
+  "actions_permitted": false,
+  "data_gate_passed": false,
+  "fr_inf_11": "partial",
+  "load_owner": "TV1",
+  "load_A": {
+    "run_start_utc": "2026-11-17T14:22:09.5635659Z",
+    "warmup_start_utc": "2026-11-17T14:22:10Z",
+    "warmup_rps": 10,
+    "warmup_seconds": 120,
+    "steady_rps": 30,
+    "steady_seconds": 1200,
+    "endpoint": "https://s.44-198-215-187.sslip.io",
+    "source": "TV1 output relayed by user",
+    "run_end_utc": "2026-11-17T14:44:12.4118855Z"
+  },
+  "load_B": {
+    "attempt": 2,
+    "status": "force-stopped",
+    "run_start_utc": "2026-11-17T14:51:19.4319679Z",
+    "target_rps": 60,
+    "workers_reported": 160,
+    "planned_steady_seconds": 420,
+    "source": "TV1 report relayed by user; no fullCSV independently analyzed",
+    "extra_scaling_permitted": false,
+    "steady_start_utc": null,
+    "run_end_utc": "2026-11-17T15:00:24.3251797Z",
+    "closed_cpu_buckets_observed": [
+      {
+        "bucket": "2026-11-17T14:52:00+00:00",
+        "cpu_percent_mean": 39.175
+      },
+      {
+        "bucket": "2026-11-17T14:53:00+00:00",
+        "cpu_percent_mean": 50.474999999999994
+      },
+      {
+        "bucket": "2026-11-17T14:54:00+00:00",
+        "cpu_percent_mean": 50.833333333333336
+      },
+      {
+        "bucket": "2026-11-17T14:55:00+00:00",
+        "cpu_percent_mean": 51.19166666666667
+      },
+      {
+        "bucket": "2026-11-17T14:56:00+00:00",
+        "cpu_percent_mean": 50.766666666666666
+      },
+      {
+        "bucket": "2026-11-17T14:57:00+00:00",
+        "cpu_percent_mean": 51.13333333333333
+      }
+    ],
+    "observed_mean_cpu_max": 51.19166666666667,
+    "completed_requests_reported": 17880,
+    "target_requests_reported": 25200,
+    "achieved_rps_reported_approx": 33,
+    "redirect_p95_reported_text": "9.267 ms",
+    "client_errors_reported": {
+      "599": 31
+    },
+    "natural_completion": false,
+    "limitations": [
+      "Do not interpret p95 punctuation or recompute quantiles without fullCSV.",
+      "Client599 count is not independently attributed to backend5xx, network or timeout.",
+      "Configured60RPS/160threads did not establish achieved60RPS."
+    ]
+  },
+  "source": "ADR12 PR51 head01ed768 and issue61",
+  "operator_notes": [
+    "No signal sent as of14:26:36Z: low stillALARM.",
+    "Collector first run ended on SSH TimeoutExpired; last successful observation14:22:50.046662Z. Arithmetic snapshot recovered14:25:41.211822Z; gap is not filled or called continuous coverage.",
+    "SSH ControlMaster was reset and keepalive added on laptop only; no guest/service restart.",
+    "TV1 confirmed probe since13:36:46Z and evaluator on2alarms by13:48:10Z in issue61."
+  ],
+  "comment_start_url": "https://github.com/luongkien25/campuslink/issues/61#issuecomment-6950847778",
+  "manual_scale_out": {
+    "mode": "out",
+    "requested_utc": "2026-11-17T14:28:00.867902+00:00",
+    "alarms_before": [
+      {
+        "id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "state": "ok",
+        "enabled": true,
+        "repeat_actions": false,
+        "all_actions_empty": true
+      },
+      {
+        "id": "90f9060e-af83-4bba-834c-52753144421c",
+        "state": "ok",
+        "enabled": true,
+        "repeat_actions": false,
+        "all_actions_empty": true
+      }
+    ],
+    "member_addresses_before": [
+      "10.20.0.195",
+      "10.20.0.102"
+    ],
+    "cpu_before": [
+      {
+        "uuid": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "bucket": "2026-11-17T14:26:00+00:00",
+        "cpu_percent": 44.5
+      },
+      {
+        "uuid": "6ed60f3b-aa27-4679-b762-ca7e88264785",
+        "bucket": "2026-11-17T14:26:00+00:00",
+        "cpu_percent": 48.31666666666667
+      }
+    ],
+    "command_returncode": 0,
+    "completed_utc": "2026-11-17T14:28:03.049310+00:00",
+    "status": "signal-sent"
+  },
+  "three_online": {
+    "utc": "2026-11-17T14:29:27.626751+00:00",
+    "apps": [
+      {
+        "ID": "a43d4b4b-6fd5-4244-833b-94c59e856a70",
+        "Name": "ca-tcyx-sos25jpcttjg-ja2jq3he43f7-server-w5libtxbopqg",
+        "Status": "ACTIVE",
+        "Networks": {
+          "campus-net": [
+            "10.20.0.196"
+          ]
+        }
+      },
+      {
+        "ID": "6ed60f3b-aa27-4679-b762-ca7e88264785",
+        "Name": "ca-tcyx-6rqfc52yqxvk-mdhc76ui5e7u-server-oe2zug5ubkmb",
+        "Status": "ACTIVE",
+        "Networks": {
+          "campus-net": [
+            "10.20.0.102"
+          ]
+        }
+      },
+      {
+        "ID": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "Name": "campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26",
+        "Status": "ACTIVE",
+        "Networks": {
+          "campus-net": [
+            "10.20.0.195"
+          ]
+        }
+      }
+    ],
+    "members": [
+      {
+        "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+        "name": "",
+        "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+        "provisioning_status": "ACTIVE",
+        "address": "10.20.0.195",
+        "protocol_port": 8080,
+        "operating_status": "ONLINE",
+        "weight": 1
+      },
+      {
+        "id": "1d1b931f-9702-4d05-852c-2f8edc479b81",
+        "name": "",
+        "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+        "provisioning_status": "ACTIVE",
+        "address": "10.20.0.102",
+        "protocol_port": 8080,
+        "operating_status": "ONLINE",
+        "weight": 1
+      },
+      {
+        "id": "4d64c077-95e3-422a-93ad-3b52b1d2b704",
+        "name": "",
+        "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+        "provisioning_status": "ACTIVE",
+        "address": "10.20.0.196",
+        "protocol_port": 8080,
+        "operating_status": "ONLINE",
+        "weight": 1
+      }
+    ],
+    "three_online": true,
+    "health_status": "pass",
+    "new_vm": {
+      "ID": "a43d4b4b-6fd5-4244-833b-94c59e856a70",
+      "Name": "ca-tcyx-sos25jpcttjg-ja2jq3he43f7-server-w5libtxbopqg",
+      "Status": "ACTIVE",
+      "Networks": {
+        "campus-net": [
+          "10.20.0.196"
+        ]
+      }
+    },
+    "first_three_online_observed_utc": "2026-11-17T14:29:27.626751+00:00"
+  },
+  "planned_scale_in_not_before_utc": "2026-11-17T14:36:27.626751Z",
+  "history_after_out": {
+    "collected_utc": "2026-11-17T14:30:20.610062+00:00",
+    "alarms": [
+      {
+        "alarm_id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "state_transitions_since_enable": []
+      },
+      {
+        "alarm_id": "90f9060e-af83-4bba-834c-52753144421c",
+        "state_transitions_since_enable": [
+          {
+            "timestamp": "2026-11-17T14:27:10.959201",
+            "event_id": "e4791f42-a755-4b39-9c5f-c45bf11a7e9c",
+            "type": "state transition",
+            "state_fields": {
+              "state": "ok"
+            },
+            "detail_field_names": [
+              "state",
+              "transition_reason"
+            ],
+            "most_recent_numeric": 28920000000.0
+          }
+        ]
+      }
+    ]
+  },
+  "heat_events_after_out": {
+    "collected_utc": "2026-11-17T14:31:22.250020+00:00",
+    "events": [
+      {
+        "resource_name": "campus-app-asg_b-ymuh7w3ntcyx",
+        "id": "a9725091-5f43-4a44-b3a0-3763b86b2071",
+        "resource_status": "UPDATE_IN_PROGRESS",
+        "event_time": "2026-11-17T14:28:04Z",
+        "physical_resource_id": "479438e0-37fe-47d3-a0a3-fcaf53e756b1"
+      },
+      {
+        "resource_name": "sos25jpcttjg",
+        "id": "5a00f490-48a1-4072-9301-0f7795730f7d",
+        "resource_status": "CREATE_IN_PROGRESS",
+        "event_time": "2026-11-17T14:28:04Z",
+        "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-sos25jpcttjg-ja2jq3he43f7"
+      },
+      {
+        "resource_name": "campus-app-asg_b-ymuh7w3ntcyx-sos25jpcttjg-ja2jq3he43f7",
+        "id": "63380c3f-fb3e-4455-9707-d45f0256e6e8",
+        "resource_status": "CREATE_IN_PROGRESS",
+        "event_time": "2026-11-17T14:28:05Z",
+        "physical_resource_id": "cec50d04-f185-4630-9082-ffe8cdbc59a4"
+      },
+      {
+        "resource_name": "port",
+        "id": "b185083d-1c8f-4b8a-b4cf-956be4edc665",
+        "resource_status": "CREATE_IN_PROGRESS",
+        "event_time": "2026-11-17T14:28:05Z",
+        "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-sos25jpcttjg-ja2jq3he43f7-port-lofh2bx6pzsy"
+      },
+      {
+        "resource_name": "6rqfc52yqxvk",
+        "id": "02413633-e9b3-44a6-866c-93edd80ad213",
+        "resource_status": "UPDATE_IN_PROGRESS",
+        "event_time": "2026-11-17T14:28:05Z",
+        "physical_resource_id": "639732a3-d6b8-4ea8-b905-8a2c80b9729d"
+      },
+      {
+        "resource_name": "port",
+        "id": "da916163-b57e-4fed-9c2b-bc3faadc5427",
+        "resource_status": "CREATE_COMPLETE",
+        "event_time": "2026-11-17T14:28:06Z",
+        "physical_resource_id": "2871e83c-61ab-4003-8b04-08c98d6818a5"
+      },
+      {
+        "resource_name": "campus-app-asg_b-ymuh7w3ntcyx-6rqfc52yqxvk-mdhc76ui5e7u",
+        "id": "fb0974db-7114-42d1-a0e2-4377533b24fb",
+        "resource_status": "UPDATE_IN_PROGRESS",
+        "event_time": "2026-11-17T14:28:06Z",
+        "physical_resource_id": "639732a3-d6b8-4ea8-b905-8a2c80b9729d"
+      },
+      {
+        "resource_name": "handle",
+        "id": "dda684b6-3255-4272-8e39-bdbda4e64258",
+        "resource_status": "CREATE_IN_PROGRESS",
+        "event_time": "2026-11-17T14:28:06Z",
+        "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-sos25jpcttjg-ja2jq3he43f7-handle-vrdxewwrdqzg"
+      },
+      {
+        "resource_name": "handle",
+        "id": "d20d2753-26d1-4d04-a97b-00cd1fc67943",
+        "resource_status": "CREATE_COMPLETE",
+        "event_time": "2026-11-17T14:28:06Z",
+        "physical_resource_id": "64247f334aa2475ea5cba50f2b96c48b"
+      },
+      {
+        "resource_name": "config",
+        "id": "626374d4-6546-4551-a759-513b136d4f50",
+        "resource_status": "CREATE_IN_PROGRESS",
+        "event_time": "2026-11-17T14:28:07Z",
+        "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-sos25jpcttjg-ja2jq3he43f7-config-2fixn3ggl37l"
+      },
+      {
+        "resource_name": "config",
+        "id": "524724ea-a86d-45dd-862d-875c58e69d0f",
+        "resource_status": "CREATE_COMPLETE",
+        "event_time": "2026-11-17T14:28:07Z",
+        "physical_resource_id": "2b99386d-e059-4600-a38c-7da399be4791"
+      },
+      {
+        "resource_name": "server",
+        "id": "dd46fe5f-c9a7-4f3a-9496-bad99c3dfccc",
+        "resource_status": "CREATE_IN_PROGRESS",
+        "event_time": "2026-11-17T14:28:07Z",
+        "physical_resource_id": "ca-tcyx-sos25jpcttjg-ja2jq3he43f7-server-w5libtxbopqg"
+      },
+      {
+        "resource_name": "campus-app-asg_b-ymuh7w3ntcyx-6rqfc52yqxvk-mdhc76ui5e7u",
+        "id": "6eb676d3-f56d-44f9-b04e-f874ef425319",
+        "resource_status": "UPDATE_COMPLETE",
+        "event_time": "2026-11-17T14:28:08Z",
+        "physical_resource_id": "639732a3-d6b8-4ea8-b905-8a2c80b9729d"
+      },
+      {
+        "resource_name": "6rqfc52yqxvk",
+        "id": "3f7290e9-461f-4ce7-bfe3-81718eeb632f",
+        "resource_status": "UPDATE_COMPLETE",
+        "event_time": "2026-11-17T14:28:08Z",
+        "physical_resource_id": "639732a3-d6b8-4ea8-b905-8a2c80b9729d"
+      },
+      {
+        "resource_name": "server",
+        "id": "df94297a-d384-43e0-829f-69a43b90bc75",
+        "resource_status": "CREATE_COMPLETE",
+        "event_time": "2026-11-17T14:28:20Z",
+        "physical_resource_id": "a43d4b4b-6fd5-4244-833b-94c59e856a70"
+      },
+      {
+        "resource_name": "ready",
+        "id": "c0e25852-4215-4eab-a5c0-016e5f51ebb2",
+        "resource_status": "CREATE_IN_PROGRESS",
+        "event_time": "2026-11-17T14:28:20Z",
+        "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-sos25jpcttjg-ja2jq3he43f7-ready-4zlj4h3cqnub"
+      },
+      {
+        "resource_name": "handle",
+        "id": "c7014eae-8f12-4ded-8052-4dcd56445735",
+        "resource_status": "SIGNAL_COMPLETE",
+        "event_time": "2026-11-17T14:28:57Z",
+        "physical_resource_id": "64247f334aa2475ea5cba50f2b96c48b"
+      },
+      {
+        "resource_name": "ready",
+        "id": "c5248aef-89b1-4416-8693-fa2e25882a39",
+        "resource_status": "CREATE_COMPLETE",
+        "event_time": "2026-11-17T14:28:57Z",
+        "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-sos25jpcttjg-ja2jq3he43f7-ready-4zlj4h3cqnub"
+      },
+      {
+        "resource_name": "drain",
+        "id": "7dad9547-154e-4549-bdfd-38484c14a7af",
+        "resource_status": "CREATE_IN_PROGRESS",
+        "event_time": "2026-11-17T14:28:57Z",
+        "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-sos25jpcttjg-ja2jq3he43f7-drain-hucsttmrlwi3"
+      },
+      {
+        "resource_name": "drain",
+        "id": "a67a471a-396c-46de-8108-f2b3e378741e",
+        "resource_status": "CREATE_COMPLETE",
+        "event_time": "2026-11-17T14:28:57Z",
+        "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-sos25jpcttjg-ja2jq3he43f7-drain-hucsttmrlwi3"
+      },
+      {
+        "resource_name": "member",
+        "id": "6e702347-fc48-421a-bddc-e22b6e237787",
+        "resource_status": "CREATE_IN_PROGRESS",
+        "event_time": "2026-11-17T14:28:57Z",
+        "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-sos25jpcttjg-ja2jq3he43f7-member-cf4ms2ye6lji"
+      },
+      {
+        "resource_name": "member",
+        "id": "be105715-7ad9-4468-bdd6-885ef27be1bb",
+        "resource_status": "CREATE_COMPLETE",
+        "event_time": "2026-11-17T14:28:59Z",
+        "physical_resource_id": "4d64c077-95e3-422a-93ad-3b52b1d2b704"
+      },
+      {
+        "resource_name": "campus-app-asg_b-ymuh7w3ntcyx-sos25jpcttjg-ja2jq3he43f7",
+        "id": "5543962e-c0e8-4989-9e3e-773414144c36",
+        "resource_status": "CREATE_COMPLETE",
+        "event_time": "2026-11-17T14:28:59Z",
+        "physical_resource_id": "cec50d04-f185-4630-9082-ffe8cdbc59a4"
+      },
+      {
+        "resource_name": "sos25jpcttjg",
+        "id": "3fa88a82-4b23-4af5-950a-f7a7201e7ddf",
+        "resource_status": "CREATE_COMPLETE",
+        "event_time": "2026-11-17T14:28:59Z",
+        "physical_resource_id": "cec50d04-f185-4630-9082-ffe8cdbc59a4"
+      },
+      {
+        "resource_name": "campus-app-asg_b-ymuh7w3ntcyx",
+        "id": "0717580f-5681-40ff-939c-52e9c6103da9",
+        "resource_status": "UPDATE_COMPLETE",
+        "event_time": "2026-11-17T14:28:59Z",
+        "physical_resource_id": "479438e0-37fe-47d3-a0a3-fcaf53e756b1"
+      },
+      {
+        "resource_name": "scale_out",
+        "id": "cb7e3742-365b-4642-bfdd-e52ff4bb4993",
+        "resource_status": "SIGNAL_COMPLETE",
+        "event_time": "2026-11-17T14:29:00Z",
+        "physical_resource_id": "4410ce9bccea41bd98e8c19ead43ffd8"
+      }
+    ]
+  },
+  "new_vm_metadata": {
+    "OS-EXT-AZ:availability_zone": "campus-az-b",
+    "addresses": {
+      "campus-net": [
+        "10.20.0.196"
+      ]
+    },
+    "created": "2026-11-17T14:28:08Z",
+    "id": "a43d4b4b-6fd5-4244-833b-94c59e856a70",
+    "name": "ca-tcyx-sos25jpcttjg-ja2jq3he43f7-server-w5libtxbopqg",
+    "status": "ACTIVE",
+    "updated": "2026-11-17T14:28:19Z"
+  },
+  "arithmetic_reference": {
+    "before_third_vm": {
+      "path": "evidence/G4/20261117-FR-INF-11-tv2-postpatch-arithmetic.json",
+      "closed_buckets_compared": 19,
+      "mismatches": 0
+    },
+    "with_third_vm_first_complete_bucket": {
+      "path": "evidence/G4/20261117-FR-INF-11-tv2-postpatch-arithmetic-three.json",
+      "timestamp": "2026-11-17T14:30:00+00:00",
+      "cohort_count": 3,
+      "corrected_mean_ns": 20496666666.666668,
+      "reference_mean_ns": 20496666666.666668,
+      "cpu_percent": 34.16111111111111
+    }
+  },
+  "manual_scale_in": {
+    "mode": "in",
+    "requested_utc": "2026-11-17T14:36:51.419738+00:00",
+    "alarms_before": [
+      {
+        "id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "state": "ok",
+        "enabled": true,
+        "repeat_actions": false,
+        "all_actions_empty": true
+      },
+      {
+        "id": "90f9060e-af83-4bba-834c-52753144421c",
+        "state": "ok",
+        "enabled": true,
+        "repeat_actions": false,
+        "all_actions_empty": true
+      }
+    ],
+    "member_addresses_before": [
+      "10.20.0.195",
+      "10.20.0.102",
+      "10.20.0.196"
+    ],
+    "command_returncode": 0,
+    "completed_utc": "2026-11-17T14:36:53.519159+00:00",
+    "status": "signal-sent"
+  },
+  "history_pre_in": {
+    "collected_utc": "2026-11-17T14:35:31.724191+00:00",
+    "alarms": [
+      {
+        "alarm_id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "state_transitions_since_enable": []
+      },
+      {
+        "alarm_id": "90f9060e-af83-4bba-834c-52753144421c",
+        "state_transitions_since_enable": [
+          {
+            "timestamp": "2026-11-17T14:27:10.959201",
+            "event_id": "e4791f42-a755-4b39-9c5f-c45bf11a7e9c",
+            "type": "state transition",
+            "state_fields": {
+              "state": "ok"
+            },
+            "detail_field_names": [
+              "state",
+              "transition_reason"
+            ],
+            "most_recent_numeric": 28920000000.0
+          }
+        ]
+      }
+    ]
+  },
+  "new_vm_host_fingerprints": {
+    "collected_utc": "2026-11-17T14:36:13.511824+00:00",
+    "vm_id": "a43d4b4b-6fd5-4244-833b-94c59e856a70",
+    "source": "Nova first-boot console; only public SSH host-key fingerprints retained",
+    "fingerprints": [
+      {
+        "type": "ecdsa-sha2-nistp256",
+        "sha256": "SHA256:UHTElAIAUkNZA5NzDaEY0/9W0DCmqwJDanGw90gddvo"
+      },
+      {
+        "type": "ssh-ed25519",
+        "sha256": "SHA256:YsuW6rmhO1K8PmRC6QTLgmY2N02V19mbnLWlfKFt1sw"
+      },
+      {
+        "type": "ssh-rsa",
+        "sha256": "SHA256:KxOqHrk+xy8IXekyytRNCS8mxkEoe+WDF0B0+csvXV4"
+      }
+    ],
+    "guest_ssh_tested": false
+  },
+  "two_online_after_in": {
+    "utc": "2026-11-17T14:37:30.276865+00:00",
+    "apps": [
+      {
+        "ID": "a43d4b4b-6fd5-4244-833b-94c59e856a70",
+        "Name": "ca-tcyx-sos25jpcttjg-ja2jq3he43f7-server-w5libtxbopqg",
+        "Status": "ACTIVE",
+        "Networks": {
+          "campus-net": [
+            "10.20.0.196"
+          ]
+        }
+      },
+      {
+        "ID": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "Name": "campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26",
+        "Status": "ACTIVE",
+        "Networks": {
+          "campus-net": [
+            "10.20.0.195"
+          ]
+        }
+      }
+    ],
+    "members": [
+      {
+        "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+        "name": "",
+        "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+        "provisioning_status": "ACTIVE",
+        "address": "10.20.0.195",
+        "protocol_port": 8080,
+        "operating_status": "ONLINE",
+        "weight": 1
+      },
+      {
+        "id": "4d64c077-95e3-422a-93ad-3b52b1d2b704",
+        "name": "",
+        "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+        "provisioning_status": "ACTIVE",
+        "address": "10.20.0.196",
+        "protocol_port": 8080,
+        "operating_status": "ONLINE",
+        "weight": 1
+      }
+    ],
+    "three_online": false,
+    "two_online": true,
+    "health_status": "pass",
+    "first_two_online_after_in_observed_utc": "2026-11-17T14:37:30.276865+00:00"
+  },
+  "hold_three_seconds": 443.792987,
+  "scale_in_comment_url": "https://github.com/luongkien25/campuslink/issues/61#issuecomment-6951183775",
+  "scale_out_comment_url": "https://github.com/luongkien25/campuslink/issues/61#issuecomment-6950966400",
+  "baseline_after_in": {
+    "checked_utc": "2026-11-17T14:39:29.433644+00:00",
+    "app_ports": [
+      {
+        "id": "6c352539-4367-4b6b-8405-ac4e507f0e78",
+        "device_id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "security_group_ids": [
+          "b3eb3225-3e50-4c38-b43f-3823b6022d05"
+        ],
+        "fixed_ips": [
+          {
+            "subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+            "ip_address": "10.20.0.195"
+          }
+        ]
+      },
+      {
+        "id": "2871e83c-61ab-4003-8b04-08c98d6818a5",
+        "device_id": "a43d4b4b-6fd5-4244-833b-94c59e856a70",
+        "security_group_ids": [
+          "b3eb3225-3e50-4c38-b43f-3823b6022d05"
+        ],
+        "fixed_ips": [
+          {
+            "subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+            "ip_address": "10.20.0.196"
+          }
+        ]
+      }
+    ],
+    "floating_ips": [
+      {
+        "id": "4de69ad4-b09e-4221-803f-f927715769fc",
+        "floating_ip_address": "172.24.4.117",
+        "port_id": "9b107b20-4d06-4716-808b-a57f12a64c45"
+      }
+    ],
+    "db_volume": {
+      "id": "f43fbbd2-b85f-4bb1-b403-ba54a2f84189",
+      "size_gib": 10,
+      "status": "in-use",
+      "attachments": [
+        {
+          "server_id": "6d17a9e8-4975-4c46-afd6-be1017e2a251",
+          "device": "/dev/vdb"
+        }
+      ]
+    },
+    "metrics": [
+      {
+        "uuid": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "cpu_metric_id": "123ecdaf-efc2-4815-931e-cd846de6e910",
+        "vcpus_metric_id": "05418399-d872-4659-a41a-e1b71d91c229",
+        "deleted_at": null
+      },
+      {
+        "uuid": "a43d4b4b-6fd5-4244-833b-94c59e856a70",
+        "cpu_metric_id": "88612106-fd05-4ce6-983b-37c14f1a80b1",
+        "vcpus_metric_id": "918b6854-14f1-4489-ab3d-0733e48e59d6",
+        "deleted_at": null
+      }
+    ],
+    "aodh_evaluator_file_sha256": "8bc8a1153ce36c4732236834e173bb86cdf52d0fbc43170ce47eb331ad1dbb38"
+  },
+  "history_after_in": {
+    "collected_utc": "2026-11-17T14:40:07.291082+00:00",
+    "alarms": [
+      {
+        "alarm_id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "state_transitions_since_enable": []
+      },
+      {
+        "alarm_id": "90f9060e-af83-4bba-834c-52753144421c",
+        "state_transitions_since_enable": [
+          {
+            "timestamp": "2026-11-17T14:27:10.959201",
+            "event_id": "e4791f42-a755-4b39-9c5f-c45bf11a7e9c",
+            "type": "state transition",
+            "state_fields": {
+              "state": "ok"
+            },
+            "detail_field_names": [
+              "state",
+              "transition_reason"
+            ],
+            "most_recent_numeric": 28920000000.0
+          }
+        ]
+      }
+    ]
+  },
+  "progress": {
+    "manual_cycle_complete": true,
+    "high_load_test": "not established: B1 cancelled, B2 force-stopped with achieved about33RPS reported; no highALARM in retrieved history",
+    "evaluation_disabled": true,
+    "final_health_and_resource_checks_passed": true,
+    "actions_ever_enabled_by_TV2": false,
+    "fr_inf_11": "partial",
+    "data_gate_passed": false,
+    "cloud_task_status": "completed with explicit high-load acceptance limitation",
+    "external_stop_check": "campus-check rc1 with4active items; no EC2 stop performed"
+  },
+  "load_B_attempts": [
+    {
+      "planned_rps": 60,
+      "planned_steady_seconds": 420,
+      "condition": "only after load_A stops and core returns to2healthy apps; real timestamps pending",
+      "run_start_utc": "2026-11-17T14:45:32.7379069Z",
+      "steady_start_utc": "2026-11-17T14:45:33Z",
+      "steady_rps": 60,
+      "steady_seconds": 420,
+      "source": "TV1 result relayed by user; no fullCSV independently recomputed",
+      "extra_scaling_permitted": false,
+      "attempt": 1,
+      "status": "cancelled",
+      "run_end_utc": "2026-11-17T14:50:26.4Z",
+      "end_timestamp_precision": "one decimal second as reported by TV1",
+      "achieved_rps_reported_approx": 32,
+      "workers_reported": 32,
+      "cancellation_reason": "load generator limited by default32threads; not a completed60RPS test"
+    }
+  ],
+  "history_B2_near_end": {
+    "collected_utc": "2026-11-17T14:58:19.112121+00:00",
+    "alarms": [
+      {
+        "alarm_id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "state_transitions_since_enable": []
+      },
+      {
+        "alarm_id": "90f9060e-af83-4bba-834c-52753144421c",
+        "state_transitions_since_enable": [
+          {
+            "timestamp": "2026-11-17T14:27:10.959201",
+            "event_id": "e4791f42-a755-4b39-9c5f-c45bf11a7e9c",
+            "type": "state transition",
+            "state_fields": {
+              "state": "ok"
+            },
+            "detail_field_names": [
+              "state",
+              "transition_reason"
+            ],
+            "most_recent_numeric": 28920000000.0
+          }
+        ]
+      }
+    ]
+  },
+  "evaluation_disabled": {
+    "started_utc": "2026-11-17T15:05:03.745533+00:00",
+    "before": [
+      {
+        "alarm_id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "enabled": true,
+        "repeat_actions": false,
+        "state": "ok",
+        "evaluate_timestamp": "2026-11-17T15:04:11"
+      },
+      {
+        "alarm_id": "90f9060e-af83-4bba-834c-52753144421c",
+        "enabled": true,
+        "repeat_actions": false,
+        "state": "alarm",
+        "evaluate_timestamp": "2026-11-17T15:03:11"
+      }
+    ],
+    "update_requested_utc": "2026-11-17T15:05:05.972198+00:00",
+    "stack_status": "UPDATE_COMPLETE",
+    "stack_updated_time": "2026-11-17T15:05:08Z",
+    "after": [
+      {
+        "alarm_id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "enabled": false,
+        "repeat_actions": false,
+        "state": "ok",
+        "evaluate_timestamp": "2026-11-17T15:04:11"
+      },
+      {
+        "alarm_id": "90f9060e-af83-4bba-834c-52753144421c",
+        "enabled": false,
+        "repeat_actions": false,
+        "state": "alarm",
+        "evaluate_timestamp": "2026-11-17T15:03:11"
+      }
+    ],
+    "completed_utc": "2026-11-17T15:05:13.384996+00:00",
+    "all_actions_empty": true,
+    "status": "disabled-verified"
+  },
+  "final_check": {
+    "checked_utc": "2026-11-17T15:05:35.024500+00:00",
+    "alarms": [
+      {
+        "alarm_id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "enabled": false,
+        "repeat_actions": false,
+        "state": "ok",
+        "evaluate_timestamp": "2026-11-17T15:04:11",
+        "metric": "cpu",
+        "resource_type": "instance",
+        "aggregation_method": "rate:mean",
+        "granularity": 60,
+        "evaluation_periods": 2,
+        "threshold": 36000000000.0,
+        "comparison_operator": "gt",
+        "alarm_actions": [],
+        "ok_actions": [],
+        "insufficient_data_actions": []
+      },
+      {
+        "alarm_id": "90f9060e-af83-4bba-834c-52753144421c",
+        "enabled": false,
+        "repeat_actions": false,
+        "state": "alarm",
+        "evaluate_timestamp": "2026-11-17T15:03:11",
+        "metric": "cpu",
+        "resource_type": "instance",
+        "aggregation_method": "rate:mean",
+        "granularity": 60,
+        "evaluation_periods": 3,
+        "threshold": 15000000000.0,
+        "comparison_operator": "lt",
+        "alarm_actions": [],
+        "ok_actions": [],
+        "insufficient_data_actions": []
+      }
+    ],
+    "servers": [
+      {
+        "ID": "a43d4b4b-6fd5-4244-833b-94c59e856a70",
+        "Name": "ca-tcyx-sos25jpcttjg-ja2jq3he43f7-server-w5libtxbopqg",
+        "Status": "ACTIVE",
+        "Networks": {
+          "campus-net": [
+            "10.20.0.196"
+          ]
+        }
+      },
+      {
+        "ID": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "Name": "campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26",
+        "Status": "ACTIVE",
+        "Networks": {
+          "campus-net": [
+            "10.20.0.195"
+          ]
+        }
+      },
+      {
+        "ID": "6d17a9e8-4975-4c46-afd6-be1017e2a251",
+        "Name": "campus-db",
+        "Status": "ACTIVE",
+        "Networks": {
+          "campus-net": [
+            "10.20.0.10"
+          ]
+        }
+      }
+    ],
+    "members": [
+      {
+        "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+        "name": "",
+        "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+        "provisioning_status": "ACTIVE",
+        "address": "10.20.0.195",
+        "protocol_port": 8080,
+        "operating_status": "ONLINE",
+        "weight": 1
+      },
+      {
+        "id": "4d64c077-95e3-422a-93ad-3b52b1d2b704",
+        "name": "",
+        "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+        "provisioning_status": "ACTIVE",
+        "address": "10.20.0.196",
+        "protocol_port": 8080,
+        "operating_status": "ONLINE",
+        "weight": 1
+      }
+    ],
+    "app_ports": [
+      {
+        "id": "6c352539-4367-4b6b-8405-ac4e507f0e78",
+        "server_id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "security_group_ids": [
+          "b3eb3225-3e50-4c38-b43f-3823b6022d05"
+        ]
+      },
+      {
+        "id": "2871e83c-61ab-4003-8b04-08c98d6818a5",
+        "server_id": "a43d4b4b-6fd5-4244-833b-94c59e856a70",
+        "security_group_ids": [
+          "b3eb3225-3e50-4c38-b43f-3823b6022d05"
+        ]
+      }
+    ],
+    "floating_ips": [
+      {
+        "id": "4de69ad4-b09e-4221-803f-f927715769fc",
+        "ip": "172.24.4.117",
+        "port_id": "9b107b20-4d06-4716-808b-a57f12a64c45"
+      }
+    ],
+    "db_volume": {
+      "id": "f43fbbd2-b85f-4bb1-b403-ba54a2f84189",
+      "size_gib": 10,
+      "status": "in-use"
+    },
+    "aodh_file_sha256": "8bc8a1153ce36c4732236834e173bb86cdf52d0fbc43170ce47eb331ad1dbb38",
+    "aodh_changed_paths": [
+      "aodh/evaluator/gnocchi.py"
+    ],
+    "health": [
+      {
+        "endpoint": "http://172.24.4.117:8080",
+        "http_status": 200,
+        "status": "pass",
+        "tls_verified": false
+      },
+      {
+        "endpoint": "https://s.44-198-215-187.sslip.io",
+        "http_status": 200,
+        "status": "pass",
+        "tls_verified": true
+      }
+    ],
+    "campus_check": {
+      "returncode": 1,
+      "diagnostics": [
+        "KHONG TAT: con 4 muc o tren. Hoi tren Zalo truoc."
+      ]
+    },
+    "no_temporary_resources_created_this_session": true
+  },
+  "final_alarm_history": {
+    "collected_utc": "2026-11-17T15:05:00.815618+00:00",
+    "alarms": [
+      {
+        "alarm_id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "state_transitions_since_enable": []
+      },
+      {
+        "alarm_id": "90f9060e-af83-4bba-834c-52753144421c",
+        "state_transitions_since_enable": [
+          {
+            "timestamp": "2026-11-17T15:04:10.971003",
+            "event_id": "99134f42-a96f-4026-9e2b-c70e8c8a5831",
+            "type": "state transition",
+            "state_fields": {
+              "state": "alarm"
+            },
+            "detail_field_names": [
+              "state",
+              "transition_reason"
+            ],
+            "most_recent_numeric": 350000000.0
+          },
+          {
+            "timestamp": "2026-11-17T14:27:10.959201",
+            "event_id": "e4791f42-a755-4b39-9c5f-c45bf11a7e9c",
+            "type": "state transition",
+            "state_fields": {
+              "state": "ok"
+            },
+            "detail_field_names": [
+              "state",
+              "transition_reason"
+            ],
+            "most_recent_numeric": 28920000000.0
+          }
+        ]
+      }
+    ]
+  },
+  "collector_summary": {
+    "recorded_rows": 139,
+    "rows_with_state_and_metrics": 130,
+    "recorded_partial_or_error_rows": 9,
+    "first_observed_utc": "2026-11-17T13:52:16.712008+00:00",
+    "last_observed_utc": "2026-11-17T15:05:18.225450+00:00",
+    "first_process_uncaught_timeout": true,
+    "gap_limits": "Last full row before first process exit14:22:50; separate arithmetic snapshot14:25:41, resumed full collector14:27:07. This is not zero-gap coverage.",
+    "path": "evidence/G4/20261117-FR-INF-11-tv2-postpatch-observations.jsonl"
+  },
+  "independent_review": {
+    "scope": "local docs/evidence manualcycle/IDs/UTC/secret/provenance",
+    "arithmetic_rows_recomputed": 65,
+    "important_findings": 0,
+    "minor_fixed": "Clarified Gnocchi metricIDs vs Nova first-boot SSH fingerprint provenance",
+    "limits": "Review occurred before closure; primary agent separately verified final disabled/state/health records."
+  },
+  "final_comment_url": "https://github.com/luongkien25/campuslink/issues/61#issuecomment-6951976501",
+  "collector_stopped": true,
+  "ssh_control_socket_present_at_handoff": false
+}

@@ -212,3 +212,29 @@ Evaluation bật 13:42:05Z, tắt 15:25:03Z; actions_enabled giữfalse trong m�
 Key `tv1-load` được cấp riêng, không author-only, chuyển kín qua object `campus-secrets/ops/shlink_api_key_tv1-load`; HEAD 37 byte và GET visits của năm fixture trả 200. Bản key tạm trong guest đã xóa; không đưa giá trị vào tài liệu/evidence. Object trung chuyển dành cho TV1 nhận/xóa, chưa tự xóa hoặc revoke key.
 
 Nguồn: [bản ngắn](../../evidence/G4/20261116-FR-INF-11-tv2-evening-baseline.txt), [API/CPU/history/client-row/guest-log/cleanup](../../evidence/G4/20261116-FR-INF-11-tv2-evening-baseline.json). Đây là baseline và scale tay đã hoàn tất; không nghiệm thu tự scale hoặc đóng gate dữ liệu #47, không áp ADR-12 lên cụm.
+
+## Kiểm phép tính sau vá ADR-12 và scale tay — 17/11/2026
+
+Lượt kiểm có kiểm soát theo [ADR-12 trong PR #51](https://github.com/luongkien25/campuslink/pull/51) và [nhật ký #61](https://github.com/luongkien25/campuslink/issues/61). Source Aodh giữ SHA `e07aeb6d118b4b9099947028e6e809a6bdd8fe22`, chỉ khác `aodh/evaluator/gnocchi.py`; nội dung khớp source gốc cộng đúng patch SHA256 `9afebdfcd1e9ceeab495c4353e393034d64500becce3b66cb6a20a41ddc96d20`. Bản vá đổi sang lấy rate từng metric rồi tính trung bình; chưa bổ sung cơ chế tự từ chối dữ liệu sai.
+
+Stack alarm riêng `UPDATE_COMPLETE` với `updated_time=13:48:03Z`; hậu kiểm13:48:25.489451Z xác nhận hai alarm enabled, ba danh sách actions rỗng và repeat_actions=false. Chỉ cập nhật hai alarm hiện có, không thay root core hoặc replace VM/LB. FR-INF-11 giữ trạng thái **đạt một phần**: lượt này dùng signal thủ công, gate dữ liệu #47 chưa đạt và không bật actions.
+
+| Mốc | UTC ngày17/11 | Nguồn |
+| --- | --- | --- |
+| Low chuyển OK | 14:27:10.959201 | Aodh history |
+| Bắt đầu signal-out2→3 | 14:28:00.867902 | Trước CLI, rc0 lúc14:28:03.049310 |
+| Ba app ACTIVE/ba member ONLINE | 14:29:27.626751 | Lần đầu quan sát đầy đủ; VIP health200/pass |
+| Bắt đầu signal-in3→2 | 14:36:51.419738 | Trước CLI, rc0 lúc14:36:53.519159 |
+| Hai app ACTIVE/hai member ONLINE | 14:37:30.276865 | Hậu kiểm, health200/pass |
+
+Ngay trước out, low/high đều OK; bucket đóng14:26 có CPU A44,5%/B48,3167%, trung bình46,4083%. Giữ ba app443,792987s (~7phút24s). VM mới `a43d4b4b-6fd5-4244-833b-94c59e856a70` ở AZ-B, IP`.196`; Heat giữ VM này sau in và xóa B`6ed60f3b…`/`.102`. A`.195` giữ UUID. Metric IDs B mới đọc từ Gnocchi; fingerprint SSH lấy riêng từ Nova first-boot console. Các giá trị đã cập nhật inventory; chưa SSH guest mới trong lượt này. Không tạo jump/FIP/SG tạm, không restart app/DB/evaluator hoặc thay cấu hình dùng chung trong thao tác TV2.
+
+Các snapshot đối chiếu truy vấn sau vá với hiệu counter từng VM: trước out19bucket, khi đủ counter ba VM1bucket, sau in8bucket, đều không lệch trong từng snapshot. Các cửa sổ có thể trùng nhau; không cộng thành tổng số bucket độc lập hoặc coi đây là cơ chế bảo vệ evaluator. History sau in đến14:40:07Z chỉ ghi low vềOK, không ghi low→ALARM trong cửa sổ thêm VM của lượt này. Đây là kết quả quan sát có giới hạn, không chứng minh an toàn cho thiếu metric/reset/cũ/bucket đang ghi hoặc mọi thay đổi cohort.
+
+Nguồn tải duy nhất là TV1 qua HTTPS, cùng profile80/15/5. LượtA có RUN_START14:22:09.5635659Z, warm-up10RPS bắt đầu14:22:10Z/120s, mục tiêu steady30RPS/1200s; RUN_END14:44:12.4118855Z. LượtB lần1 nhắm60RPS nhưng hủy lúc14:50:26.4Z do máy phát mặc định32luồng chỉ đạt khoảng32RPS theo báo cáo nguồn tải; không nhận là đã hoàn tất phép thử60RPS. LượtB lần2 dùng160luồng, RUN_START14:51:19.4319679Z, dừng cưỡng bức15:00:24.3251797Z. Nguồn tải báo17.880/25.200request, khoảng33RPS, p95 redirect ghi nguyên văn `9.267 ms` và31lỗi599; chưa quy đổi cách ghi p95, tính lại từ CSV hoặc quy lỗi599 cho backend. Hai lượtB đều không chứng minh đã hoàn tất tải60RPS theo kế hoạch.
+
+Collector có lỗi SSH/timeout và thiếu snapshot khi VM mới chưa đủ metric. Lần đầu collector dừng do timeout sau mẫu14:22:50Z; snapshot phép tính riêng lấy lại14:25:41Z và collector tiếp tục từ14:27:07Z. Không điền dữ liệu thiếu thành CPU0 hoặc nhận quan sát liên tục không có lỗi. Chưa tính lại achieved RPS/phân vị/tỉ lệ lỗi từ full CSV phía client trong phần bàn giao này.
+
+History trước khi tắt evaluation, thu15:05:00Z, ghi low vềALARM lúc15:04:10.971003Z sau dừng tải; không ghi high→ALARM trong lượt. Sáu bucket đóng14:52–14:57 của B2 có CPU trung bình nhóm khoảng39,18–51,19%, chưa vượt60%; phép kiểm high chưa đạt đầu vào tải cần thiết (O-10), không kết luận evaluator sai chỉ vì high giữOK. Cửa sổ này không thay thế nghiệm thu tải/hiệu năng từ full CSV.
+
+Đã trả hai alarm disabled và kiểm actions rỗng/repeat_actions=false lúc15:05:13.384996Z. Hậu kiểm15:05:35.024500Z: DB+hai app ACTIVE, hai member ONLINE, health200/pass qua VIP và HTTPS verifyTLS; port app chỉ giữ SG gốc, một VIP FIP và DB volume10GiB giữ nguyên. File evaluator vẫn đúng checksum sau vá. `campus-check` rc1 báo bốn mục đang dùng; không Stop EC2 hoặc coi kết quả này là quyền tắt máy. [Evidence phiên](../../evidence/G4/20261117-FR-INF-11-tv2-postpatch-run.json) và [snapshot đã lọc](../../evidence/G4/20261117-FR-INF-11-tv2-postpatch-observations.jsonl) chứa output; số mẫu lỗi/thiếu được ghi riêng. Không dùng kết quả scale tay hoặc snapshot khớp công thức để bật action khi gate dữ liệu chưa đạt.
