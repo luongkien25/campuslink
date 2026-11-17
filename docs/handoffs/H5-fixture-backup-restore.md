@@ -85,7 +85,9 @@ Mong đợi (đủ các dòng, nếu không là FAIL):
 
 Script tự FAIL (exit 1) nếu một slug thiếu trong bản khôi phục hoặc khác đích so với DB thật. Đã thử cả 2 trường hợp FAIL: `evidence/G3/20261115-FR-INF-16-H5-fixture-restore-thu-local.txt`.
 
-### 3.3. NFR-04 (visit không mất khi restart Shlink)
+### 3.3. Kiểm bổ sung: visit không mất khi restart Shlink (không phải NFR-04)
+
+Phép này kiểm ghi chú ở SRS mục 2: visit của request đã trả lời nằm trong PostgreSQL, nên restart hay kill app không làm mất visit. Nó **không chứng minh NFR-04**. NFR-04 là so static với auto, mỗi cấu hình ≥ 3 lượt, đảo thứ tự, cùng digest/image/fixture/config, theo quy trình đo của TV4 (`tests/`, `docs/acceptance.md`). Phép này cũng không thay cho lượt đo nào của NFR-04.
 
 Chạy 3.1 trước và sau `docker restart` Shlink (TV2 làm trên app VM). Mong đợi: cột 4 (`visitsSummary.total`) sau ≥ trước, cộng thêm đúng số `GET /tv4fixN` gửi giữa hai lần.
 
