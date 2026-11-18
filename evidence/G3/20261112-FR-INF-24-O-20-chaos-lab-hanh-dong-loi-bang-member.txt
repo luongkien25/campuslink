@@ -1,0 +1,89 @@
+Evidence FR-INF-24 giai doan 1 / SRS O-20 (G3): 3 hanh dong loi bang quyen member (campus-tv2) len stack lab 2 VM sau LB ovn; do phat hien, loi phia client, hoi phuc.
+Ngay: 2026-11-12 (gio VN 21:09-21:15), UTC 14:09:18Z-14:15:07Z. A boot 14:04:30Z (uptime -s; TV1 bao bat 21:05 gio VN), B khong bat. TV1 tu chay lenh tren A (ubuntu@campus-a, trong tmux) roi scp file ve laptop cho Claude Code doi chieu; Claude khong SSH.
+Script: chaos-lab.sh run (ngoai repo, docs/_scripts/chaos-lab/ o may TV1). Chi dung credential member campus-tv2, khong dung admin.
+Lab: chaos-lab-1 va chaos-lab-2 (flavor campus.app, ubuntu-noble-base, campus-az-a, metadata campus_role=app, web python3 http.server :8080 tra hostname), LB chaos-lab-lb provider ovn, listener TCP 8080, pool SOURCE_IP_PORT, health monitor TCP delay 5 timeout 3 max-retries 2, FIP tam tren VIP. Muc tieu loi luon la m1 (chaos-lab-1). Probe tu A toi FIP:8080, ~3,8 ket noi/s, timeout 1 s.
+Hanh dong thu: (1) vm-stop = openstack server stop / start; (2) member-disable = loadbalancer member set --disable / --enable; (3) port-disable = port set --disable / --enable. Moi lan: nen 10 s, giu loi 45 s, hoan tac, doi hoi phuc.
+KET QUA: 20 PASS, 1 FAIL. FAIL duy nhat la buoc don dep lan dau ("con 1 tai nguyen chaos-lab", do xoa LB tre); chay lai `down` luc 14:26:08Z ra "PASS khong con tai nguyen chaos-lab".
+PHAT HIEN (xac nhan lai bang log tho, phan "Phan tich log tho" o cuoi):
+  - Ca 3 hanh dong deu duoc member chap nhan voi provider ovn (rc=0 ca gay loi va hoan tac).
+  - 0/842 probe tra ve ma khac 200 trong ca 3 thi nghiem (ke ca luc dang loi).
+  - Luu luong toi muc tieu dung sau ~0,5-2,6 s ke tu luc go lenh, truoc khi operating_status cua member doi.
+  - operating_status khi loi: vm-stop -> ERROR; member-disable va port-disable -> OFFLINE. Khi hoan tac, luu luong quay lai muc tieu TRUOC khi operating_status ve ONLINE (1,1 s o vm-stop, 0,3 s o member-disable, 5,6 s o port-disable): trang thai tren LB cham hon luu luong that.
+GIOI HAN (khong doc thanh ket luan rong hon):
+  (1) Thoi gian phat hien/hoi phuc tinh tu luc GO lenh nen gom ~1-2 s tre cua CLI openstack; trang thai LB lay mau moi ~1,5 s.
+  (2) Mot lan chay moi hanh dong, mot lab, 2 member; probe ~3,8 ket noi/s la nhe, khong phai tai that.
+  (3) CHUA kiem access rules cua application credential: lan nay dung user campus-tv2. campus-chaos se dung credential rieng co access rules (phan con lai cua O-20).
+  (4) vm-stop la `server stop` (tat ACPI), khong phai mat dien dot ngot hay kill tien trinh.
+  (5) Chua thu voi app that (Shlink, DB/Redis), voi ASG hay voi stack cua TV2.
+
+== Output cua script (nguyen van, tu /home/ubuntu/chaos-lab-20261112.txt tren A)
+== chaos-lab run bat dau 2026-11-12T14:09:18Z tren campus-a
+INFO  == up: dung lab 2 VM + LB ovn
+INFO  han muc (member tv2):
+INFO    | floating_ips                |    -1 |
+INFO    | floating_ips_used           |     0 |
+INFO    | instances                   |     6 |
+INFO    | instances_used              |     1 |
+INFO    | max_total_cores             |     8 |
+INFO    | max_total_floating_ips      |    -1 |
+INFO    | max_total_instances         |     6 |
+INFO    | max_total_ram_size          | 12288 |
+INFO    | total_cores                 |     8 |
+INFO    | total_cores_used            |     1 |
+INFO    | total_floating_ips_used     |     0 |
+INFO    | total_instances_used        |     1 |
+INFO    | total_ram                   | 12288 |
+INFO    | total_ram_used              |  2048 |
+PASS  up: chaos-lab-1 ACTIVE (campus_role=app, campus-az-a) ip=10.20.0.185
+PASS  up: chaos-lab-2 ACTIVE (campus_role=app, campus-az-a) ip=10.20.0.179
+PASS  up: LB ovn ACTIVE, VIP=10.20.0.181, FIP=172.24.4.118, pool SOURCE_IP_PORT, HM TCP 5/3/2, 2 member
+PASS  up: ca hai backend tra loi qua VIP (chaos-lab-1, chaos-lab-2)
+PASS  up: m1, m2 ONLINE
+INFO  == thi nghiem vm-stop: nen 10s, giu loi 45s, hoi phuc toi da 150s; muc tieu m1 (chaos-lab-1)
+INFO  loi vm-stop: rc=0 
+INFO  hoan tac vm-stop: rc=0 
+INFO  do vm-stop: td=4.0 tr=30.5 n=176 err=0 err_sau_phat_hien=0 resp_target=6 resp_target_sau_phat_hien=0 target_tra_loi_lai=29.5 
+PASS  vm-stop: lenh gay loi duoc chap nhan (rc=0)
+PASS  vm-stop: hoan tac duoc chap nhan (rc=0)
+PASS  vm-stop: LB phat hien member khong ONLINE sau 4.0s
+PASS  vm-stop: sau khi phat hien: 0 loi, 0 phan hoi tu muc tieu
+PASS  vm-stop: hoi phuc: m1 ONLINE sau 30.5s, muc tieu tra loi lai
+INFO  == thi nghiem member-disable: nen 10s, giu loi 45s, hoi phuc toi da 150s; muc tieu m1 (chaos-lab-1)
+INFO  loi member-disable: rc=0 
+INFO  hoan tac member-disable: rc=0 
+INFO  do member-disable: td=2.6 tr=1.9 n=177 err=0 err_sau_phat_hien=0 resp_target=3 resp_target_sau_phat_hien=0 target_tra_loi_lai=1.5 
+PASS  member-disable: lenh gay loi duoc chap nhan (rc=0)
+PASS  member-disable: hoan tac duoc chap nhan (rc=0)
+PASS  member-disable: LB phat hien member khong ONLINE sau 2.6s
+PASS  member-disable: sau khi phat hien: 0 loi, 0 phan hoi tu muc tieu
+PASS  member-disable: hoi phuc: m1 ONLINE sau 1.9s, muc tieu tra loi lai
+INFO  == thi nghiem port-disable: nen 10s, giu loi 45s, hoi phuc toi da 150s; muc tieu m1 (chaos-lab-1)
+INFO  loi port-disable: rc=0 
+INFO  hoan tac port-disable: rc=0 
+INFO  do port-disable: td=2.5 tr=7.3 n=177 err=0 err_sau_phat_hien=0 resp_target=3 resp_target_sau_phat_hien=0 target_tra_loi_lai=1.8 
+PASS  port-disable: lenh gay loi duoc chap nhan (rc=0)
+PASS  port-disable: hoan tac duoc chap nhan (rc=0)
+PASS  port-disable: LB phat hien member khong ONLINE sau 2.5s
+PASS  port-disable: sau khi phat hien: 0 loi, 0 phan hoi tu muc tieu
+PASS  port-disable: hoi phuc: m1 ONLINE sau 7.3s, muc tieu tra loi lai
+INFO  == down: don lab
+FAIL  down: con 1 tai nguyen chaos-lab (server/LB/FIP); chay lai: sudo bash /home/ubuntu/chaos-lab.sh down
+== ket qua: 20 PASS, 1 FAIL (2026-11-12T14:15:07Z). File: /home/ubuntu/chaos-lab-20261112.txt
+
+== Lan chay `down` thu hai (14:26:08Z, tu terminal TV1 dan lai)
+== chaos-lab down bat dau 2026-11-12T14:26:08Z tren campus-a
+INFO  == down: don lab
+PASS  down: khong con tai nguyen chaos-lab
+== ket qua: 1 PASS, 0 FAIL (2026-11-12T14:26:12Z). File: /home/ubuntu/chaos-lab-20261112.txt
+
+== Phan tich log tho (probe.log va status.log do script ghi; doc lai bang Python tren laptop; thoi gian tuong doi so voi probe dau tien)
+vm-stop:        probe 345 (ma 200: 345; khac 200: 0); backend chaos-lab-1: 36, chaos-lab-2: 309
+                status m1: ONLINE -> ERROR @14.0 s -> ONLINE @86.8 s
+                chaos-lab-1 ngung tra loi @12.6 s, tra loi lai @85.7 s (khoang trong 73,1 s); chaos-lab-2 khoang trong lon nhat 1,6 s
+member-disable: probe 242 (ma 200: 242; khac 200: 0); backend chaos-lab-1: 28, chaos-lab-2: 214
+                status m1: ONLINE -> OFFLINE @12.6 s -> ONLINE @58.3 s
+                chaos-lab-1 ngung tra loi @11.1 s, tra loi lai @58.0 s (khoang trong 46,9 s); chaos-lab-2 khoang trong lon nhat 1,1 s
+port-disable:   probe 255 (ma 200: 255; khac 200: 0); backend chaos-lab-1: 41, chaos-lab-2: 214
+                status m1: ONLINE -> OFFLINE @12.5 s -> ONLINE @63.7 s
+                chaos-lab-1 ngung tra loi @10.5 s, tra loi lai @58.1 s (khoang trong 47,6 s); chaos-lab-2 khoang trong lon nhat 1,8 s
+Tong: 842 probe, 0 probe khac 200. File log tho (chaos-lab-<hanh dong>-probe.log, -status.log) nam o may TV1, khong dua vao repo.

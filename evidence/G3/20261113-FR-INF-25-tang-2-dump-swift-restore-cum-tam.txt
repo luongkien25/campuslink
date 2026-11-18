@@ -1,0 +1,67 @@
+Evidence FR-INF-25 tang 2 (G3): dump pg_dump -Fc trong Swift campus-backups/db/ (backup cua TV3, PR #39) -> PostgreSQL 16 sach tren A -> campus_restore_test; do RTO; thu phat hien dump hong.
+Ngay: 2026-11-13 (gio VN 13:30-13:43), UTC 06:30:29Z-06:43:38Z. A boot 06:26:46Z (uptime -s; TV1 bao bat 13:26 gio VN, khop). B khong bat. TV1 tu chay lenh tren A (ubuntu@campus-a) roi scp file ve laptop cho Claude Code doi chieu; Claude khong SSH.
+Script: dr-tier2.sh (ban chay lan 3 la ban co kiem initdb; xem ops/dr/dr-tier2.sh trong PR #37, neu da them). Doc Swift bang quyen member campus-tv3 (sudo -u tv3 tren A, cung kieu cac script khac); KHONG dung credential campus-db-backup (chi nam tren DB VM).
+Cach lam: liet ke campus-backups/db/shlink-*.dump -> chon ban moi nhat -> tai dump va .sha256 -> kiem ETag (md5) cua Swift va sha256 -> tao cum PostgreSQL 16 tam "dr2" (cong 54322, chi localhost) tren A -> CREATE DATABASE campus_restore_test -> pg_restore --no-owner --no-acl --exit-on-error -> dem short_urls, visits, migration, tim slug thu -> thu sua 1 byte vao BAN SAO cuc bo cua dump de xem sha256 co bat duoc khong -> don (go cum dr2, xoa thu muc tam, go goi postgresql-16 do script cai).
+Ba lan chay (file cong don):
+  Lan 1 06:30:29Z: FAIL ngay buoc tao cum. Loi cua SCRIPT: kiem "co pg_createcluster khong" thay vi "co initdb cua PostgreSQL 16 khong"; A co postgresql-common nhung chua co may chu 16, nen script bo qua buoc cai.
+  Lan 2 06:38:43Z: FAIL y het, vi luc chay file tren A van la ban cu (ban sua duoc chep len A luc 06:39, sau lan chay nay).
+  Lan 3 06:41:30Z: 10 PASS, 0 FAIL (sau khi script kiem initdb va cai postgresql-16 tam).
+KET QUA lan 3:
+  - Dump dung: db/shlink-20261113T063848Z.dump, 36764 byte (5 ban .dump trong Swift luc do). ETag (md5) Swift khop file tai ve; sha256 khop object .sha256 (2eb0c17a...3794).
+  - pg_restore vao campus_restore_test rc=0. Ban khoi phuc: short_urls=1, visits=2, migration Version20260607082210, slug tv2g4-20261111 tro dung dich. Giong so lieu TV3 bao ngay 12/11.
+  - RTO tang 2 (tu luc bat dau liet ke Swift den luc truy van duoc ban khoi phuc) = 5,8 s: liet ke 1,3 + tai 2,6 + kiem etag/sha256 1,3 + restore 0,4 + kiem so dong 0,1.
+  - Thoi gian chuan bi (KHONG tinh vao RTO): cai postgresql-16 19,9 s; tao cum dr2 3,0 s (PostgreSQL 16.15, Ubuntu 24.04).
+  - Dump bi sua 1 byte (ban sao cuc bo) -> sha256 khong khop: phat hien duoc. Object trong Swift khong bi dong toi.
+  - Don sach: khong con cum dr2, thu muc tam, goi postgresql-16 do script cai. Cum 16/main mac dinh do goi vua tao ra da bo; script khong dung toi cum nao khac.
+GIOI HAN (khong doc thanh ket luan rong hon):
+  (1) Du lieu rat nho (1 link, 2 luot xem, dump 36764 byte). RTO se lon hon voi du lieu that; 5,8 s KHONG ngoai suy duoc.
+  (2) RTO tren CHUA gom: dung DB VM moi, cai PostgreSQL tren VM do, dua ve IP 10.20.0.10, pg_hba va role cho app (TV3, runbook db-vm.md muc 8). Phan dung VM tu snapshot da do o tang 1 (124-158 s). RTO tang 2 DAY DU (VM moi + restore tu Swift) CHUA do.
+  (3) Restore tren host A (PostgreSQL tam), khong tren DB VM that: DB VM chi co keypair tv3 (db-vm.md), TV1 khong SSH vao duoc. TV3 da restore tren DB VM ngay 12/11 (campus-db-restore-test: pg_restore 1364 ms; evidence trong PR #39).
+  (4) Dump 20261113T063848Z do timer cua TV3 tao tren DB VM (khop lich "10 phut sau boot"); day la suy tu gio dump, CHUA kiem journal cua DB VM.
+  (5) Chua chot nguong RTO cho tang 1 va tang 2 (NFR-20: chot sau lan dien tap dau, can TV1 va TV3 dong y).
+  (6) Chua lam tang 3 (S3, O-22 cho nhom duyet ADR-11). DB campus_portal chua co.
+
+== Output cua script (tu /home/ubuntu/dr-tier2-20261113.txt tren A; 3 lan chay noi tiep)
+== dr-tier2 run bat dau 2026-11-13T06:30:29Z tren campus-a
+INFO  == FR-INF-25 tang 2: campus-backups/db/ -> PostgreSQL 16 sach (cum dr2 tren A) -> campus_restore_test
+INFO  may: campus-a, boot 2026-11-13 06:26:46, doc Swift bang member tv3
+FAIL  pg_createcluster 16 dr2 loi: Error: no initdb program for version 16 found 
+INFO  == don
+PASS  don: khong con cum dr2, thu muc tam, goi PostgreSQL do script cai
+== ket qua: 1 PASS, 1 FAIL (2026-11-13T06:30:29Z). File: /home/ubuntu/dr-tier2-20261113.txt
+== dr-tier2 run bat dau 2026-11-13T06:38:43Z tren campus-a
+INFO  == FR-INF-25 tang 2: campus-backups/db/ -> PostgreSQL 16 sach (cum dr2 tren A) -> campus_restore_test
+INFO  may: campus-a, boot 2026-11-13 06:26:46, doc Swift bang member tv3
+FAIL  pg_createcluster 16 dr2 loi: Error: no initdb program for version 16 found 
+INFO  == don
+PASS  don: khong con cum dr2, thu muc tam, goi PostgreSQL do script cai
+== ket qua: 1 PASS, 1 FAIL (2026-11-13T06:38:43Z). File: /home/ubuntu/dr-tier2-20261113.txt
+== dr-tier2 run bat dau 2026-11-13T06:41:30Z tren campus-a
+INFO  == FR-INF-25 tang 2: campus-backups/db/ -> PostgreSQL 16 sach (cum dr2 tren A) -> campus_restore_test
+INFO  may: campus-a, boot 2026-11-13 06:26:46, doc Swift bang member tv3
+INFO  A chua co may chu PostgreSQL 16 (thieu initdb; pg_createcluster co the da co san tu goi postgresql-common): cai postgresql-16 (tam, se go khi xong). Khong tinh vao RTO.
+INFO  goi se cai them va go lai khi xong: postgresql-16 
+INFO  da bo cum 16/main do goi vua tao
+PASS  cai postgresql-16 trong 19.9 s
+PASS  cum dr2 san sang trong 3.0 s (cong 54322)
+INFO  server_version: 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+INFO  dump moi nhat: db/shlink-20261113T063848Z.dump (liet ke 1.3 s; 5 ban .dump trong Swift)
+INFO  tai dump + .sha256: 36764 byte trong 2.6 s
+PASS  ETag (md5) Swift khop file tai ve
+PASS  sha256 khop object .sha256 (2eb0c17a2382cc5b94609907aac9569b057bb7cf935e490fb16b7a8f4a9f3794)
+PASS  pg_restore vao campus_restore_test rc=0 trong 0.4 s
+INFO  campus_restore_test: short_urls=1 visits=2 migration=ShlinkMigrations\Version20260607082210
+INFO  slug tv2g4-20261111 -> https://example.org/campuslink-tv2-g4
+PASS  short_urls >= 1 trong ban khoi phuc
+PASS  slug tv2g4-20261111 co trong ban khoi phuc
+PASS  co phien ban migration Shlink
+INFO  TV3 bao (12/11): short_urls=1 visits=2 migration=ShlinkMigrations/Version20260607082210 (khac vi dump moi hon thi khong sao)
+INFO  RTO tang 2 (liet ke Swift -> truy van duoc ban khoi phuc): 5.8 s
+INFO    gom: liet ke 1.3 s, tai 2.6 s, kiem etag+sha256 1.3 s, restore 0.4 s, kiem so dong 0.1 s
+INFO    chua gom: dung DB VM va cai PostgreSQL (xem tang 1: 124-158 s cho VM thu tu snapshot), dua ve IP 10.20.0.10, cau hinh app (TV3, runbook db-vm.md muc 8)
+INFO  == kiem phat hien dump hong (khong tinh RTO)
+PASS  dump bi sua 1 byte -> sha256 khong khop (phat hien duoc)
+INFO  == don
+INFO  go cac goi do script cai: postgresql-16 
+PASS  don: khong con cum dr2, thu muc tam, goi PostgreSQL do script cai
+== ket qua: 10 PASS, 0 FAIL (2026-11-13T06:43:38Z). File: /home/ubuntu/dr-tier2-20261113.txt
