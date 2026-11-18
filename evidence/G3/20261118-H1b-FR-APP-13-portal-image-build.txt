@@ -1,0 +1,106 @@
+# H1b - image campus-portal ban giao (FR-APP-13, NFR-14, C-04) - TV3, 2026-11-18
+# Chua push len registry: cho TV1 chot ten package GHCR o #55. RepoDigest se ghi sau khi push va pull an danh.
+# Image ID duoi day la ID local (config digest), KHONG phai RepoDigest; khong dung thay RepoDigest trong versions.lock.
+
+== nguon
+commit: b09832fc74f7ed39fbb63d1957489ae84b4aec55 (nhanh tv3/h1b-image, PR #63; cay lam viec app/portal sach: git status --porcelain rong)
+base: python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b (OCI index; amd64 = 3.12.16-slim-trixie)
+requirements: app/portal/requirements.txt (khoa phien ban tung goi)
+.dockerignore: **/__pycache__, **/*.pyc, smoke, README.md (ban truoc chi chan __pycache__ o goc nen portal/__pycache__ cua may build lot vao image)
+
+== build (may TV3, x86_64)
+docker build --platform linux/amd64 --label org.opencontainers.image.revision=b09832fc74f7ed39fbb63d1957489ae84b4aec55 \
+  --label org.opencontainers.image.source=https://github.com/luongkien25/campuslink --label org.opencontainers.image.title=campus-portal \
+  -t campus-portal:b09832f app/portal
+image_id=sha256:c17e3fb990fd1e3df4da726f19fbdaf0e3ad9118bef383eec842ba1215b9e059
+size_byte=317864023
+arch=linux/amd64
+user=portal
+exposed=8081/tcp 
+labels={"org.opencontainers.image.revision":"b09832fc74f7ed39fbb63d1957489ae84b4aec55","org.opencontainers.image.source":"https://github.com/luongkien25/campuslink","org.opencontainers.image.title":"campus-portal"}
+
+== kiem khong co secret trong image
+-- env:
+PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+LANG=C.UTF-8
+GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305
+PYTHON_VERSION=3.12.16
+PYTHON_SHA256=b5796915dc45ff745cfb4e990a7e7c93d6f546328a102ce31448d69ebc37575c
+PORTAL_PORT=8081
+   (GPG_KEY la khoa cong khai ky ban phat hanh Python cua image goc; PORTAL_PORT la cong)
+-- lenh tao layer cua TV3 (docker history, cac layer tren cung):
+CMD ["python" "-m" "portal"]
+HEALTHCHECK {Test:[CMD-SHELL python -c "import urllib.request,os;urllib.request.urlopen('http://127.0.0.1:%s/healthz'%os.environ.get('PORTAL_PORT','8081'),timeo
+EXPOSE [8081/tcp]
+ENV PORTAL_PORT=8081
+USER portal
+RUN /bin/sh -c useradd -r -u 1002 portal && mkdir -p /data/qr && chown portal /data/qr # buildkit
+COPY portal ./portal # buildkit
+RUN /bin/sh -c pip install --no-cache-dir -r requirements.txt # buildkit
+COPY requirements.txt . # buildkit
+-- tim file nhay cam (pem/.env/key/clouds.yaml/local.conf/secrets/password/api_key), bo /proc /sys /usr/share /usr/lib/ssl /etc/ssl:
+/etc/pam.d/common-password
+/var/cache/debconf/passwords.dat
+/var/lib/pam/password
+/usr/local/lib/python3.12/site-packages/pip/_vendor/certifi/cacert.pem
+/usr/local/lib/python3.12/site-packages/fastapi/security/api_key.py
+/usr/local/lib/python3.12/site-packages/fastapi/security/__pycache__/api_key.cpython-312.pyc
+/usr/local/lib/python3.12/site-packages/certifi/cacert.pem
+-- __pycache__ trong /app: 0
+-- /app/portal:
+__init__.py __main__.py app.py cards.py cli.py config.py db.py security.py shlink.py storage.py templates 
+   -> chi co file chuan Debian (pam, debconf), CA cong khai cua certifi/pip va ma nguon fastapi/security/api_key.py; khong co secret CampusLink.
+   Secret chi vao container luc chay qua *_FILE (Docker secrets tren Compose; tren cum doc tu Swift campus-secrets/app/, ADR-10).
+
+== portal smoke tren Compose bang chinh image nay
+docker compose --profile portal up -d --no-build --force-recreate --wait portal
+container image: sha256:c17e3fb990fd1e3df4da726f19fbdaf0e3ad9118bef383eec842ba1215b9e059 (trung image_id)
+healthz: 200
+bash app/portal/smoke/portal-smoke.sh
+2026-11-18T02:35:01Z
+run_id=20261118T023501Z portal=http://127.0.0.1:18090 shlink=http://127.0.0.1:18080
+== healthz
+PASS  SRS-4.6  healthz portal  (=200 pass)
+== chuan bi (admin tao don vi, tai khoan)
+PASS  FR-APP-13  admin dang nhap  (=303 http://127.0.0.1:18090/)
+PASS  FR-APP-13  sai mat khau bi tu choi  (=200)
+PASS  FR-APP-13  unit-a dang nhap  (=303 http://127.0.0.1:18090/)
+PASS  FR-APP-13  unit-b dang nhap  (=303 http://127.0.0.1:18090/)
+PASS  FR-APP-13  viewer-a dang nhap  (=303 http://127.0.0.1:18090/)
+PASS  FR-APP-13  unit-a khong vao /admin  (=403)
+== FR-APP-14 chien dich 3 link
+PASS  FR-APP-14  tao chien dich  (=303)
+PASS  FR-APP-14  chien dich co 3 link  (=3)
+PASS  FR-APP-14  3 link chuyen huong 302 toi dich  (=3)
+PASS  FR-APP-14  3 link mang tag chien dich (REST key A)  (=3)
+== FR-APP-13 cach ly don vi
+PASS  FR-APP-13  unit-b xem chien dich cua A qua portal  (=404)
+PASS  FR-APP-13  unit-b khong thay chien dich A trong danh sach  (=0)
+PASS  FR-APP-13  REST key B doc link cua A  (=404)
+PASS  FR-APP-13  REST key B xem visit tag cua A  (=0)
+PASS  FR-APP-13  viewer-a xem chien dich cua A  (=200)
+PASS  FR-APP-13  viewer-a khong tao duoc chien dich  (=403)
+== FR-APP-16 phat hanh the (duong lui 1 lo)
+PASS  FR-APP-16  phat hanh 10 the  (=303)
+PASS  FR-APP-16  co link tai PDF  (=yes)
+PASS  FR-APP-16  tai PDF (unit-a)  (=200 %PDF)
+PASS  FR-APP-16  PDF co 2 trang (8 the/trang)  (=2)
+PASS  FR-APP-16  unit-b tai PDF cua A  (=404)
+PASS  FR-APP-16  10 nguoi ra 10 link khac nhau  (=10)
+PASS  FR-APP-16  moi link the 302 dung dich  (=10)
+== FR-APP-14 sua han, dong chien dich
+PASS  FR-APP-14  sua chien dich  (=303)
+PASS  FR-APP-14  link van 302 sau khi gia han  (=302)
+PASS  FR-APP-14  dong chien dich  (=303)
+PASS  FR-APP-14  3 link khong con chuyen huong sau khi dong  (=3)
+PASS  FR-APP-14  link the khong con chuyen huong  (=404)
+== FR-APP-14 het han theo gio
+PASS  FR-APP-14  truoc han: 302  (=302)
+INFO  cho het han 116s
+PASS  FR-APP-14  sau han: khong chuyen huong  (=404)
+== ket qua: 0 FAIL
+2026-11-18T02:37:03Z
+
+# Ket qua: 31 PASS, 0 FAIL tren image b09832fc74f7ed39fbb63d1957489ae84b4aec55 (campus-portal:b09832f).
+# Con lai (#55): docker push ghcr.io/<owner>/campus-portal:b09832f, chuyen package Public, docker logout + pull @sha256 an danh,
+# ghi campus_portal_image_digest trong docs/versions.lock. Chua lam ky/SBOM/quet (FR-INF-23).
