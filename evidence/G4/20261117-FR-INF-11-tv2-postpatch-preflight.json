@@ -1,0 +1,236 @@
+{
+  "scope": "ADR12 arithmetic characterization with evaluation only and manual scaling; not automatic scaling acceptance",
+  "data_gate_passed": false,
+  "fr_inf_11": "partial",
+  "preflight": {
+    "checked_utc": "2026-11-17T13:46:10.018295+00:00",
+    "alarms": [
+      {
+        "alarm_id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "enabled": false,
+        "repeat_actions": false,
+        "state": "ok",
+        "type": "gnocchi_aggregation_by_resources_threshold",
+        "alarm_actions": [],
+        "ok_actions": [],
+        "insufficient_data_actions": [],
+        "rule": {
+          "metric": "cpu",
+          "resource_type": "instance",
+          "aggregation_method": "rate:mean",
+          "granularity": 60,
+          "evaluation_periods": 2,
+          "threshold": 36000000000.0,
+          "comparison_operator": "gt",
+          "query": "{\"and\": [{\"or\": [{\"=\": {\"created_by_project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}, {\"and\": [{\"=\": {\"created_by_project_id\": \"e234d2d350f54794956c325128db0739\"}}, {\"=\": {\"project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}]}]}, {\"and\": [{\"=\": {\"server_group\": \"campuslink-app\"}}, {\"=\": {\"project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}, {\"=\": {\"ended_at\": null}}, {\"=\": {\"deleted_at\": null}}]}]}"
+        }
+      },
+      {
+        "alarm_id": "90f9060e-af83-4bba-834c-52753144421c",
+        "enabled": false,
+        "repeat_actions": false,
+        "state": "alarm",
+        "type": "gnocchi_aggregation_by_resources_threshold",
+        "alarm_actions": [],
+        "ok_actions": [],
+        "insufficient_data_actions": [],
+        "rule": {
+          "metric": "cpu",
+          "resource_type": "instance",
+          "aggregation_method": "rate:mean",
+          "granularity": 60,
+          "evaluation_periods": 3,
+          "threshold": 15000000000.0,
+          "comparison_operator": "lt",
+          "query": "{\"and\": [{\"or\": [{\"=\": {\"created_by_project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}, {\"and\": [{\"=\": {\"created_by_project_id\": \"e234d2d350f54794956c325128db0739\"}}, {\"=\": {\"project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}]}]}, {\"and\": [{\"=\": {\"server_group\": \"campuslink-app\"}}, {\"=\": {\"project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}, {\"=\": {\"ended_at\": null}}, {\"=\": {\"deleted_at\": null}}]}]}"
+        }
+      }
+    ],
+    "aodh": {
+      "head": "e07aeb6d118b4b9099947028e6e809a6bdd8fe22",
+      "changed_paths": [
+        "aodh/evaluator/gnocchi.py"
+      ],
+      "diff_sha256": "ceedf99f22ce1b3edb31d4ae879851d71bcf2086eb37d5e5e242ca1fd1ff6ade",
+      "evaluator_file_sha256": "8bc8a1153ce36c4732236834e173bb86cdf52d0fbc43170ce47eb331ad1dbb38"
+    },
+    "servers": [
+      {
+        "ID": "6ed60f3b-aa27-4679-b762-ca7e88264785",
+        "Name": "ca-tcyx-6rqfc52yqxvk-mdhc76ui5e7u-server-oe2zug5ubkmb",
+        "Status": "ACTIVE",
+        "Networks": {
+          "campus-net": [
+            "10.20.0.102"
+          ]
+        }
+      },
+      {
+        "ID": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "Name": "campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26",
+        "Status": "ACTIVE",
+        "Networks": {
+          "campus-net": [
+            "10.20.0.195"
+          ]
+        }
+      },
+      {
+        "ID": "6d17a9e8-4975-4c46-afd6-be1017e2a251",
+        "Name": "campus-db",
+        "Status": "ACTIVE",
+        "Networks": {
+          "campus-net": [
+            "10.20.0.10"
+          ]
+        }
+      }
+    ],
+    "members": [
+      {
+        "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+        "name": "",
+        "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+        "provisioning_status": "ACTIVE",
+        "address": "10.20.0.195",
+        "protocol_port": 8080,
+        "operating_status": "ONLINE",
+        "weight": 1
+      },
+      {
+        "id": "1d1b931f-9702-4d05-852c-2f8edc479b81",
+        "name": "",
+        "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+        "provisioning_status": "ACTIVE",
+        "address": "10.20.0.102",
+        "protocol_port": 8080,
+        "operating_status": "ONLINE",
+        "weight": 1
+      }
+    ]
+  },
+  "source_verification": {
+    "patch_sha256": "9afebdfcd1e9ceeab495c4353e393034d64500becce3b66cb6a20a41ddc96d20",
+    "expected_file_sha256": "8bc8a1153ce36c4732236834e173bb86cdf52d0fbc43170ce47eb331ad1dbb38",
+    "running_file_matches": true,
+    "preview_no_replacement": true
+  },
+  "preview": {
+    "updated": [
+      "cpu_high",
+      "cpu_low"
+    ],
+    "added": [],
+    "deleted": [],
+    "replaced": []
+  },
+  "alarm_stack_updated_time_utc": "2026-11-17T13:48:03Z",
+  "post_enable_check": {
+    "checked_utc": "2026-11-17T13:48:25.489451+00:00",
+    "alarms": [
+      {
+        "alarm_id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "enabled": true,
+        "repeat_actions": false,
+        "state": "ok",
+        "type": "gnocchi_aggregation_by_resources_threshold",
+        "alarm_actions": [],
+        "ok_actions": [],
+        "insufficient_data_actions": [],
+        "rule": {
+          "metric": "cpu",
+          "resource_type": "instance",
+          "aggregation_method": "rate:mean",
+          "granularity": 60,
+          "evaluation_periods": 2,
+          "threshold": 36000000000.0,
+          "comparison_operator": "gt",
+          "query": "{\"and\": [{\"or\": [{\"=\": {\"created_by_project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}, {\"and\": [{\"=\": {\"created_by_project_id\": \"e234d2d350f54794956c325128db0739\"}}, {\"=\": {\"project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}]}]}, {\"and\": [{\"=\": {\"server_group\": \"campuslink-app\"}}, {\"=\": {\"project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}, {\"=\": {\"ended_at\": null}}, {\"=\": {\"deleted_at\": null}}]}]}"
+        }
+      },
+      {
+        "alarm_id": "90f9060e-af83-4bba-834c-52753144421c",
+        "enabled": true,
+        "repeat_actions": false,
+        "state": "alarm",
+        "type": "gnocchi_aggregation_by_resources_threshold",
+        "alarm_actions": [],
+        "ok_actions": [],
+        "insufficient_data_actions": [],
+        "rule": {
+          "metric": "cpu",
+          "resource_type": "instance",
+          "aggregation_method": "rate:mean",
+          "granularity": 60,
+          "evaluation_periods": 3,
+          "threshold": 15000000000.0,
+          "comparison_operator": "lt",
+          "query": "{\"and\": [{\"or\": [{\"=\": {\"created_by_project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}, {\"and\": [{\"=\": {\"created_by_project_id\": \"e234d2d350f54794956c325128db0739\"}}, {\"=\": {\"project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}]}]}, {\"and\": [{\"=\": {\"server_group\": \"campuslink-app\"}}, {\"=\": {\"project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}, {\"=\": {\"ended_at\": null}}, {\"=\": {\"deleted_at\": null}}]}]}"
+        }
+      }
+    ],
+    "aodh": {
+      "head": "e07aeb6d118b4b9099947028e6e809a6bdd8fe22",
+      "changed_paths": [
+        "aodh/evaluator/gnocchi.py"
+      ],
+      "diff_sha256": "ceedf99f22ce1b3edb31d4ae879851d71bcf2086eb37d5e5e242ca1fd1ff6ade",
+      "evaluator_file_sha256": "8bc8a1153ce36c4732236834e173bb86cdf52d0fbc43170ce47eb331ad1dbb38"
+    },
+    "servers": [
+      {
+        "ID": "6ed60f3b-aa27-4679-b762-ca7e88264785",
+        "Name": "ca-tcyx-6rqfc52yqxvk-mdhc76ui5e7u-server-oe2zug5ubkmb",
+        "Status": "ACTIVE",
+        "Networks": {
+          "campus-net": [
+            "10.20.0.102"
+          ]
+        }
+      },
+      {
+        "ID": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "Name": "campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26",
+        "Status": "ACTIVE",
+        "Networks": {
+          "campus-net": [
+            "10.20.0.195"
+          ]
+        }
+      },
+      {
+        "ID": "6d17a9e8-4975-4c46-afd6-be1017e2a251",
+        "Name": "campus-db",
+        "Status": "ACTIVE",
+        "Networks": {
+          "campus-net": [
+            "10.20.0.10"
+          ]
+        }
+      }
+    ],
+    "members": [
+      {
+        "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+        "name": "",
+        "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+        "provisioning_status": "ACTIVE",
+        "address": "10.20.0.195",
+        "protocol_port": 8080,
+        "operating_status": "ONLINE",
+        "weight": 1
+      },
+      {
+        "id": "1d1b931f-9702-4d05-852c-2f8edc479b81",
+        "name": "",
+        "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+        "provisioning_status": "ACTIVE",
+        "address": "10.20.0.102",
+        "protocol_port": 8080,
+        "operating_status": "ONLINE",
+        "weight": 1
+      }
+    ]
+  },
+  "operator_note": "CLI --wait output included non-JSON text; parsed response failed, state verified independently without repeating update; no action enabled."
+}

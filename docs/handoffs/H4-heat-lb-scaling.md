@@ -1,12 +1,12 @@
 # H4 — Heat core, LB, metric/alarm và scale thủ công
 
-TV2 → TV1, TV3, TV4. Yêu cầu FR-INF-07/08/09/10/22, NFR-05/08/15 và O-06. Kiểm trên cụm ngày 13 và 14/11/2026; hậu kiểm tài nguyên cuối **14/11 08:32:38 UTC**, `campus-check`08:37:30 UTC. Giá trị thật trong [inventory](../inventory.yaml), image pin trong [versions.lock](../versions.lock).
+TV2 → TV1, TV3, TV4. Yêu cầu FR-INF-07/08/09/10/11/22, NFR-05/08/15 và O-06. Kiểm trên cụm ngày 13–16/11/2026; hậu kiểm tài nguyên cuối **16/11 15:28:41 UTC**, HTTPS sau cleanup 15:30:09–17 UTC. `campus-check` trả 1 vì còn phiên/việc khác trên A. Giá trị thật trong [inventory](../inventory.yaml), image pin trong [versions.lock](../versions.lock).
 
 ## Trạng thái bàn giao
 
-Core Shlink giữ một app cố định AZ-A và một app ASG-B tại AZ-B, min 1/max 2. Hai app dùng image G4 đã kiểm, không FIP; pool có hai member ACTIVE/ONLINE. Sau lượt scale tay ngày14/11, B mới `10.20.0.150` được giữ lại; B cũ `10.20.0.111` đã xóa. Ba backend trước scale-in đã được đối chiếu60RequestID redirect: A21/Bcũ15/Bmới24. Hậu kiểm hai app còn lại: health200/pass và12redirect302/Location đúng; batch hậu kiểm này không được nhận là phép đối chiếu log riêng mới.
+Core Shlink giữ một app cố định AZ-A và một app ASG-B tại AZ-B, min1/max2. Sau lượt baseline có tải TV1 ngày 16/11, B mới `10.20.0.102` được giữ lại; B `10.20.0.185` đã xóa. Hai app/member ONLINE; image/VIP giữ nguyên. Đã ghép một request302 từ CSVTV1 với log app mới. Lượt này scale tay2→3→2, không phải autoscaling tự động. Evidence và các phép đối chiếu backend ngày14/11 thuộc các UUID lịch sử ở mục tương ứng bên dưới.
 
-**HTTPS:** health từng503 ở lượt13/11; kiểm lại14/11 08:27:30Z trả200/pass và redirect08:32:55Z trả302 đúng đích, chứng thư được verify đầy đủ. TV2 chỉ kiểm, không sửa Nginx hoặc dịch vụ nền trên A. Portal/worker/listener8081 thuộc H4b, chưa có trong core. Metric và high/low alarm đã kiểm trong stack riêng; action rỗng nên chưa chứng minh autoscaling tự động theo tải.
+**HTTPS:** hậu kiểm16/11 sau cleanup đạt8/8 (health200/pass và redirect302đúngđích), chứng thư được verify đầy đủ. Health từng503 ở lượt13/11; kiểm lại14/11 08:27:30Z trả200/pass và redirect08:32:55Z trả302 đúng đích, chứng thư được verify đầy đủ. TV2 chỉ kiểm, không sửa Nginx hoặc dịch vụ nền trên A. Portal/worker/listener8081 thuộc H4b, chưa có trong core. Metric và high/low alarm đã kiểm trong stack riêng; action rỗng nên chưa chứng minh autoscaling tự động theo tải.
 
 ## Deployment đang giữ
 
@@ -16,7 +16,7 @@ Core Shlink giữ một app cố định AZ-A và một app ASG-B tại AZ-B, mi
 | Image app | `campus-app-tv2-g4-20261111`, `2c43a06d-1db8-4c01-bd31-98803325d932` |
 | Flavor | `campus.app`: 1 vCPU/2048 MiB/root10 GiB |
 | App A | `523d67b4-9234-4b09-b3dc-c814e6b868fc`, `10.20.0.195`, `campus-az-a` |
-| App B hiện tại | `157e3878-4555-4e11-8186-f60b825792e3`, `10.20.0.150`, `campus-az-b` |
+| App B hiện tại | `6ed60f3b-aa27-4679-b762-ca7e88264785`, `10.20.0.102`, `campus-az-b` |
 | ASG-B | `479438e0-37fe-47d3-a0a3-fcaf53e756b1`, min 1/max 2, current1 |
 | LB | `deb301de-fb2a-430b-8bc7-2954a3afe14a`, provider `ovn` |
 | VIP port / địa chỉ | `9b107b20-4d06-4716-808b-a57f12a64c45` / `10.20.0.128` |
@@ -25,7 +25,7 @@ Core Shlink giữ một app cố định AZ-A và một app ASG-B tại AZ-B, mi
 | Pool | `e7014f7e-6883-4198-861e-bf23b0247f9f`, TCP/SOURCE_IP_PORT |
 | Monitor | `558c8bab-9cbf-4730-94be-4d705c8d51d4`, TCP, delay5/timeout3/retries3 |
 | Member A | `7f3cb4ba-bd65-4f59-b37b-caeccde23d00`, `10.20.0.195:8080` |
-| Member B | `0f4a7056-af4d-4dc3-8d6e-bc4274582b78`, `10.20.0.150:8080` |
+| Member B | `1d1b931f-9702-4d05-852c-2f8edc479b81`, `10.20.0.102:8080` |
 
 FIP trên là mạng ảo OpenStack, không phải IP public AWS và laptop không route trực tiếp tới. Ingress dự kiến: Internet → EIP A → Nginx443 → `http://172.24.4.117:8080`. Giữ Host/forwarded headers theo H1 và [mẫu Nginx](../../infra/nginx/campus.conf.example); TLS vẫn kết thúc tại Nginx.
 
@@ -134,3 +134,107 @@ SSH hai app cũ dùng ED25519 được TV1 xác minh từ disk hypervisor tại 
 Chưa chứng minh FR-INF-11 tự động2→3→2: **ALARM và lượt scale tay là hai phép thử tách biệt**. Không lấy RPS/p95 từ generator trên A làm benchmark HTTPS của nhóm. Chưa fault pipeline/mất metric: bucket đang ghi từng có aggregate âm, phải loại khỏi CPU hợp lệ; `needed_overlap=0` của evaluator upstream chưa được nhận an toàn trong mọi tình huống thiếu dữ liệu. H4b/worker và ngân sách kết nối DB dưới workload đầy đủ còn thuộc phần kiểm riêng.
 
 Evidence14/11: [bản ngắn](../../evidence/G4/20261114-FR-INF-10-tv2-metric-alarm.txt), [metric/history/preview/final checks](../../evidence/G4/20261114-FR-INF-10-tv2-metric-alarm.json), [redirect carryover](../../evidence/G4/20261114-FR-INF-09-tv2-redirect-carryover.json).
+
+## GĐ7 — kiểm chỉ đọc ngày 15/11/2026
+
+Hai app/DB, image, VIP và pool giữ các UUID ở trên; hai member ONLINE, cả AZ available. Collector/analyzer kiểm sáu bucket đầy đủ05:37–05:42 UTC: PASS, CPU nhóm khoảng0,62–0,71%. Đây là dữ liệu nền, không phải workload nghiệm thu autoscaling.
+
+Đã kiểm source/plugin cho ứng viên native signal qua `trust+http`/`trust+https`; chưa tạo trust, lấy target thật, POST action hoặc update stack. `trust+heat` là autohealing, không dùng thay ScalingPolicy signal. Source evaluator còn nhận bucket chưa kết thúc/âm khi xử lý dữ liệu giả trong characterization, nên chưa đủ căn cứ bật action; TV1 xác minh/chốt qua [#47](https://github.com/luongkien25/campuslink/issues/47). Không suy phép kiểm mã thành việc daemon đã false alarm hoặc scale sai.
+
+Hậu kiểm05:44:55 UTC: cả hai alarm disabled/actions0; campus-check05:44:56 UTC: RC0/OK. Không tạo lab/jump/FIP/SG/env thật, không thay core/DB/volume/EC2; SSH đã đóng. FR-INF-11 runtime còn chờ gate trên và workload/lịch TV4 [#44](https://github.com/luongkien25/campuslink/issues/44).
+
+Nguồn: [evidence ngắn](../../evidence/G4/20261115-FR-INF-11-tv2-notifier-preflight.txt) và [JSON đã lọc](../../evidence/G4/20261115-FR-INF-11-tv2-notifier-preflight.json). HTTPS mới nhất TV2 đã kiểm vẫn là lượt14/11 ở trên; không nhận snapshot chỉ đọc15/11 là phép đo HTTPS mới.
+
+## Khôi phục app A trước lượt chẩn đoán — 15/11/2026
+
+Trước khi gửi signal, kiểm baseline phát hiện app A ACTIVE nhưng member ERROR, Shlink/readiness failed và không còn container; Redis PONG, Docker daemon active. Journal boot hiện tại ghi app đã ready06:18:11Z, sau đó service bị dừng/khởi động lại06:27:39–42Z. State bootstrap có deadline khoảng06:21:04Z, `active_state()` trả lỗi `deadline`. Chưa xác định người thực hiện lượt restart đó.
+
+Sau khi được duyệt, TV2 restart chuỗi `campuslink-secrets` → `campuslink-guard` → `campuslink-shlink` → `campuslink-ready` trong guest A, dùng quy trình fetch sẵn có để tạo generation/deadline mới. Hoàn tất07:29:47.907645Z; HTTP200/pass, RedisPONG, container running/restarts0; boot ID không đổi. Heat signal service vẫn inactive, không gửi lại callback cũ. Hai member ONLINE lúc07:30:25Z.
+
+Jump/FIP và hai SG SSH riêng dùng cho chẩn đoán đã dọn07:31:23Z, port A trở về SG gốc. Không đổi code/config, reboot VM/EC2 hoặc sửa SG chung. Đây là khôi phục có kiểm chứng, không phải bằng chứng autoscaling; xem [evidence đã lọc](../../evidence/G4/20261115-FR-INF-09-tv2-app-a-recovery.json).
+
+## Chẩn đoán scale thủ công với probe CPU — 15/11/2026
+
+Lượt này dùng signal Heat thủ công để thu dữ liệu cohort 2→3→2; không phải nghiệm thu autoscaling. Hai alarm giữ disabled, repeat_actions=false và toàn bộ action list rỗng; không thay cấu hình alarm.
+
+| Mốc | UTC ngày 15/11/2026 | Nguồn |
+| --- | --- | --- |
+| Bắt đầu scale-out | 07:35:59.355796 | Trước lệnh signal; CLI rc0 |
+| 3 VM ACTIVE và 3 member ONLINE | 07:38:22.507728 | Lần đầu quan sát qua API |
+| Bắt đầu scale-in | 07:45:22.781320 | Trước lệnh signal; CLI rc0 |
+| Trở lại 2 app/2 member ONLINE | 07:47:03.262613 | Lần đầu quan sát qua API |
+
+Giữ 3 app 420.273592s, khoảng 7 phút. Mốc ONLINE là lần đầu quan sát, không phải thời điểm chuyển trạng thái chính xác của dịch vụ. A giữ UUID; Heat xóa B157e… và giữ Bc6d…/10.20.0.185. Metric CPU/vcpus của B mới và fingerprint ED25519 đã cập nhật inventory; fingerprint lấy từ Nova first-boot console, chưa kiểm SSH tới B mới.
+
+Tải redirect Shlink thật từ A qua VIP HTTP, ApacheBench keep-alive/concurrency 32: 664.204 s, 23173 request hoàn tất, failed 0, non-2xx 23173, 34.89 RPS. Smoke trước/sau trả 302 đúng Location; số non-2xx không xác nhận mọi response đều 302. Bucket đóng 07:38–07:41 có CPU trung bình nhóm khoảng 40.3–40.9%, tính từ từng VM 1 vCPU. Đây là dữ liệu đối chiếu probe, không xác minh công thức evaluator Aodh với bucket chưa đủ/VM mới, không thay benchmark HTTPS/p95 của TV4.
+
+Tải dừng 07:47:03Z; jump/FIP/hai SG SSH tạm đã dọn, mỗi port app chỉ còn app SG, DB/volume/port nền giữ nguyên. Hậu kiểm 07:50Z còn DB + 2 app, 1 volume 10 GiB, 1 VIP FIP và 2 top-level stack. `campus-check` 07:52:43Z trả 1 vì còn hai phiên SSH ubuntu, nên phải phối hợp người đang dùng trước khi Stop EC2; không diễn giải thành lỗi health app.
+
+Evidence: [bản ngắn](../../evidence/G4/20261115-FR-INF-11-tv2-manual-probe.txt), [API/timeline/CPU/cleanup](../../evidence/G4/20261115-FR-INF-11-tv2-manual-probe.json). GĐ7 vẫn còn gate evaluator ở issue #47 và workload/phối hợp issue #44, sau đó mới kiểm notifier/action và chuỗi tự động.
+
+## Hậu kiểm chỉ đọc và cấp key H5 — 16/11/2026
+
+Snapshot Aodh 05:42:08Z xác nhận high state `ok` (>36e9ns/2 kỳ) và low state `alarm` (<15e9ns/3 kỳ), granularity60s, aggregation `rate:mean`; cả hai `enabled=false`, `repeat_actions=false`, ba danh sách actions rỗng. Không thay cấu hình alarm hoặc áp ADR-12. Xem [snapshot đã lọc](../../evidence/G4/20261116-FR-INF-11-tv2-alarm-config-readonly.json).
+
+Theo yêu cầu53, tạo key admin Shlink tên `tv3-admin`, không author-only, chuyển thẳng qua pipeSSH tới `campus-secrets/ops/shlink_api_key_tv3-admin` lúc05:49:34Z. PUT201/HEAD200, độ dài37byte; API xác thực qua VIP nội bộ trả200. Không in giá trị key, không đưa vào argv hoặc evidence. Bản key tạm trong guest đã xóa. TV3 còn cần nhận vào file0600, kiểm qua HTTPS và xóa object trung chuyển theo tiêu chí H5; chưa nhận là HTTPS PASS hoặc đóng issue53.
+
+Hậu kiểm05:56:51Z: jump/FIP/haiSGSSH riêng đã dọn, SG app giữ nguyên; DB+2app ACTIVE, hai member ONLINE, health200/pass và hai alarm vẫn disabled/actionsrỗng. `campus-check`rc0: có thể StopB→A sau khi phối hợp nhóm. Không thao tác EC2. [Evidence cấp key/cleanup](../../evidence/G4/20261116-FR-INF-16-tv2-tv3-key-handoff.json).
+
+## Điều kiện sau Start và khi chỉ bật A — yêu cầu #56
+
+Khi chỉ EC2 A chạy, không coi Nova app B `ACTIVE` hoặc member B `ONLINE` là bằng chứng backend B đang phục vụ. TV3 ghi nhận timeout xen kẽ khi B tắt trong lượt16/11; nguyên nhân chính xác của trạng thái health monitor chưa được xác minh. Không tái hiện tắt B trong phiên benchmark.
+
+Quy trình mặc định trước khi dùng VIP hoặc đo NFR-03/04: bật A trước, chờ checks đạt, bật B và hoàn tất after-start; kiểm hai guest/member và gửi request thật qua HTTPS bằng kết nối mới, verify TLS. Health phải200/pass, redirect phải302 đúng Location, không timeout. Nếu chỉ bật A, không nhận hệ thống đã sẵn sàng cho benchmark hai AZ; ưu tiên bật B, không tự sửa pool/monitor hoặc tạm disable memberB trong phiên đo. Một phương án vận hành chỉ A cần được duyệt riêng và có bước khôi phục member trước benchmark.
+
+Lượt kiểm16/11 lúc13:42:05–13:42:22Z với A/B đã bật:24requestHTTPS kết nối mới đạt (12health200/pass,12redirect302 tới fixturetv4fix1 đúng đích), không timeout. Đây là kiểm chức năng giới hạn, chưa có tương quan log từng backend và không thay benchmark/p95. [Evidence baseline](../../evidence/G4/20261116-FR-INF-11-tv2-evening-baseline.json). Việc kiểm riêng từng backend và timeline phiên tối đang tiếp tục; chưa gọi issue56 hoặc phiên đo hoàn tất.
+
+## Baseline Aodh chưa vá dưới tải TV1 — tối 16/11/2026
+
+TV1 phát tải từ Windows, mục tiêu30 RPS, warm-up120 s; steady bắt đầu **14:53:04Z**, yêu cầu1200 s. RUN_START14:50:59.5796622Z, RUN_END15:13:05.0281007Z do TV1 cung cấp. Probe TV1 đã xác nhận thu nền hơn9phút trước lượt. TV2 chỉ gửi request chức năng trước/sau steady; không chạy thêm workload đồng thời. Aodh giữ đúng SHA `e07aeb6d118b4b9099947028e6e809a6bdd8fe22`, cây làm việc sạch.
+
+| Mốc | UTC ngày 16/11 | Nguồn |
+| --- | --- | --- |
+| Bắt đầu scale-out | 14:56:17.725232 | Trước signal thủ công, CLI rc0 |
+| App mới ACTIVE | 14:57:01.314729 | Lần đầu quan sát Nova |
+| Request302 khớp app mới | 14:57:02.561767 | Timestamp client TV1, ghép Request ID |
+| Ba app/member ONLINE | 14:57:06.538306 | Lần đầu quan sát API |
+| Bắt đầu scale-in | 15:04:06.809375 | Trước signal thủ công, CLI rc0 |
+| Hai app/member ONLINE hậu kiểm | 15:07:52.252237 | Lần đầu hậu kiểm sau scale-in, không phải thời điểm engine chính xác |
+
+Giữ 3 app khoảng 7 phút (420.271069s tính từ marker UTC). Request ID `3b405014-611f-448e-8342-06662e3bd3a2` trong CSV TV1 có302/Location `https://example.org/campuslink-fixture-3`, khớp log guest mới `6ed60f3b…`/`.102`, GET `/tv4fix3`/302 lúc 14:57:03.159917198Z. Request thực có thể tới trước lần poll thấy đủ 3 ONLINE; không sửa timestamp để ép thứ tự. Đây là request đầu khớp trong cửa sổ log đã kiểm, không suy thành thời điểm đầu tiên tuyệt đối của mọi traffic.
+
+Low chuyển `ok` 14:55:23.019524Z và về `alarm` 15:16:23.010644Z sau dừng tải; high không có transitionALARM trong lượt. Actions luôn rỗng, repeat_actions=false. CPU bucket 14:54 trước scale-out là A 48.5333% / B 47.0833% (mỗi VM 1 vCPU); không đổi ngưỡng. Collector TV2 có 97 snapshot thành công / 98 attempt, một KeyError giữa các mẫu lúc VM mới tham gia; chưa xác minh nguyên nhân, không nhận 0 lỗi hoặc dùng collector làm guard của evaluator.
+
+TV1 báo 36000 request, 28764 redirect 302, p50=847.38ms, p95=1080.74ms,47 lỗi 5xx/timeout (0.13056%). P95 **chưa đạt 500 ms**; ratio theo báo cáo dưới 1% không có nghĩa toàn bộ nghiệm thu hiệu năng đạt. Chỉ nhận một dòng CSV và summary do TV1 cung cấp, chưa nhận full CSV hoặc tính lại quantile. Không thu được log B`.185` trước khi Heat xóa, nên không nhận phép mapping đầy đủ 3 backend cho lượt30 RPS. Phép xác minh hai backend `.195`/`.185` trước tải đã có 32 request ghép log 15/17 trong evidence.
+
+Evaluation bật 13:42:05Z, tắt 15:25:03Z; actions_enabled giữfalse trong mọi lần update. Cleanup 15:26:04Z xóa đúng jump/FIP/port/hai SG SSH, port app trở về app SG. Hậu kiểm 15:28:41Z giữ A`.195`+B`.102`, DB VM/volume 10 GiB và VIP gốc; health 200/pass, hai member ONLINE, cả hai alarm disabled/actions 0. HTTPS sau cleanup 8/8 đạt, verifyTLS. `campus-check` rc1 vì còn phiên/việc khác: phối hợp TV1 trước Stop B→A, không coi đây là lỗi health.
+
+Key `tv1-load` được cấp riêng, không author-only, chuyển kín qua object `campus-secrets/ops/shlink_api_key_tv1-load`; HEAD 37 byte và GET visits của năm fixture trả 200. Bản key tạm trong guest đã xóa; không đưa giá trị vào tài liệu/evidence. Object trung chuyển dành cho TV1 nhận/xóa, chưa tự xóa hoặc revoke key.
+
+Nguồn: [bản ngắn](../../evidence/G4/20261116-FR-INF-11-tv2-evening-baseline.txt), [API/CPU/history/client-row/guest-log/cleanup](../../evidence/G4/20261116-FR-INF-11-tv2-evening-baseline.json). Đây là baseline và scale tay đã hoàn tất; không nghiệm thu tự scale hoặc đóng gate dữ liệu #47, không áp ADR-12 lên cụm.
+
+## Kiểm phép tính sau vá ADR-12 và scale tay — 17/11/2026
+
+Lượt kiểm có kiểm soát theo [ADR-12 trong PR #51](https://github.com/luongkien25/campuslink/pull/51) và [nhật ký #61](https://github.com/luongkien25/campuslink/issues/61). Source Aodh giữ SHA `e07aeb6d118b4b9099947028e6e809a6bdd8fe22`, chỉ khác `aodh/evaluator/gnocchi.py`; nội dung khớp source gốc cộng đúng patch SHA256 `9afebdfcd1e9ceeab495c4353e393034d64500becce3b66cb6a20a41ddc96d20`. Bản vá đổi sang lấy rate từng metric rồi tính trung bình; chưa bổ sung cơ chế tự từ chối dữ liệu sai.
+
+Stack alarm riêng `UPDATE_COMPLETE` với `updated_time=13:48:03Z`; hậu kiểm13:48:25.489451Z xác nhận hai alarm enabled, ba danh sách actions rỗng và repeat_actions=false. Chỉ cập nhật hai alarm hiện có, không thay root core hoặc replace VM/LB. FR-INF-11 giữ trạng thái **đạt một phần**: lượt này dùng signal thủ công, gate dữ liệu #47 chưa đạt và không bật actions.
+
+| Mốc | UTC ngày17/11 | Nguồn |
+| --- | --- | --- |
+| Low chuyển OK | 14:27:10.959201 | Aodh history |
+| Bắt đầu signal-out2→3 | 14:28:00.867902 | Trước CLI, rc0 lúc14:28:03.049310 |
+| Ba app ACTIVE/ba member ONLINE | 14:29:27.626751 | Lần đầu quan sát đầy đủ; VIP health200/pass |
+| Bắt đầu signal-in3→2 | 14:36:51.419738 | Trước CLI, rc0 lúc14:36:53.519159 |
+| Hai app ACTIVE/hai member ONLINE | 14:37:30.276865 | Hậu kiểm, health200/pass |
+
+Ngay trước out, low/high đều OK; bucket đóng14:26 có CPU A44,5%/B48,3167%, trung bình46,4083%. Giữ ba app443,792987s (~7phút24s). VM mới `a43d4b4b-6fd5-4244-833b-94c59e856a70` ở AZ-B, IP`.196`; Heat giữ VM này sau in và xóa B`6ed60f3b…`/`.102`. A`.195` giữ UUID. Metric IDs B mới đọc từ Gnocchi; fingerprint SSH lấy riêng từ Nova first-boot console. Các giá trị đã cập nhật inventory; chưa SSH guest mới trong lượt này. Không tạo jump/FIP/SG tạm, không restart app/DB/evaluator hoặc thay cấu hình dùng chung trong thao tác TV2.
+
+Các snapshot đối chiếu truy vấn sau vá với hiệu counter từng VM: trước out19bucket, khi đủ counter ba VM1bucket, sau in8bucket, đều không lệch trong từng snapshot. Các cửa sổ có thể trùng nhau; không cộng thành tổng số bucket độc lập hoặc coi đây là cơ chế bảo vệ evaluator. History sau in đến14:40:07Z chỉ ghi low vềOK, không ghi low→ALARM trong cửa sổ thêm VM của lượt này. Đây là kết quả quan sát có giới hạn, không chứng minh an toàn cho thiếu metric/reset/cũ/bucket đang ghi hoặc mọi thay đổi cohort.
+
+Nguồn tải duy nhất là TV1 qua HTTPS, cùng profile80/15/5. LượtA có RUN_START14:22:09.5635659Z, warm-up10RPS bắt đầu14:22:10Z/120s, mục tiêu steady30RPS/1200s; RUN_END14:44:12.4118855Z. LượtB lần1 nhắm60RPS nhưng hủy lúc14:50:26.4Z do máy phát mặc định32luồng chỉ đạt khoảng32RPS theo báo cáo nguồn tải; không nhận là đã hoàn tất phép thử60RPS. LượtB lần2 dùng160luồng, RUN_START14:51:19.4319679Z, dừng cưỡng bức15:00:24.3251797Z. Nguồn tải báo17.880/25.200request, khoảng33RPS, p95 redirect ghi nguyên văn `9.267 ms` và31lỗi599; chưa quy đổi cách ghi p95, tính lại từ CSV hoặc quy lỗi599 cho backend. Hai lượtB đều không chứng minh đã hoàn tất tải60RPS theo kế hoạch.
+
+Collector có lỗi SSH/timeout và thiếu snapshot khi VM mới chưa đủ metric. Lần đầu collector dừng do timeout sau mẫu14:22:50Z; snapshot phép tính riêng lấy lại14:25:41Z và collector tiếp tục từ14:27:07Z. Không điền dữ liệu thiếu thành CPU0 hoặc nhận quan sát liên tục không có lỗi. Chưa tính lại achieved RPS/phân vị/tỉ lệ lỗi từ full CSV phía client trong phần bàn giao này.
+
+History trước khi tắt evaluation, thu15:05:00Z, ghi low vềALARM lúc15:04:10.971003Z sau dừng tải; không ghi high→ALARM trong lượt. Sáu bucket đóng14:52–14:57 của B2 có CPU trung bình nhóm khoảng39,18–51,19%, chưa vượt60%; phép kiểm high chưa đạt đầu vào tải cần thiết (O-10), không kết luận evaluator sai chỉ vì high giữOK. Cửa sổ này không thay thế nghiệm thu tải/hiệu năng từ full CSV.
+
+Đã trả hai alarm disabled và kiểm actions rỗng/repeat_actions=false lúc15:05:13.384996Z. Hậu kiểm15:05:35.024500Z: DB+hai app ACTIVE, hai member ONLINE, health200/pass qua VIP và HTTPS verifyTLS; port app chỉ giữ SG gốc, một VIP FIP và DB volume10GiB giữ nguyên. File evaluator vẫn đúng checksum sau vá. `campus-check` rc1 báo bốn mục đang dùng; không Stop EC2 hoặc coi kết quả này là quyền tắt máy. [Evidence phiên](../../evidence/G4/20261117-FR-INF-11-tv2-postpatch-run.json) và [snapshot đã lọc](../../evidence/G4/20261117-FR-INF-11-tv2-postpatch-observations.jsonl) chứa output; số mẫu lỗi/thiếu được ghi riêng. Không dùng kết quả scale tay hoặc snapshot khớp công thức để bật action khi gate dữ liệu chưa đạt.

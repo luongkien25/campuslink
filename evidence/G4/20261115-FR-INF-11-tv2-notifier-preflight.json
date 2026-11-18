@@ -1,0 +1,1019 @@
+{
+  "schema_version": 1,
+  "scope": "GĐ7 read-only preflight; NOT autoscaling acceptance",
+  "day": "2026-11-15",
+  "cloud_mutations": [],
+  "git": {
+    "branch": "tv2/autoscaling",
+    "head": "d155dc73cac1af4e47615c7923d3c07f6359d01d",
+    "main_read": "416a680374bfecb07e019425902f65fb4118d970",
+    "main_checkout_not_merged": true
+  },
+  "ssh": {
+    "user": "tv2",
+    "host": "campus-a",
+    "host_ed25519": "SHA256:gW49fIVoerNVuAjMh+jjss2w49V0mAVJwCo4BHxT2hM",
+    "first_verified_utc": "2026-11-15T05:28:33Z",
+    "host_boot_utc": "2026-11-15T05:23:07",
+    "connection_closed": true,
+    "b_start_utc": null,
+    "aws_stop_utc": null
+  },
+  "preflight": {
+    "checked_utc": "2026-11-15T05:30:55.086211+00:00",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "servers": [
+      {
+        "id": "157e3878-4555-4e11-8186-f60b825792e3",
+        "name": "ca-tcyx-lh4sg3e3qym6-3nd2invjpv7l-server-ac2wd5yo4ffx",
+        "status": "ACTIVE",
+        "az": "campus-az-b",
+        "image_id": "2c43a06d-1db8-4c01-bd31-98803325d932",
+        "metadata": {
+          "campus_role": "app",
+          "metering.server_group": "campuslink-app"
+        },
+        "addresses": {
+          "campus-net": [
+            {
+              "version": 4,
+              "addr": "10.20.0.150",
+              "OS-EXT-IPS:type": "fixed",
+              "OS-EXT-IPS-MAC:mac_addr": "fa:16:3e:3c:ba:a9"
+            }
+          ]
+        }
+      },
+      {
+        "id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "name": "campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26",
+        "status": "ACTIVE",
+        "az": "campus-az-a",
+        "image_id": "2c43a06d-1db8-4c01-bd31-98803325d932",
+        "metadata": {
+          "campus_role": "app",
+          "metering.server_group": "campuslink-app"
+        },
+        "addresses": {
+          "campus-net": [
+            {
+              "version": 4,
+              "addr": "10.20.0.195",
+              "OS-EXT-IPS:type": "fixed",
+              "OS-EXT-IPS-MAC:mac_addr": "fa:16:3e:ab:8b:b3"
+            }
+          ]
+        }
+      },
+      {
+        "id": "6d17a9e8-4975-4c46-afd6-be1017e2a251",
+        "name": "campus-db",
+        "status": "ACTIVE",
+        "az": "campus-az-a",
+        "image_id": "b915f809-b352-4d03-a14a-ec9c294e85d8",
+        "metadata": {},
+        "addresses": {
+          "campus-net": [
+            {
+              "version": 4,
+              "addr": "10.20.0.10",
+              "OS-EXT-IPS:type": "fixed",
+              "OS-EXT-IPS-MAC:mac_addr": "fa:16:3e:7e:4c:96"
+            }
+          ]
+        }
+      }
+    ],
+    "stacks": [
+      {
+        "id": "f5b0c4cf-558b-46b2-a4e2-c28d835fc275",
+        "name": "campus-app-cpu-alarms",
+        "status": "UPDATE_COMPLETE"
+      },
+      {
+        "id": "816bd58d-ca22-47b8-abe5-9729719d894e",
+        "name": "campus-app",
+        "status": "CREATE_COMPLETE"
+      }
+    ],
+    "pools": [
+      {
+        "id": "e7014f7e-6883-4198-861e-bf23b0247f9f",
+        "lb": null,
+        "protocol": "TCP",
+        "method": "SOURCE_IP_PORT"
+      }
+    ],
+    "members": {
+      "e7014f7e-6883-4198-861e-bf23b0247f9f": [
+        {
+          "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+          "address": "10.20.0.195",
+          "port": 8080,
+          "status": "ONLINE",
+          "enabled": true
+        },
+        {
+          "id": "0f4a7056-af4d-4dc3-8d6e-bc4274582b78",
+          "address": "10.20.0.150",
+          "port": 8080,
+          "status": "ONLINE",
+          "enabled": true
+        }
+      ]
+    },
+    "fips": [
+      {
+        "id": "4de69ad4-b09e-4221-803f-f927715769fc",
+        "ip": "172.24.4.117",
+        "fixed_ip": "10.20.0.128",
+        "port_id": "9b107b20-4d06-4716-808b-a57f12a64c45"
+      }
+    ],
+    "volumes": [
+      {
+        "id": "f43fbbd2-b85f-4bb1-b403-ba54a2f84189",
+        "name": "campus-db-data",
+        "status": "in-use",
+        "size": 10
+      }
+    ],
+    "azs": [
+      {
+        "name": "campus-az-a",
+        "available": true
+      },
+      {
+        "name": "campus-az-b",
+        "available": true
+      }
+    ],
+    "flavors": [
+      {
+        "id": "a9083cf8-24ab-4a7a-8b5c-6ba44ed1b6de",
+        "name": "campus.app",
+        "vcpus": 1,
+        "ram": 2048,
+        "disk": 10
+      }
+    ]
+  },
+  "alarm_and_metric_api": {
+    "checked_utc": "2026-11-15T05:39:45.789579+00:00",
+    "alarming_endpoint": "http://10.11.0.10/alarming",
+    "alarms": [
+      {
+        "alarm_id": "90f9060e-af83-4bba-834c-52753144421c",
+        "name": "campus-app-cpu-alarms-cpu_low-b2jftvqpeutt",
+        "type": "gnocchi_aggregation_by_resources_threshold",
+        "state": "alarm",
+        "enabled": false,
+        "repeat_actions": false,
+        "action_counts": {
+          "alarm_actions": 0,
+          "ok_actions": 0,
+          "insufficient_data_actions": 0
+        },
+        "rule": {
+          "metric": "cpu",
+          "resource_type": "instance",
+          "aggregation_method": "rate:mean",
+          "granularity": 60,
+          "evaluation_periods": 3,
+          "threshold": 15000000000.0,
+          "comparison_operator": "lt",
+          "query": "{\"and\": [{\"or\": [{\"=\": {\"created_by_project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}, {\"and\": [{\"=\": {\"created_by_project_id\": \"e234d2d350f54794956c325128db0739\"}}, {\"=\": {\"project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}]}]}, {\"and\": [{\"=\": {\"server_group\": \"campuslink-app\"}}, {\"=\": {\"project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}, {\"=\": {\"ended_at\": null}}, {\"=\": {\"deleted_at\": null}}]}]}"
+        }
+      },
+      {
+        "alarm_id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "name": "campus-app-cpu-alarms-cpu_high-pkzh3rpjme4t",
+        "type": "gnocchi_aggregation_by_resources_threshold",
+        "state": "ok",
+        "enabled": false,
+        "repeat_actions": false,
+        "action_counts": {
+          "alarm_actions": 0,
+          "ok_actions": 0,
+          "insufficient_data_actions": 0
+        },
+        "rule": {
+          "metric": "cpu",
+          "resource_type": "instance",
+          "aggregation_method": "rate:mean",
+          "granularity": 60,
+          "evaluation_periods": 2,
+          "threshold": 36000000000.0,
+          "comparison_operator": "gt",
+          "query": "{\"and\": [{\"or\": [{\"=\": {\"created_by_project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}, {\"and\": [{\"=\": {\"created_by_project_id\": \"e234d2d350f54794956c325128db0739\"}}, {\"=\": {\"project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}]}]}, {\"and\": [{\"=\": {\"server_group\": \"campuslink-app\"}}, {\"=\": {\"project_id\": \"07af3a3dd4c24d1ba028efcb6d28ef84\"}}, {\"=\": {\"ended_at\": null}}, {\"=\": {\"deleted_at\": null}}]}]}"
+        }
+      }
+    ],
+    "gnocchi_cohort": [
+      {
+        "id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "metrics": {
+          "cpu": "123ecdaf-efc2-4815-931e-cd846de6e910",
+          "vcpus": "05418399-d872-4659-a41a-e1b71d91c229"
+        },
+        "ended_at": null,
+        "deleted_at": null
+      },
+      {
+        "id": "157e3878-4555-4e11-8186-f60b825792e3",
+        "metrics": {
+          "cpu": "bd3a4524-7121-42ea-aba3-344525fcdd25",
+          "vcpus": "d4340a4e-0fe2-46f8-9368-ba3d6845b03a"
+        },
+        "ended_at": null,
+        "deleted_at": null
+      }
+    ],
+    "series": {
+      "523d67b4-9234-4b09-b3dc-c814e6b868fc": {
+        "mean": [
+          [
+            "2026-11-15 05:29:00+00:00",
+            60.0,
+            18250000000.0
+          ],
+          [
+            "2026-11-15 05:30:00+00:00",
+            60.0,
+            18720000000.0
+          ],
+          [
+            "2026-11-15 05:31:00+00:00",
+            60.0,
+            19080000000.0
+          ],
+          [
+            "2026-11-15 05:32:00+00:00",
+            60.0,
+            19470000000.0
+          ],
+          [
+            "2026-11-15 05:33:00+00:00",
+            60.0,
+            24340000000.0
+          ],
+          [
+            "2026-11-15 05:34:00+00:00",
+            60.0,
+            24700000000.0
+          ],
+          [
+            "2026-11-15 05:35:00+00:00",
+            60.0,
+            25070000000.0
+          ],
+          [
+            "2026-11-15 05:36:00+00:00",
+            60.0,
+            25450000000.0
+          ],
+          [
+            "2026-11-15 05:37:00+00:00",
+            60.0,
+            25810000000.0
+          ],
+          [
+            "2026-11-15 05:38:00+00:00",
+            60.0,
+            26220000000.0
+          ],
+          [
+            "2026-11-15 05:39:00+00:00",
+            60.0,
+            26610000000.0
+          ]
+        ],
+        "rate:mean": [
+          [
+            "2026-11-15 05:29:00+00:00",
+            60.0,
+            360000000.0
+          ],
+          [
+            "2026-11-15 05:30:00+00:00",
+            60.0,
+            470000000.0
+          ],
+          [
+            "2026-11-15 05:31:00+00:00",
+            60.0,
+            360000000.0
+          ],
+          [
+            "2026-11-15 05:32:00+00:00",
+            60.0,
+            390000000.0
+          ],
+          [
+            "2026-11-15 05:33:00+00:00",
+            60.0,
+            4870000000.0
+          ],
+          [
+            "2026-11-15 05:34:00+00:00",
+            60.0,
+            360000000.0
+          ],
+          [
+            "2026-11-15 05:35:00+00:00",
+            60.0,
+            370000000.0
+          ],
+          [
+            "2026-11-15 05:36:00+00:00",
+            60.0,
+            380000000.0
+          ],
+          [
+            "2026-11-15 05:37:00+00:00",
+            60.0,
+            360000000.0
+          ],
+          [
+            "2026-11-15 05:38:00+00:00",
+            60.0,
+            410000000.0
+          ],
+          [
+            "2026-11-15 05:39:00+00:00",
+            60.0,
+            390000000.0
+          ]
+        ]
+      },
+      "157e3878-4555-4e11-8186-f60b825792e3": {
+        "mean": [
+          [
+            "2026-11-15 05:29:00+00:00",
+            60.0,
+            18490000000.0
+          ],
+          [
+            "2026-11-15 05:30:00+00:00",
+            60.0,
+            19000000000.0
+          ],
+          [
+            "2026-11-15 05:31:00+00:00",
+            60.0,
+            19380000000.0
+          ],
+          [
+            "2026-11-15 05:32:00+00:00",
+            60.0,
+            19770000000.0
+          ],
+          [
+            "2026-11-15 05:33:00+00:00",
+            60.0,
+            24660000000.0
+          ],
+          [
+            "2026-11-15 05:34:00+00:00",
+            60.0,
+            25060000000.0
+          ],
+          [
+            "2026-11-15 05:35:00+00:00",
+            60.0,
+            25450000000.0
+          ],
+          [
+            "2026-11-15 05:36:00+00:00",
+            60.0,
+            25840000000.0
+          ],
+          [
+            "2026-11-15 05:37:00+00:00",
+            60.0,
+            26220000000.0
+          ],
+          [
+            "2026-11-15 05:38:00+00:00",
+            60.0,
+            26600000000.0
+          ],
+          [
+            "2026-11-15 05:39:00+00:00",
+            60.0,
+            27030000000.0
+          ]
+        ],
+        "rate:mean": [
+          [
+            "2026-11-15 05:29:00+00:00",
+            60.0,
+            410000000.0
+          ],
+          [
+            "2026-11-15 05:30:00+00:00",
+            60.0,
+            510000000.0
+          ],
+          [
+            "2026-11-15 05:31:00+00:00",
+            60.0,
+            380000000.0
+          ],
+          [
+            "2026-11-15 05:32:00+00:00",
+            60.0,
+            390000000.0
+          ],
+          [
+            "2026-11-15 05:33:00+00:00",
+            60.0,
+            4890000000.0
+          ],
+          [
+            "2026-11-15 05:34:00+00:00",
+            60.0,
+            400000000.0
+          ],
+          [
+            "2026-11-15 05:35:00+00:00",
+            60.0,
+            390000000.0
+          ],
+          [
+            "2026-11-15 05:36:00+00:00",
+            60.0,
+            390000000.0
+          ],
+          [
+            "2026-11-15 05:37:00+00:00",
+            60.0,
+            380000000.0
+          ],
+          [
+            "2026-11-15 05:38:00+00:00",
+            60.0,
+            380000000.0
+          ],
+          [
+            "2026-11-15 05:39:00+00:00",
+            60.0,
+            430000000.0
+          ]
+        ]
+      }
+    },
+    "aggregate": {
+      "measures": {
+        "aggregated": [
+          [
+            "2026-11-15 05:30:00+00:00",
+            60.0,
+            490000000.0
+          ],
+          [
+            "2026-11-15 05:31:00+00:00",
+            60.0,
+            370000000.0
+          ],
+          [
+            "2026-11-15 05:32:00+00:00",
+            60.0,
+            390000000.0
+          ],
+          [
+            "2026-11-15 05:33:00+00:00",
+            60.0,
+            4880000000.0
+          ],
+          [
+            "2026-11-15 05:34:00+00:00",
+            60.0,
+            380000000.0
+          ],
+          [
+            "2026-11-15 05:35:00+00:00",
+            60.0,
+            380000000.0
+          ],
+          [
+            "2026-11-15 05:36:00+00:00",
+            60.0,
+            385000000.0
+          ],
+          [
+            "2026-11-15 05:37:00+00:00",
+            60.0,
+            370000000.0
+          ],
+          [
+            "2026-11-15 05:38:00+00:00",
+            60.0,
+            395000000.0
+          ],
+          [
+            "2026-11-15 05:39:00+00:00",
+            60.0,
+            410000000.0
+          ]
+        ]
+      }
+    }
+  },
+  "complete_bucket_validation": {
+    "checked_utc": "2026-11-15T05:43:26.930169+00:00",
+    "snapshot": {
+      "schema_version": 1,
+      "collected_at_utc": "2026-11-15T05:43:26.930169+00:00",
+      "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+      "query": {
+        "and": [
+          {
+            "=": {
+              "server_group": "campuslink-app"
+            }
+          },
+          {
+            "=": {
+              "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84"
+            }
+          },
+          {
+            "=": {
+              "ended_at": null
+            }
+          },
+          {
+            "=": {
+              "deleted_at": null
+            }
+          }
+        ]
+      },
+      "resources": [
+        {
+          "uuid": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+          "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+          "vcpus": 1,
+          "vcpus_metric_id": "05418399-d872-4659-a41a-e1b71d91c229",
+          "group": "campuslink-app",
+          "ended_at": null,
+          "deleted_at": null,
+          "metric_id": "123ecdaf-efc2-4815-931e-cd846de6e910",
+          "unit": "ns",
+          "archive_policy": {
+            "name": "ceilometer-high-rate",
+            "aggregation_methods": [
+              "rate:mean",
+              "mean"
+            ],
+            "definition": [
+              {
+                "granularity": 1.0,
+                "points": 3600,
+                "timespan": 3600.0
+              },
+              {
+                "granularity": 60.0,
+                "points": 1440,
+                "timespan": 86400.0
+              },
+              {
+                "granularity": 3600.0,
+                "points": 8760,
+                "timespan": 31536000.0
+              }
+            ]
+          },
+          "rows": [
+            {
+              "timestamp": "2026-11-15T05:33:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 24340000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:34:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 24700000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:35:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 25070000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:36:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 25450000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:37:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 25810000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:38:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 26220000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:39:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 26610000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:40:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 27070000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:41:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 27440000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:42:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 27830000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:33:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 4870000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:34:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 360000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:35:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 370000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:36:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 380000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:37:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 360000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:38:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 410000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:39:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 390000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:40:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 460000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:41:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 370000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:42:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 390000000.0,
+              "aggregation": "rate:mean"
+            }
+          ]
+        },
+        {
+          "uuid": "157e3878-4555-4e11-8186-f60b825792e3",
+          "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+          "vcpus": 1,
+          "vcpus_metric_id": "d4340a4e-0fe2-46f8-9368-ba3d6845b03a",
+          "group": "campuslink-app",
+          "ended_at": null,
+          "deleted_at": null,
+          "metric_id": "bd3a4524-7121-42ea-aba3-344525fcdd25",
+          "unit": "ns",
+          "archive_policy": {
+            "name": "ceilometer-high-rate",
+            "aggregation_methods": [
+              "rate:mean",
+              "mean"
+            ],
+            "definition": [
+              {
+                "granularity": 1.0,
+                "points": 3600,
+                "timespan": 3600.0
+              },
+              {
+                "granularity": 60.0,
+                "points": 1440,
+                "timespan": 86400.0
+              },
+              {
+                "granularity": 3600.0,
+                "points": 8760,
+                "timespan": 31536000.0
+              }
+            ]
+          },
+          "rows": [
+            {
+              "timestamp": "2026-11-15T05:33:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 24660000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:34:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 25060000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:35:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 25450000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:36:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 25840000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:37:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 26220000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:38:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 26600000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:39:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 27030000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:40:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 27420000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:41:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 27800000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:42:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 28190000000.0,
+              "aggregation": "mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:33:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 4890000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:34:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 400000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:35:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 390000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:36:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 390000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:37:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 380000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:38:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 380000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:39:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 430000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:40:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 390000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:41:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 380000000.0,
+              "aggregation": "rate:mean"
+            },
+            {
+              "timestamp": "2026-11-15T05:42:00+00:00",
+              "granularity_seconds": 60.0,
+              "value": 390000000.0,
+              "aggregation": "rate:mean"
+            }
+          ]
+        }
+      ]
+    },
+    "analysis": {
+      "passed": true,
+      "errors": [],
+      "instances": {
+        "523d67b4-9234-4b09-b3dc-c814e6b868fc": {
+          "cpu_percent": [
+            0.6,
+            0.683333,
+            0.65,
+            0.766667,
+            0.616667,
+            0.65
+          ]
+        },
+        "157e3878-4555-4e11-8186-f60b825792e3": {
+          "cpu_percent": [
+            0.633333,
+            0.633333,
+            0.716667,
+            0.65,
+            0.633333,
+            0.65
+          ]
+        }
+      },
+      "group_cpu_percent": [
+        0.616667,
+        0.658333,
+        0.683333,
+        0.708333,
+        0.625,
+        0.65
+      ],
+      "high_state": "ok",
+      "low_state": "alarm",
+      "bucket_timestamps": [
+        "2026-11-15T05:37:00+00:00",
+        "2026-11-15T05:38:00+00:00",
+        "2026-11-15T05:39:00+00:00",
+        "2026-11-15T05:40:00+00:00",
+        "2026-11-15T05:41:00+00:00",
+        "2026-11-15T05:42:00+00:00"
+      ]
+    }
+  },
+  "source_commits": {
+    "aodh": "e07aeb6d118b4b9099947028e6e809a6bdd8fe22",
+    "heat": "0314e484098416cd21e1be80521c3f955f3d27c0",
+    "gnocchi": "4a41c1d05052bcabf19fbe2e5bfb5a036a321d32"
+  },
+  "installed_code_characterization": {
+    "checked_utc": "2026-11-15T05:43:27.355576+00:00",
+    "kind": "installed-code characterization; synthetic datapoints, no alarm mutation",
+    "current_bucket": {
+      "window_end": "2026-11-15T05:43:27.355591+00:00",
+      "bucket_start": "2026-11-15T05:43:00+00:00",
+      "current_bucket_included": true,
+      "accepted_count": 3,
+      "state_from_installed_comparator": "alarm"
+    },
+    "negative_bucket": {
+      "accepted_count": 3,
+      "state_from_installed_comparator": "alarm"
+    }
+  },
+  "characterization_program": "from datetime import datetime,timedelta,timezone\nimport json\nfrom aodh.evaluator.gnocchi import GnocchiAggregationResourcesThresholdEvaluator as Evaluator\nr={'checked_utc':datetime.now(timezone.utc).isoformat(),'kind':'installed-code characterization; synthetic datapoints, no alarm mutation'}\nnow=datetime.now(timezone.utc);current=now.replace(second=0,microsecond=0)\nrule={'granularity':60,'evaluation_periods':3,'threshold':15000000000,'comparison_operator':'lt'}\nrows=[((current-timedelta(minutes=2)).isoformat(),60,400000000),\n      ((current-timedelta(minutes=1)).isoformat(),60,400000000),\n      (current.isoformat(),60,450000000)]\nsanitized=Evaluator._sanitize(rule,{'measures':{'aggregated':rows}})\neval_instance=object.__new__(Evaluator)\nr['current_bucket']={'window_end':now.isoformat(),'bucket_start':current.isoformat(),\n 'current_bucket_included':rows[-1][2] in sanitized,'accepted_count':len(sanitized),\n 'state_from_installed_comparator':eval_instance._process_statistics(rule,sanitized)[0]}\nnegative=[(row[0],row[1],-400000000) for row in rows]\nvalues=Evaluator._sanitize(rule,{'measures':{'aggregated':negative}})\nr['negative_bucket']={'accepted_count':len(values),'state_from_installed_comparator':eval_instance._process_statistics(rule,values)[0]}\nprint(json.dumps(r))\n",
+  "source_excerpts": {
+    "detail": "FILE /opt/stack/aodh/aodh/notifier/heat.py\n1: # Copyright 2019 Catalyst Cloud Ltd.\n2: #\n3: #    Licensed under the Apache License, Version 2.0 (the \"License\");\n4: #    you may not use this file except in compliance with the License.\n5: #    You may obtain a copy of the License at\n6: #\n7: #        http://www.apache.org/licenses/LICENSE-2.0\n8: #\n9: #    Unless required by applicable law or agreed to in writing, software\n10: #    distributed under the License is distributed on an \"AS IS\" BASIS,\n11: #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n12: #    See the License for the specific language governing permissions and\n13: #    limitations under the License.\n14: \n15: from oslo_log import log\n16: \n17: from aodh import keystone_client as aodh_keystone\n18: from aodh import notifier\n19: \n20: LOG = log.getLogger(__name__)\n21: \n22: \n23: class TrustHeatAlarmNotifier(notifier.AlarmNotifier):\n24:     \"\"\"Heat autohealing notifier.\n25: \n26:     The auto-healing notifier works together with loadbalancer_member_health\n27:     evaluator.\n28: \n29:     Presumably, the end user defines a Heat template which contains an\n30:     autoscaling group and all the members in the group are joined in an Octavia\n31:     load balancer in order to expose service to the outside, so that when the\n32:     stack scales up or scales down, Heat makes sure the new members are joining\n33:     the load balancer automatically and the old members are removed.\n34: \n35:     However, this notifier deals with the situation that when some member\n36:     fails, the stack could be recovered by marking the given autoscaling group\n37:     member unhealthy, then update Heat stack in place. In order to do that, the\n38:     notifier needs to know:\n39: \n40:     - Heat top/root stack ID.\n41:     - Heat autoscaling group ID.\n42:     - The failed Octavia pool members.\n43:     \"\"\"\n44: \n45:     def __init__(self, conf):\n46:         super().__init__(conf)\n47:         self.conf = conf\n48: \n49:     def notify(self, action, alarm_id, alarm_name, severity, previous, current,\n50:                reason, reason_data):\n51:         LOG.info(\n52:             \"Notifying alarm %(alarm_name)s %(alarm_id)s of %(severity)s \"\n53:             \"priority from %(previous)s to %(current)s with action %(action)s\"\n54:             \" because %(reason)s.\",\n55:             {'alarm_name': alarm_name,\n56:              'alarm_id': alarm_id,\n57:              'severity': severity,\n58:              'previous': previous,\n59:              'current': current,\n60:              'action': action.geturl(),\n61:              'reason': reason}\n62:         )\n63: \n64:         trust_id = action.username\n65:         stack_id = reason_data.get(\"stack_id\")\n66:         asg_id = reason_data.get(\"asg_id\")\n67:         unhealthy_members = reason_data.get(\"unhealthy_members\", [])\n68:         unhealthy_resources = []\n69: \n70:         if not stack_id or not asg_id:\n71:             LOG.error(\n72:                 \"stack_id and asg_id must exist to notify alarm %s\", alarm_id\n73:             )\n74:             return\n75: \n76:         heat_client = aodh_keystone.get_heat_client_from_trust(\n77:             self.conf, trust_id\n78:         )\n79: \n80:         for member in unhealthy_members:\n81:             target_resources = heat_client.resources.list(\n82:                 stack_id, nested_depth=3,\n83:                 filters={\"physical_resource_id\": member[\"id\"]}\n84:             )\n85:             if len(target_resources) > 0:\n86:                 # There should be only one item.\n87:                 unhealthy_resources.append(\n88:                     target_resources[0].parent_resource\n89:                 )\n90: \n91:         if not unhealthy_resources:\n92:             LOG.warning(\"No unhealthy resource found for the alarm %s\",\n93:                         alarm_id)\n94:             return\n95: \n96:         try:\n97:             for res in unhealthy_resources:\n98:                 heat_client.resources.mark_unhealthy(\n99:                     asg_id,\n100:                     res,\n101:                     True,\n102:                     \"unhealthy load balancer member\"\n103:                 )\n104:                 LOG.info(\n105:                     \"Heat resource %(resource_id)s is marked as unhealthy \"\n106:                     \"for alarm %(alarm_id)s\",\n107:                     {\"resource_id\": res, \"alarm_id\": alarm_id}\n108:                 )\n109: \n110:             heat_client.stacks.update(stack_id, existing=True)\n111:             LOG.info(\n112:                 \"Heat stack %(stack_id)s is updated for alarm \"\n113:                 \"%(alarm_id)s\",\n114:                 {\"stack_id\": stack_id, \"alarm_id\": alarm_id}\n115:             )\n116:         except Exception as e:\n117:             LOG.exception(\"Failed to communicate with Heat service for alarm \"\n118:                           \"%s, error: %s\",\n119:                           alarm_id, str(e))\nFILE /opt/stack/aodh/aodh/notifier/trust.py\n1: #\n2: # Copyright 2014 eNovance\n3: #\n4: # Licensed under the Apache License, Version 2.0 (the \"License\"); you may\n5: # not use this file except in compliance with the License. You may obtain\n6: # a copy of the License at\n7: #\n8: #      http://www.apache.org/licenses/LICENSE-2.0\n9: #\n10: # Unless required by applicable law or agreed to in writing, software\n11: # distributed under the License is distributed on an \"AS IS\" BASIS, WITHOUT\n12: # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the\n13: # License for the specific language governing permissions and limitations\n14: # under the License.\n15: \"\"\"Rest alarm notifier with trusted authentication.\"\"\"\n16: \n17: from urllib import parse\n18: \n19: from aodh import keystone_client\n20: from aodh.notifier import rest\n21: \n22: \n23: class TrustAlarmNotifierMixin:\n24:     \"\"\"Mixin class to add Keystone trust support to an AlarmNotifier.\n25: \n26:     Provides a notify() method that interprets the trust ID and then calls\n27:     the parent class's notify(), passing the necessary authentication data in\n28:     the headers.\n29:     \"\"\"\n30: \n31:     def notify(self, action, alarm_id, alarm_name, severity, previous, current,\n32:                reason, reason_data):\n33:         trust_id = action.username\n34: \n35:         client = keystone_client.get_trusted_client(self.conf, trust_id)\n36: \n37:         # Remove the fake user\n38:         netloc = action.netloc.split(\"@\")[1]\n39:         # Remove the trust prefix\n40:         scheme = action.scheme[6:]\n41: \n42:         action = parse.SplitResult(scheme, netloc, action.path, action.query,\n43:                                    action.fragment)\n44: \n45:         headers = {'X-Auth-Token': keystone_client.get_auth_token(client)}\n46:         super().notify(\n47:             action, alarm_id, alarm_name, severity, previous, current, reason,\n48:             reason_data, headers)\n49: \n50: \n51: class TrustRestAlarmNotifier(TrustAlarmNotifierMixin, rest.RestAlarmNotifier):\n52:     \"\"\"Notifier supporting keystone trust authentication.\n53: \n54:     This alarm notifier is intended to be used to call an endpoint using\n55:     keystone authentication. It uses the aodh service user to\n56:     authenticate using the trust ID provided.\n57: \n58:     The URL must be in the form ``trust+http://host/action``.\n59:     \"\"\"\nFILE /opt/stack/aodh/aodh/notifier/rest.py\n1: #\n2: # Copyright 2013-2014 eNovance\n3: #\n4: # Licensed under the Apache License, Version 2.0 (the \"License\"); you may\n5: # not use this file except in compliance with the License. You may obtain\n6: # a copy of the License at\n7: #\n8: #      http://www.apache.org/licenses/LICENSE-2.0\n9: #\n10: # Unless required by applicable law or agreed to in writing, software\n11: # distributed under the License is distributed on an \"AS IS\" BASIS, WITHOUT\n12: # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the\n13: # License for the specific language governing permissions and limitations\n14: # under the License.\n15: \"\"\"Rest alarm notifier.\"\"\"\n16: import json\n17: \n18: from oslo_config import cfg\n19: from oslo_log import log\n20: from oslo_utils import uuidutils\n21: import requests\n22: import urllib.parse as urlparse\n23: \n24: from aodh import notifier\n25: \n26: LOG = log.getLogger(__name__)\n27: \n28: OPTS = [\n29:     cfg.StrOpt('rest_notifier_certificate_file',\n30:                default='',\n31:                help='SSL Client certificate file for REST notifier.'\n32:                ),\n33:     cfg.StrOpt('rest_notifier_certificate_key',\n34:                default='',\n35:                help='SSL Client private key file for REST notifier.'\n36:                ),\n37:     cfg.StrOpt('rest_notifier_ca_bundle_certificate_path',\n38:                help='SSL CA_BUNDLE certificate for REST notifier',\n39:                ),\n40:     cfg.BoolOpt('rest_notifier_ssl_verify',\n41:                 default=True,\n42:                 help='Whether to verify the SSL Server certificate when '\n43:                 'calling alarm action.'\n44:                 ),\n45:     cfg.IntOpt('rest_notifier_max_retries',\n46:                default=0,\n47:                help='Number of retries for REST notifier',\n48:                ),\n49: \n50: ]\n51: \n52: \n53: class RestAlarmNotifier(notifier.AlarmNotifier):\n54:     \"\"\"Rest alarm notifier.\"\"\"\n55: \n56:     def __init__(self, conf):\n57:         super().__init__(conf)\n58:         self.conf = conf\n59: \n60:     def notify(self, action, alarm_id, alarm_name, severity, previous,\n61:                current, reason, reason_data, headers=None):\n62:         headers = headers or {}\n63:         if 'x-openstack-request-id' not in headers:\n64:             headers['x-openstack-request-id'] = b'req-' + \\\n65:                 uuidutils.generate_uuid().encode('ascii')\n66: \n67:         LOG.info(\n68:             \"Notifying alarm %(alarm_name)s %(alarm_id)s with severity\"\n69:             \" %(severity)s from %(previous)s to %(current)s with action \"\n70:             \"%(action)s because %(reason)s. request-id: %(request_id)s\",\n71:             {'alarm_name': alarm_name, 'alarm_id': alarm_id,\n72:              'severity': severity, 'previous': previous,\n73:              'current': current, 'action': action, 'reason': reason,\n74:              'request_id': headers['x-openstack-request-id']})\n75:         body = {'alarm_name': alarm_name, 'alarm_id': alarm_id,\n76:                 'severity': severity, 'previous': previous,\n77:                 'current': current, 'reason': reason,\n78:                 'reason_data': reason_data}\n79:         headers['content-type'] = 'application/json'\n80:         kwargs = {'data': json.dumps(body),\n81:                   'headers': headers}\n82: \n83:         if action.scheme == 'https':\n84:             default_verify = int(self.conf.rest_notifier_ssl_verify)\n85:             options = urlparse.parse_qs(action.query)\n86:             verify = bool(int(options.get('aodh-alarm-ssl-verify',\n87:                                           [default_verify])[-1]))\n88:             if verify and self.conf.rest_notifier_ca_bundle_certificate_path:\n89:                 verify = self.conf.rest_notifier_ca_bundle_certificate_path\n90:             kwargs['verify'] = verify\n91: \n92:             cert = self.conf.rest_notifier_certificate_file\n93:             key = self.conf.rest_notifier_certificate_key\n94:             if cert:\n95:                 kwargs['cert'] = (cert, key) if key else cert\n96: \n97:         # FIXME(rhonjo): Retries are automatically done by urllib3 in requests\n98:         # library. However, there's no interval between retries in urllib3\n99:         # implementation. It will be better to put some interval between\n100:         # retries (future work).\n101:         max_retries = self.conf.rest_notifier_max_retries\n102:         session = requests.Session()\n103:         session.mount(action.geturl(),\n104:                       requests.adapters.HTTPAdapter(max_retries=max_retries))\n105:         resp = session.post(action.geturl(), **kwargs)\n106:         LOG.info('Notifying alarm <%(id)s> gets response: %(status_code)s '\n107:                  '%(reason)s.', {'id': alarm_id,\n108:                                  'status_code': resp.status_code,\n109:                                  'reason': resp.reason})\nFILE /opt/stack/aodh/aodh/evaluator/threshold.py\n80:     @classmethod\n81:     def _reason(cls, alarm, statistics, state, count):\n82:         \"\"\"Fabricate reason string.\"\"\"\n83:         if state == evaluator.OK:\n84:             disposition = 'inside'\n85:             count = len(statistics) - count\n86:         else:\n87:             disposition = 'outside'\n88:         last = statistics[-1] if statistics else None\n89:         transition = alarm.state != state\n90:         reason_data = cls._reason_data(disposition, count, last)\n91:         if transition:\n92:             return ('Transition to %(state)s due to %(count)d samples'\n93:                     ' %(disposition)s threshold, most recent:'\n94:                     ' %(most_recent)s' % dict(reason_data, state=state),\n95:                     reason_data)\n96:         return ('Remaining as %(state)s due to %(count)d samples'\n97:                 ' %(disposition)s threshold, most recent: %(most_recent)s'\n98:                 % dict(reason_data, state=state), reason_data)\n99: \n100:     def _process_statistics(self, alarm_rule, statistics):\n101: \n102:         def _compare(value):\n103:             op = COMPARATORS[alarm_rule['comparison_operator']]\n104:             limit = alarm_rule['threshold']\n105:             LOG.debug('comparing value %(value)s against threshold'\n106:                       ' %(limit)s', {'value': value, 'limit': limit})\n107:             return op(value, limit)\n108: \n109:         compared = list(map(_compare, statistics))\n110:         distilled = all(compared)\n111:         unequivocal = distilled or not any(compared)\n112:         number_outside = len([c for c in compared if c])\n113: \n114:         if unequivocal:\n115:             state = evaluator.ALARM if distilled else evaluator.OK\n116:             return state, None, statistics, number_outside, None\n117:         else:\n118:             trending_state = evaluator.ALARM if compared[-1] else evaluator.OK\n119:             return None, trending_state, statistics, number_outside, None\n120: \n121:     def evaluate_rule(self, alarm_rule):\n122:         \"\"\"Evaluate alarm rule.\n123: \n124:         :returns: state, trending state and statistics.\n125:         \"\"\"\n126:         start, end = self._bound_duration(alarm_rule)\n127:         statistics = self._statistics(alarm_rule, start, end)\n128:         statistics = self._sanitize(alarm_rule, statistics)\n129:         sufficient = len(statistics) >= alarm_rule['evaluation_periods']\n130:         if not sufficient:\n131:             raise InsufficientDataError(\n132:                 '%d datapoints are unknown' % alarm_rule['evaluation_periods'],\n133:                 statistics)\n134: \n135:         return self._process_statistics(alarm_rule, statistics)\n136: \n137:     def _unknown_reason_data(self, alarm, statistics):\n138:         LOG.warning(f'Expecting {alarm.rule[\"evaluation_periods\"]} datapoints'\n139:                     f' but only get {len(statistics)}')\n140:         # Reason is not same as log message because we want to keep\n141:         # consistent since thirdparty software may depend on old format.\n142:         last = None if not statistics else statistics[-1]\n143:         return self._reason_data('unknown', alarm.rule['evaluation_periods'],\n144:                                  last)\n145: \n146:     def _transition_alarm(self, alarm, state, trending_state, statistics,\n147:                           outside_count, unknown_reason):\n148:         unknown = alarm.state == evaluator.UNKNOWN\n149:         continuous = alarm.repeat_actions\n150: \n151:         if trending_state:\n152:             if unknown or continuous:\n153:                 state = trending_state if unknown else alarm.state\n154:                 reason, reason_data = self._reason(alarm, statistics, state,\n155:                                                    outside_count)\n156:                 self._refresh(alarm, state, reason, reason_data)\n157:                 return\n158: \n159:         if state == evaluator.UNKNOWN and not unknown:\n160:             reason_data = self._unknown_reason_data(alarm, statistics)\n161:             self._refresh(alarm, state, unknown_reason, reason_data)\n162: \n163:         elif state and (alarm.state != state or continuous):\n164:             reason, reason_data = self._reason(alarm, statistics, state,\n165:                                                outside_count)\n166:             self._refresh(alarm, state, reason, reason_data)\n167: \n168:     def evaluate(self, alarm):\n169:         if not self.within_time_constraint(alarm):\n170:             LOG.debug('Attempted to evaluate alarm %s, but it is not '\n171:                       'within its time constraint.', alarm.alarm_id)\n172:             return\n173: \n174:         try:\n175:             evaluation = self.evaluate_rule(alarm.rule)\n176:         except InsufficientDataError as e:\n177:             evaluation = (evaluator.UNKNOWN, None, e.statistics, 0,\n178:                           e.reason)\n179:         self._transition_alarm(alarm, *evaluation)\n180:         if evaluation[0] is not None:\n181:             self._increment_evaluation_result(alarm.alarm_id,\n182:                                               alarm.project_id,\n183:                                               evaluation[0].replace(\" \", \"_\"))\nFILE /opt/stack/heat/heat/engine/signal_responder.py\n",
+    "additional": "FILE /opt/stack/aodh/aodh/evaluator/threshold.py\n25: LOG = log.getLogger(__name__)\n26: \n27: COMPARATORS = {\n28:     'gt': operator.gt,\n29:     'lt': operator.lt,\n30:     'ge': operator.ge,\n31:     'le': operator.le,\n32:     'eq': operator.eq,\n33:     'ne': operator.ne,\n34: }\n35: \n36: OPTS = [\n37:     cfg.IntOpt('additional_ingestion_lag',\n38:                min=0,\n39:                max=3600 * 24,\n40:                default=0,\n41:                help='The number of seconds to extend the evaluation windows '\n42:                'to compensate the reporting/ingestion lag.')\n43: ]\n44: \n45: \n46: class InsufficientDataError(Exception):\n47:     def __init__(self, reason, statistics):\n48:         self.reason = reason\n49:         self.statistics = statistics\n50:         super().__init__(reason)\n51: \n52: \n53: class ThresholdEvaluator(evaluator.Evaluator):\n54: \n55:     # the sliding evaluation window is extended to allow\n56:     # the reporting/ingestion lag this can be increased\n57:     # with 'additional_ingestion_lag' seconds if needed.\n58:     look_back = 1\n59: \n60:     def _bound_duration(self, rule):\n61:         \"\"\"Bound the duration of the statistics query.\"\"\"\n62:         now = timeutils.utcnow()\n63:         # when exclusion of weak datapoints is enabled, we extend\n64:         # the look-back period so as to allow a clearer sample count\n65:         # trend to be established\n66:         window = ((rule.get('period', None) or rule['granularity'])\n67:                   * (rule['evaluation_periods'] + self.look_back) +\n68:                   self.conf.additional_ingestion_lag)\n69:         start = now - datetime.timedelta(seconds=window)\n70:         LOG.debug('query stats from %(start)s to '\n71:                   '%(now)s', {'start': start, 'now': now})\n72:         return start.isoformat(), now.isoformat()\n73: \n74:     @staticmethod\n75:     def _reason_data(disposition, count, most_recent):\n76:         \"\"\"Create a reason data dictionary for this evaluator type.\"\"\"\n77:         return {'type': 'threshold', 'disposition': disposition,\n78:                 'count': count, 'most_recent': most_recent}\n79: \n80:     @classmethod\nFILE /opt/stack/aodh/aodh/api/controllers/v2/alarms.py\n192: \n193: \n194: ALARMS_RULES = extension.ExtensionManager(\"aodh.alarm.rule\")\n195: LOG.debug(\"alarm rules plugin loaded: %s\", \",\".join(ALARMS_RULES.names()))\n196: \n197: ACTIONS_SCHEMA = extension.ExtensionManager(\n198:     notifier.AlarmNotifierService.NOTIFIER_EXTENSIONS_NAMESPACE).names()\n199: \n200: \n201: @profiler.trace_cls('api')\n202: class Alarm(base.Base):\n345: \n346:             action_set = set(actions)\n347:             if len(actions) != len(action_set):\n348:                 LOG.info('duplicate actions are found: %s, '\n349:                          'remove duplicate ones', actions)\n350:                 actions = list(action_set)\n351:                 setattr(alarm, actions_name, actions)\n352: \n353:             if 0 < max_actions < len(actions):\n354:                 error = _('%(name)s count exceeds maximum value '\n355:                           '%(maximum)d') % {\"name\": actions_name,\n365:                 except Exception:\n366:                     error = _(\"Unable to parse action %s\") % action\n367:                     raise base.ClientSideError(error)\n368:                 if url.scheme not in ACTIONS_SCHEMA:\n369:                     error = _(\"Unsupported action %s\") % action\n370:                     raise base.ClientSideError(error)\n371:                 if limited and url.scheme in ('log', 'test'):\n372:                     error = _('You are not authorized to create '\n373:                               'action: %s') % action\n374:                     raise base.ClientSideError(error, status_code=401)\n375: \n376:     @classmethod\n377:     def sample(cls):\n378:         return cls(alarm_id=None,\n408: \n409:     @staticmethod\n410:     def _is_trust_url(url):\n411:         return url.scheme.startswith('trust+')\n412: \n413:     @staticmethod\n414:     def _scrub_action_url(action):\n415:         \"\"\"Remove trust ID from a URL.\"\"\"\n416:         url = netutils.urlsplit(action)\n417:         if Alarm._is_trust_url(url):\n418:             netloc = url.netloc.rsplit('@', 1)[-1]\n419:             url = urlparse.SplitResult(url.scheme, netloc,\n420:                                        url.path, url.query,\n421:                                        url.fragment)\n422:         return url.geturl()\n423: \n424:     def _get_existing_trust_ids(self):\n425:         for action in itertools.chain(self.ok_actions or [],\n426:                                       self.alarm_actions or [],\n427:                                       self.insufficient_data_actions or []):\n428:             url = netutils.urlsplit(action)\n429:             if self._is_trust_url(url):\n430:                 trust_id = url.username\n431:                 if trust_id and url.password == 'delete':\n432:                     yield trust_id\n433: \n434:     def update_actions(self, old_alarm=None):\n435:         trustor_user_id = pecan.request.headers.get('X-User-Id')\n436:         trustor_project_id = pecan.request.headers.get('X-Project-Id')\n437:         roles = pecan.request.headers.get('X-Roles', '')\n438:         if roles:\n439:             roles = roles.split(',')\n442:         auth_plugin = pecan.request.environ.get('keystone.token_auth')\n443: \n444:         if old_alarm:\n445:             prev_trust_ids = set(old_alarm._get_existing_trust_ids())\n446:         else:\n447:             prev_trust_ids = set()\n448:         trust_id = prev_trust_ids.pop() if prev_trust_ids else None\n449:         trust_id_used = False\n450: \n451:         for actions in (self.ok_actions, self.alarm_actions,\n452:                         self.insufficient_data_actions):\n453:             if actions is not None:\n454:                 for index, action in enumerate(actions[:]):\n455:                     url = netutils.urlsplit(action)\n456:                     if self._is_trust_url(url):\n457:                         if '@' in url.netloc:\n458:                             errmsg = _(\"trust URL cannot contain a trust ID.\")\n459:                             raise base.ClientSideError(errmsg)\n460:                         if trust_id is None:\n461:                             # We have a trust action without a trust ID,\n462:                             # create it\n463:                             trust_id = keystone_client.create_trust_id(\n464:                                 pecan.request.cfg,\n465:                                 trustor_user_id, trustor_project_id, roles,\n466:                                 auth_plugin)\n467:                         if trust_id_used:\n468:                             pw = ''\n469:                         else:\n470:                             pw = ':delete'\n471:                             trust_id_used = True\n472:                         netloc = f'{trust_id}{pw}@{url.netloc}'\n473:                         url = urlparse.SplitResult(url.scheme, netloc,\n474:                                                    url.path, url.query,\n475:                                                    url.fragment)\n476:                         actions[index] = url.geturl()\n477:         if trust_id is not None and not trust_id_used:\n478:             prev_trust_ids.add(trust_id)\n479:         for old_trust_id in prev_trust_ids:\n480:             keystone_client.delete_trust_id(pecan.request.cfg, old_trust_id,\n481:                                             auth_plugin)\n482: \n483:     def delete_actions(self):\n484:         auth_plugin = pecan.request.environ.get('keystone.token_auth')\n485:         for trust_id in self._get_existing_trust_ids():\n486:             keystone_client.delete_trust_id(pecan.request.cfg, trust_id,\n487:                                             auth_plugin)\n488: \n489: \n490: Alarm.add_attributes(**{\"%s_rule\" % ext.name: ext.plugin\n491:                         for ext in ALARMS_RULES})\n492: \n493: \n680:         try:\n681:             alarm_in = models.Alarm(**updated_alarm)\n682:         except Exception:\n683:             LOG.exception(\"Error while putting alarm: %s\", updated_alarm)\n684:             raise base.ClientSideError(_(\"Alarm incorrect\"))\n685: \n686:         alarm = pecan.request.storage.update_alarm(alarm_in)\n687: \n688:         change = {k: v for k, v in updated_alarm.items()\n689:                   if v != old_alarm[k] and k not in\n690:                   ['timestamp', 'state_timestamp']}\n847:         try:\n848:             alarm_in = models.Alarm(**change)\n849:         except Exception:\n850:             LOG.exception(\"Error while posting alarm: %s\", change)\n851:             raise base.ClientSideError(_(\"Alarm incorrect\"))\n852: \n853:         alarm = conn.create_alarm(alarm_in)\n854:         self._record_creation(conn, change, alarm.alarm_id, now)\n855:         v2_utils.set_resp_location_hdr(\"/alarms/\" + alarm.alarm_id)\n856:         return Alarm.from_db_model_scrubbed(alarm)\n857: \n914:             filters['pagination'] = v2_utils.get_pagination_options(\n915:                 sort, limit, marker, models.Alarm)\n916: \n917:         LOG.debug('Getting alarms from database, filters: %s', filters)\n918: \n919:         return [Alarm.from_db_model_scrubbed(m)\n920:                 for m in pecan.request.storage.get_alarms(**filters)]\nFILE /opt/stack/aodh/aodh/notifier/__init__.py\n92: \n93:     def sample(self, notifications):\n94:         \"\"\"Endpoint for alarm notifications\"\"\"\n95:         LOG.debug('Received %s messages in batch.', len(notifications))\n96:         for notification in notifications:\n97:             self._process_alarm(self.notifiers, notification['payload'])\n98: \n99:     @staticmethod\n100:     def _handle_action(notifiers, action, alarm_id, alarm_name, severity,\n101:                        previous, current, reason, reason_data):\n102:         \"\"\"Process action on alarm\n115:         try:\n116:             action = netutils.urlsplit(action)\n117:         except Exception:\n118:             LOG.error(\n119:                 (\"Unable to parse action %(action)s for alarm \"\n120:                  \"%(alarm_id)s\"), {'action': action, 'alarm_id': alarm_id})\n121:             return\n122: \n123:         try:\n124:             notifier = notifiers[action.scheme].obj\n125:         except KeyError:\n126:             scheme = action.scheme\n127:             LOG.error(\n128:                 (\"Action %(scheme)s for alarm %(alarm_id)s is unknown, \"\n129:                  \"cannot notify\"),\n130:                 {'scheme': scheme, 'alarm_id': alarm_id})\n131:             return\n132: \n133:         try:\n134:             LOG.debug(\"Notifying alarm %(id)s with action %(act)s\",\n135:                       {'id': alarm_id, 'act': action})\n136:             notifier.notify(action, alarm_id, alarm_name, severity,\n137:                             previous, current, reason, reason_data)\n138:         except Exception:\n139:             LOG.exception(\"Unable to notify alarm %s\", alarm_id)\n140: \n141:     @staticmethod\n142:     def _process_alarm(notifiers, data):\n143:         \"\"\"Notify that alarm has been triggered.\n144: \n145:         :param notifiers: list of possible notifiers\n146:         :param data: (dict): alarm data\n148: \n149:         actions = data.get('actions')\n150:         if not actions:\n151:             LOG.error(\"Unable to notify for an alarm with no action\")\n152:             return\n153: \n154:         for action in actions:\n155:             AlarmEndpoint._handle_action(notifiers, action,\n156:                                          data.get('alarm_id'),\n157:                                          data.get('alarm_name'),\n158:                                          data.get('severity'),\nFILE /opt/stack/heat/heat/engine/resources/signal_responder.py\n119:     def _get_ec2_signed_url(self, signal_type=SIGNAL,\n120:                             never_expire=False):\n121:         \"\"\"Create properly formatted and pre-signed URL.\n122: \n123:         This uses the created user for the credentials.\n124: \n125:         See boto/auth.py::QuerySignatureV2AuthHandler\n126: \n127:         :param signal_type: either WAITCONDITION or SIGNAL.\n128:         \"\"\"\n129:         access_key = self.data().get('access_key')\n130:         secret_key = self.data().get('secret_key')\n131: \n132:         if not access_key or not secret_key:\n133:             if self.id is None:\n134:                 # it is too early\n135:                 return\n136:             if self._get_user_id() is None:\n137:                 self._create_user()\n138:             self._create_keypair()\n139:             access_key = self.data().get('access_key')\n140:             secret_key = self.data().get('secret_key')\n141: \n142:             if not access_key or not secret_key:\n143:                 LOG.warning('Cannot generate signed url, '\n144:                             'unable to create keypair')\n145:                 return\n146: \n147:         config_url = cfg.CONF.heat_waitcondition_server_url\n148:         if config_url:\n149:             signal_url = config_url.replace('/waitcondition', signal_type)\n150:         else:\n151:             heat_client_plugin = self.stack.clients.client_plugin('heat')\n152:             endpoint = heat_client_plugin.get_heat_cfn_url()\n153:             signal_url = ''.join([endpoint, signal_type])\n154: \n155:         host_url = parse.urlparse(signal_url)\n156: \n157:         path = self.identifier().arn_url_path()\n158: \n159:         # Note the WSGI spec apparently means that the webob request we end up\n160:         # processing in the CFN API (ec2token.py) has an unquoted path, so we\n188:     def _get_heat_signal_url(self, project_id=None):\n189:         \"\"\"Return a heat-api signal URL for this resource.\n190: \n191:         This URL is not pre-signed, valid user credentials are required.\n192:         If a project_id is provided, it is used in place of the original\n193:         project_id. This is useful to generate a signal URL that uses\n194:         the heat stack user project instead of the user's.\n195:         \"\"\"\n196:         stored = self.data().get('heat_signal_url')\n197:         if stored is not None:\n198:             return stored\n199: \n200:         if self.id is None:\n201:             # it is too early\n202:             return\n203: \n204:         url = self.client_plugin('heat').get_heat_url()\n205:         path = self.identifier().url_path()\n206:         if project_id is not None:\n207:             path = project_id + path[path.find('/'):]\n208: \n209:         url = parse.urljoin(url, '%s/signal' % path)\n210: \n211:         self.data_set('heat_signal_url', url)\n212:         return url\n213: \n214:     def _delete_heat_signal_url(self):\n215:         self.data_delete('heat_signal_url')\n216: \n217:     def _get_swift_signal_url(self, multiple_signals=False):\n218:         \"\"\"Create properly formatted and pre-signed Swift signal URL.\n219: \n220:         This uses a Swift pre-signed temp_url. If multiple_signals is\n221:         requested, the Swift object referenced by the returned URL will have\n222:         versioning enabled.\n223:         \"\"\"\n224:         put_url = self.data().get('swift_signal_url')\n225:         if put_url:\n226:             return put_url\n227: \n228:         if self.id is None:\n229:             # it is too early\n"
+  },
+  "transport": {
+    "candidate": "native signal_url via trust+http/trust+https Rest notifier",
+    "checked": "source and installed plugin entry points only",
+    "runtime_post_verified": false,
+    "trust_created": false,
+    "policy_target_fetched": false,
+    "rejected_inference": "plain native http has no automatic Keystone auth; trust+heat is autohealing, not ScalingPolicy signal",
+    "signed_url_risk": "REST source logs action URL at INFO; signed target is a credential; not selected"
+  },
+  "final_checks": {
+    "checked_utc": "2026-11-15T05:44:55.981029+00:00",
+    "notifier_plugins": [
+      {
+        "name": "http",
+        "value": "aodh.notifier.rest:RestAlarmNotifier"
+      },
+      {
+        "name": "https",
+        "value": "aodh.notifier.rest:RestAlarmNotifier"
+      },
+      {
+        "name": "log",
+        "value": "aodh.notifier.log:LogAlarmNotifier"
+      },
+      {
+        "name": "test",
+        "value": "aodh.notifier.test:TestAlarmNotifier"
+      },
+      {
+        "name": "trust+heat",
+        "value": "aodh.notifier.heat:TrustHeatAlarmNotifier"
+      },
+      {
+        "name": "trust+http",
+        "value": "aodh.notifier.trust:TrustRestAlarmNotifier"
+      },
+      {
+        "name": "trust+https",
+        "value": "aodh.notifier.trust:TrustRestAlarmNotifier"
+      },
+      {
+        "name": "trust+zaqar",
+        "value": "aodh.notifier.zaqar:TrustZaqarAlarmNotifier"
+      },
+      {
+        "name": "zaqar",
+        "value": "aodh.notifier.zaqar:ZaqarAlarmNotifier"
+      }
+    ],
+    "compute_quota": {
+      "instances": 6,
+      "cores": 8,
+      "ram": 12288
+    },
+    "alarms_final": [
+      {
+        "id": "90f9060e-af83-4bba-834c-52753144421c",
+        "enabled": false,
+        "actions": 0
+      },
+      {
+        "id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "enabled": false,
+        "actions": 0
+      }
+    ],
+    "campus_check": {
+      "finished_utc": "2026-11-15T05:44:56.195277+00:00",
+      "returncode": 0,
+      "passed": true
+    }
+  },
+  "limits": [
+    "No alarm/action enabled or stack updated; no trust created or policy signal sent.",
+    "Characterization uses synthetic datapoints and imported Aodh code, not a live false alarm or failed scale event.",
+    "Collector rejects incomplete/stale/negative data but is not an Aodh runtime guard.",
+    "Missing-data behavior and auth/role/trust still need confirmation before actions; no FR-INF-11 PASS.",
+    "TV4 workload/lịch pending #44; portal/worker pending #40; no AWS stop performed."
+  ]
+}

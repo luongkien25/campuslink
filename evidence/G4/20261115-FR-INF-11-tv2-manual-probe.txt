@@ -1,0 +1,29 @@
+# Lượt chẩn đoán thủ công 2→3→2 — 15/11/2026
+
+Nguồn: 20261115-FR-INF-11-tv2-manual-probe.json, API snapshot và log operator trên A.
+Không phải nghiệm thu autoscaling tự động FR-INF-11.
+
+UTC:
+- Bắt đầu tải: 07:35:59.053906.
+- Bắt đầu scale-out: 07:35:59.355796; CLI rc0.
+- Lần đầu quan sát 3 VM ACTIVE/3 member ONLINE: 07:38:22.507728.
+- Bắt đầu scale-in: 07:45:22.781320; CLI rc0.
+- Giữ 3 app từ lần đầu quan sát ONLINE: 420.273592s (7 phút).
+- Lần đầu quan sát trở lại 2 app/2 member ONLINE: 07:47:03.262613.
+- Dừng tải: 07:47:03.262872. Hậu kiểm redirect07:47:04.088553: HTTP302, Location đúng.
+
+Tải: ApacheBench keep-alive, concurrency32, tối đa900s; dừng sau664.204s,
+23173 request hoàn tất, failed0, non-2xx23173, 34.89RPS. Non-2xx không chứng minh
+mọi response đều302. Đây là tải HTTP nội bộ, chưa phải benchmark HTTPS/p95 của TV4.
+CPU trung bình nhóm từ từng VM1vCPU, bucket đóng07:38–07:41: 40.3278%,40.3%,40.8889%,40.6667%.
+Không dùng số này để tuyên bố evaluator Aodh an toàn với bucket chưa đủ/VM mới.
+
+Hậu kiểm07:50:00.095635: A523d67b4…/10.20.0.195 và Bc6d98b28…/10.20.0.185;
+B157e3878…/10.20.0.150 đã bị Heat xóa. Gnocchi cohort khớp A+B mới.
+Hai alarm giữ disabled, repeat_actions=false, mọi action list rỗng.
+Jump/FIP/hai SG SSH tạm đã dọn, port app chỉ còn app SG; load process không còn.
+DB/volume/port nền giữ nguyên; không thao tác EC2.
+campus-check07:52:43 rc1 vì còn hai phiên SSH ubuntu: chưa được tự tắt EC2.
+
+GĐ7 còn chờ TV1 phân tích probe/đóng gate bucket thiếu hoặc âm (#47),
+phối hợp workload TV4 (#44), rồi mới kiểm notifier và chuỗi tự động theo kế hoạch.

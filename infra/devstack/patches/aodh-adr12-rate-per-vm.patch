@@ -1,0 +1,26 @@
+--- a/aodh/evaluator/gnocchi.py
++++ b/aodh/evaluator/gnocchi.py
+@@ -152,13 +152,18 @@
+             # So temporary set 'needed_overlap' to 0 to disable the
+             # gnocchi checks about missing points. For more detail see:
+             #   https://bugs.launchpad.net/gnocchi/+bug/1479429
++            # CAMPUS ADR-12: voi rate:* phai lay rate cua TUNG metric (VM) roi moi
++            # gop. Gop truoc roi lay hieu (rate cua trung binh counter) cho gia
++            # tri sai khi tap VM co diem doi giua hai bucket (VM moi, VM thieu
++            # diem, bucket dang ghi). Aggregation khong co tien to rate: giu
++            # nguyen ket qua cu.
++            method = rule['aggregation_method']
++            reaggregation = (method[len('rate:'):]
++                             if method.startswith('rate:') else method)
+             return self._gnocchi_client.aggregates.fetch(
+                 operations=[
+-                    'aggregate', rule['aggregation_method'],
+-                    [
+-                        'metric', rule['metric'],
+-                        rule['aggregation_method'].lstrip('rate:')
+-                    ]
++                    'aggregate', reaggregation,
++                    ['metric', rule['metric'], method]
+                 ],
+                 granularity=rule['granularity'],
+                 search=json.loads(rule['query']),
