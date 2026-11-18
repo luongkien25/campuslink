@@ -1,6 +1,6 @@
 # ADR-12: Sửa cách Aodh tính `rate:mean` cho alarm CPU: lấy rate từng VM rồi mới trung bình (một bản vá cục bộ trên host A)
 
-- Ngày: 15/11/2026 · Người quyết: TV1 · Trạng thái: **đề xuất, chờ nhóm duyệt** theo `AGENTS.md` mục 3 và 7 (sửa mã dịch vụ nền đã khóa phiên bản). TV2 duyệt là bắt buộc (chủ FR-INF-10/11, NFR-05 và đồng sở hữu `/infra/devstack/`). Đề nghị phản hồi trước **12:00 17/11/2026**; không phản hồi kịp thì không áp bản vá (mục "Nếu không duyệt kịp").
+- Ngày: 15/11/2026 · Người quyết: TV1 · Trạng thái (cập nhật 18/11/2026): **đã áp thử có kiểm soát trên host A lúc 17/11/2026 13:35:09Z (TV1); gate dữ liệu CHƯA ĐẠT; chưa bật action; chờ TV2 và nhóm xác nhận giữ bản vá** theo `AGENTS.md` mục 3 và 7 (sửa mã dịch vụ nền đã khóa phiên bản). TV2 duyệt là bắt buộc (chủ FR-INF-10/11, NFR-05 và đồng sở hữu `/infra/devstack/`). Kết quả phiên 17/11 ở mục "Kết quả phiên 17/11/2026".
 
 ## Bối cảnh
 
@@ -85,7 +85,7 @@ sudo -u stack git -C /opt/stack/aodh apply -R /tmp/aodh-adr12-rate-per-vm.patch
 sudo systemctl restart devstack@aodh-evaluator
 git -C /opt/stack/aodh status --short                   # rỗng
 ```
-Bản vá đã thử `git apply --check`, áp và `git apply -R --check` trên bản upstream sạch ngoài cụm (15/11); **chưa thử trên A**.
+Bản vá đã thử `git apply --check`, áp và `git apply -R --check` trên bản upstream sạch ngoài cụm (15/11). **Đã áp trên A lúc 17/11/2026 13:35:09Z**, evaluator khởi động lại; chưa lùi lần nào trên A.
 
 ## Điều kiện nghiệm thu bản vá
 
@@ -100,6 +100,20 @@ Trong tất cả các lượt dưới đây, `alarm_actions`, `ok_actions` và `
 3. Một lần VM thứ ba tham gia (scale tay) **khi CPU nền không thấp hơn ngưỡng low** (cần tải nền khoảng 30–60%, ví dụ của TV4, để alarm low đang ở `ok`; lúc rảnh low đúng đã là ALARM nên không kiểm được gì): alarm history **không** có low chuyển sang ALARM trong khoảng VM tham gia; `most recent` trong lý do chuyển state khớp tham chiếu của probe.
 4. Dưới tải của TV4: high chuyển ALARM đúng lúc, không bị chặn; nếu tải không vượt 60% thì ghi vào O-10, không hạ ngưỡng.
 5. TV2 xác nhận `openstack alarm show` của hai alarm (`alarm_actions`, `ok_actions`, `insufficient_data_actions` rỗng cho tới khi bật action; `repeat_actions=false`).
+
+### Kết quả phiên 17/11/2026 (đã áp bản vá trên A)
+
+Nguồn: bảng nhật ký UTC ở #61 (TV1 điền) và các comment của TV2 ở #61 (13:48Z–15:08Z). TV1 chưa đối chiếu lại với probe tmux 17/11 vì chưa chép về laptop. Suốt phiên cả ba danh sách actions rỗng và `repeat_actions=false`.
+
+| Mục | Kết quả |
+| --- | --- |
+| 1.1 | Đạt. Bản vá áp lúc 13:35:09Z (sha256 `9afebdfc…`); TV2 đối chiếu độc lập: chỉ `gnocchi.py` đổi, khớp upstream cộng bản vá. |
+| 1.2 | Đạt. Hai alarm `enabled` không muộn hơn 13:48:10Z; low ở `alarm` lúc chưa tải, về `ok` lúc 14:27:10Z khi có tải 30 RPS. |
+| 1.3 | Đạt trong một lần quan sát. Signal scale-out 14:28:00Z, 3 ONLINE lần đầu thấy 14:29:27Z, signal scale-in 14:36:51Z; history TV2 thu không có low→ALARM trong khoảng VM thứ ba tham gia. |
+| 1.4 | **Chưa kiểm được (O-10).** Lượt B lần 1 bị hủy (khoảng 32 RPS do máy phát); lần 2 bị dừng cưỡng bức lúc 15:00:24Z (17.880/25.200 request, khoảng 33 RPS). CPU mean các bucket đóng 14:52–14:57 chỉ 39–51%, chưa quá 60%. Không hạ ngưỡng. |
+| 1.5 | Đạt. TV2 `alarm show` lúc 15:05:13Z: `enabled=false`, ba danh sách actions rỗng, `repeat_actions=false`. |
+
+Kết luận: phép tính sau vá đạt bốn trong năm mục, mục 1.4 chưa kiểm được. Gate dữ liệu (mục 2) vẫn **chưa đạt**, nên không bật action và FR-INF-11 báo "đạt một phần" ([kết luận TV1 ở #47](https://github.com/luongkien25/campuslink/issues/47#issuecomment-6976933022)). Bản vá đang áp trên A; TV1 đề xuất **giữ** (actions rỗng) vì lùi cần thêm một lần SSH mà không đổi kết luận. Nếu TV2 hoặc nhóm yêu cầu lùi, TV1 chạy `git apply -R` ở mục "Cách áp, kiểm và lùi" trước snapshot EBS và freeze.
 
 ### 2. Gate dữ liệu trước khi cho phép tự scale
 
