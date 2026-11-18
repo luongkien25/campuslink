@@ -1,0 +1,40 @@
+Evidence do TV1 thu ngay 18/11/2026 cho FR-INF-20, NFR-07 (failover app VM A, #66), NFR-01 va NFR-03 (so do p95, #44).
+Moc dung, bat va trang thai LB la bao cao cua TV2 (UTC, lan dau quan sat qua API), dan o comment TV1 tai
+https://github.com/luongkien25/campuslink/issues/66#issuecomment-6982725009 . Khong co secret trong cac file nay.
+
+Kiem lai CSV: gzip -dc <file>.csv.gz | sha256sum  (phai khop sha256 duoi day, tinh tren CSV chua nen).
+Chay lai phan tich: gzip -dc 20261118-FR-INF-20-NFR-07-tv1-failover-10rps-raw.csv.gz > <thu muc tam ngoai repo>/failover.csv
+                    python -I 20261118-FR-INF-20-NFR-07-tv1-failover-analysis.py <thu muc tam>/failover.csv
+
+1. 20261118-FR-INF-20-NFR-07-tv1-failover-10rps-raw.csv.gz
+   Luot failover 10 RPS, 100 luong, warm-up 120 s + steady 1020 s, runner 14:50:26Z den 15:09:33Z (RUN_END_UTC=15:09:33,71Z).
+   11.400 dong (1.200 warm-up + 10.200 steady). sha256 cua CSV: 57ed94f316440ab2140475f537834ecc72d7b10b0fb7804203b20bd6e89e993d
+   Cot: phase,timestamp_utc,request_type,slug,http_status,latency_ms,request_id,location.
+   Status 599 = timeout hoac loi ket noi phia may phat (runner timeout 10 s); ca 7 dong 599 cua luot nay deu co latency tu 10,0 s tro len.
+   timestamp_utc la luc BAT DAU request; file ghi theo luc HOAN THANH nen thu tu thoi gian khong don dieu.
+2. 20261118-NFR-01-NFR-03-tv1-baseline-30rps-raw.csv.gz
+   Luot doi chung, DAT 30 RPS nhung THUC TE trung binh 23,7 RPS (30.600 request steady trong 1.290 s thay vi 1.020 s; theo tung phut day du
+   khoang 16 den 27 RPS), may phat 32 luong. Khong co loi chu dong, TV2 chua dung A. Co 47 timeout (0,15%) rai rac.
+   Runner 14:23:26,98Z den 14:47:02Z. 31.800 dong. sha256 cua CSV: 4e02407cf14dece9a61625618bb72d228a3a685166b029c825191f7ae21fcadf
+   Vai request thanh cong cham hon 10 s (toi da khoang 16,9 s), nen 599 khong dong nghia "moi request cham deu bi tinh la loi".
+3. 20261118-FR-INF-20-NFR-07-tv1-failover-analysis.py va ...-analysis.txt
+   Script chia CSV 1 theo cac moc cua TV2 va ket qua da chay. Chi doc CSV, khong ket noi cloud.
+4. 20261118-NFR-01-tv1-nginx-request-time-p95.txt
+   Bao cao chi doc tren host A luc 15:11Z (script readonly-collect.sh): gio boot/shutdown tu last -x, p95 $request_time phia server
+   theo cac cua so W1 den W9, trang thai ban va Aodh. Khong in IP khach (chi doc cot thoi gian va rt trong log Nginx).
+   Cua so W7, W8, W9 la cua so THEO KE HOACH (14:52:28-14:57:28, 14:57:28-15:02:28, 15:02:28-15:09:28), khong trung dung moc cua TV2;
+   W9 gom ca 51 s hoi phuc (lenh bat den 2 member ONLINE).
+
+Ket qua failover (chi tiet trong ...-analysis.txt): trong 9,5 s tu lenh dung den LB bao A ERROR co 95 request, 1 timeout (+1,5 s); suot
+301,4 s A tat co 3.015 request, 2 timeout (0,066%); khong co 5xx nao ca luot. 5 trong 7 timeout cua ca luot nam NGOAI khoang A tat
+(1 truoc lenh dung, 4 sau khi 2 member ONLINE) va 1 timeout (+116,1 s) roi vao luc LB da loai A: day la nhieu nen, giong luot doi chung.
+"Hoi phuc 51,0 s" la thoi gian tu lenh bat den luc 2 member ONLINE theo moc TV2; dich vu khong bi gian doan (khong co 5xx).
+
+Gioi han:
+- Mot luot failover, 10 RPS (khong phai 30 RPS cua NFR-03), chua lap lai.
+- CSV khong cho biet backend nao phuc vu tung request; B ganh tai duoc SUY RA tu LB bao A ERROR va request van thanh cong.
+- p95 phia may phat: 2.674 ms (luot doi chung) va 2.635 ms (luot failover 10 RPS, 100 luong) gan bang nhau du tai khac nhau, nen
+  "may phat nghen" CHUA co bang chung la nguyen nhan; nguyen nhan chua ro (nghi do tre mang tu laptop o Viet Nam toi us-east-1, chua do lai
+  RTT toi 18/11; so do tay truoc do cua TV1 la khoang 0,27 s moi RTT, ghi o #44, khong nam trong bo evidence nay). KHONG dung lam so do NFR-01.
+- p95 phia server luot doi chung (596 ms) cao hon 238 ms va 256 ms cua 16 va 17/11; nguyen nhan chua ro (chua kiem).
+- Evidence dat o G4 cung cac evidence 15 den 17/11; chuyen sang G5 neu TV4 muon (chua co thu muc evidence/G5).

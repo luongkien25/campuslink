@@ -1,0 +1,75 @@
+== 1. thoi gian va boot (#4)
+now_utc=2026-11-18T15:11:13Z
+uptime_since=2026-11-18 13:59:22
+                Time zone: Etc/UTC (UTC, +0000)
+-- last -x (reboot/shutdown, gio dia phuong cua A):
+reboot   system boot  7.0.0-1017-aws   Wed Nov 18 13:59:22 2026   still running
+shutdown system down  7.0.0-1017-aws   Wed Nov 18 13:09:42 2026 - Wed Nov 18 13:59:22 2026  (00:49)
+reboot   system boot  7.0.0-1017-aws   Wed Nov 18 11:40:14 2026 - Wed Nov 18 13:09:42 2026  (01:29)
+shutdown system down  7.0.0-1017-aws   Wed Nov 18 02:34:29 2026 - Wed Nov 18 11:40:14 2026  (09:05)
+reboot   system boot  7.0.0-1017-aws   Wed Nov 18 02:04:04 2026 - Wed Nov 18 02:34:29 2026  (00:30)
+shutdown system down  7.0.0-1017-aws   Tue Nov 17 15:42:44 2026 - Wed Nov 18 02:04:04 2026  (10:21)
+reboot   system boot  7.0.0-1017-aws   Tue Nov 17 13:04:31 2026 - Tue Nov 17 15:42:44 2026  (02:38)
+shutdown system down  7.0.0-1017-aws   Mon Nov 16 16:04:43 2026 - Tue Nov 17 13:04:31 2026  (20:59)
+reboot   system boot  7.0.0-1017-aws   Mon Nov 16 13:26:06 2026 - Mon Nov 16 16:04:43 2026  (02:38)
+shutdown system down  7.0.0-1017-aws   Mon Nov 16 09:02:14 2026 - Mon Nov 16 13:26:06 2026  (04:23)
+reboot   system boot  7.0.0-1017-aws   Mon Nov 16 08:29:50 2026 - Mon Nov 16 09:02:14 2026  (00:32)
+shutdown system down  7.0.0-1017-aws   Mon Nov 16 06:18:41 2026 - Mon Nov 16 08:29:50 2026  (02:11)
+reboot   system boot  7.0.0-1017-aws   Mon Nov 16 05:40:26 2026 - Mon Nov 16 06:18:41 2026  (00:38)
+shutdown system down  7.0.0-1017-aws   Sun Nov 15 17:00:42 2026 - Mon Nov 16 05:40:26 2026  (12:39)
+reboot   system boot  7.0.0-1017-aws   Sun Nov 15 16:02:42 2026 - Sun Nov 15 17:00:42 2026  (00:58)
+shutdown system down  7.0.0-1017-aws   Sun Nov 15 08:28:17 2026 - Sun Nov 15 16:02:42 2026  (07:34)
+reboot   system boot  7.0.0-1017-aws   Sun Nov 15 06:16:53 2026 - Sun Nov 15 08:28:17 2026  (02:11)
+shutdown system down  7.0.0-1017-aws   Sun Nov 15 05:52:07 2026 - Sun Nov 15 06:16:53 2026  (00:24)
+reboot   system boot  7.0.0-1017-aws   Sun Nov 15 05:23:06 2026 - Sun Nov 15 05:52:07 2026  (00:29)
+shutdown system down  7.0.0-1017-aws   Sat Nov 14 08:49:00 2026 - Sun Nov 15 05:23:06 2026  (20:34)
+reboot   system boot  7.0.0-1017-aws   Sat Nov 14 06:07:57 2026 - Sat Nov 14 08:49:00 2026  (02:41)
+shutdown system down  7.0.0-1017-aws   Fri Nov 13 14:25:55 2026 - Sat Nov 14 06:07:57 2026  (15:42)
+reboot   system boot  7.0.0-1017-aws   Fri Nov 13 12:41:34 2026 - Fri Nov 13 14:25:55 2026  (01:44)
+shutdown system down  7.0.0-1014-aws   Fri Nov 13 07:10:55 2026 - Fri Nov 13 12:41:34 2026  (05:30)
+reboot   system boot  7.0.0-1014-aws   Fri Nov 13 06:26:46 2026 - Fri Nov 13 07:10:55 2026  (00:44)
+shutdown system down  7.0.0-1014-aws   Thu Nov 12 16:24:07 2026 - Fri Nov 13 06:26:46 2026  (14:02)
+reboot   system boot  7.0.0-1014-aws   Thu Nov 12 15:53:53 2026 - Thu Nov 12 16:24:07 2026  (00:30)
+shutdown system down  7.0.0-1014-aws   Thu Nov 12 15:21:02 2026 - Thu Nov 12 15:53:53 2026  (00:32)
+reboot   system boot  7.0.0-1014-aws   Thu Nov 12 14:04:30 2026 - Thu Nov 12 15:21:02 2026  (01:16)
+shutdown system down  7.0.0-1014-aws   Thu Nov 12 13:01:42 2026 - Thu Nov 12 14:04:30 2026  (01:02)
+-- journalctl --list-boots (10 dong cuoi):
+IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
+ -4 23a117b7f226423083e0ffaf38d11d62 Mon 2026-11-16 14:20:29 UTC Mon 2026-11-16 16:04:43 UTC
+ -3 986aa4b75fae4d6794b5e79e3508f2d0 Tue 2026-11-17 13:04:32 UTC Tue 2026-11-17 15:42:44 UTC
+ -2 d64587e58f564fcdaf45d0a9e2c71f70 Wed 2026-11-18 02:04:05 UTC Wed 2026-11-18 02:34:29 UTC
+ -1 92212c47c7424007a975499325848f7c Wed 2026-11-18 11:40:15 UTC Wed 2026-11-18 13:09:42 UTC
+  0 a4da7856c1694bc4b8341d0d1d4e8747 Wed 2026-11-18 13:59:23 UTC Wed 2026-11-18 15:11:13 UTC
+
+== 2. probe 17/11 va file tam
+-rw-rw-r-- 1 ubuntu ubuntu 3786 Nov 18 15:11 /tmp/tv1-ro-20261118T151113Z.txt
+khong con /tmp/tv1-* hoac /tmp/session-20261116 (co the bi don khi reboot)
+tien trinh probe dang chay: 0
+
+== 3. log Nginx co request_time
+co /etc/nginx/conf.d/00-campus-logfmt.conf
+-rw-r--r-- 1 root     root 16821947 Nov 18 15:09 campus-rt.log
+dong dau: 2026-11-12T14:54:16+00:00 | dong cuoi: 2026-11-18T15:09:29+00:00 | tong dong: 149449 | dong khong +00:00: 0
+
+-- p95 $request_time (ms) cua redirect 302 tv4fix1..5 theo cua so UTC
+   W1=16/11 steady 14:53:04-15:13:05 | W2=17/11 luot A steady 14:24:10-14:44:12
+   W3=17/11 truoc scale-out 14:24:10-14:28:01 | W4=17/11 co 3 app 14:28:01-14:36:52 | W5=17/11 sau scale-in 14:36:52-14:44:12
+   W6=18/11 luot 30 RPS doi chung 14:25:30-14:47:02 | W7,W8,W9=18/11 luot 10 RPS failover: truoc 14:52:28-14:57:28, trong 14:57:28-15:02:28, sau 15:02:28-15:09:28 (cua so theo ke hoach)
+W1 n=28764 p50=57.0 p95=238.0 p99=604.0 max=2038.0 ms
+W2 n=28788 p50=67.0 p95=256.0 p99=425.0 max=749.0 ms
+W3 n=5496 p50=72.0 p95=313.0 p99=501.0 max=749.0 ms
+W4 n=12743 p50=61.0 p95=189.0 p99=334.0 max=738.0 ms
+W5 n=10549 p50=75.0 p95=288.0 p99=459.0 max=718.0 ms
+W6 n=24447 p50=129.0 p95=596.0 p99=839.0 max=1351.0 ms
+W7 n=2397 p50=50.0 p95=76.0 p99=131.0 max=280.0 ms
+W8 n=2403 p50=57.0 p95=117.0 p99=263.0 max=422.0 ms
+W9 n=3355 p50=52.0 p95=74.0 p99=126.0 max=338.0 ms
+   (so voi CSV may phat: W1 28.764 redirect 302, W2 28.780; n trong log phai gan bang, chenh vai chuc la do lam tron giay cua cua so)
+
+== 4. Aodh tren A (ban va ADR-12)
+e07aeb6d118b4b9099947028e6e809a6bdd8fe22
+ aodh/evaluator/gnocchi.py | 15 ++++++++++-----
+ 1 file changed, 10 insertions(+), 5 deletions(-)
+aodh-evaluator: active
+
+bao cao luu o: /tmp/tv1-ro-20261118T151113Z.txt
