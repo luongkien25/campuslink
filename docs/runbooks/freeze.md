@@ -26,7 +26,7 @@ aws ec2 describe-security-group-rules --region us-east-1 --filters Name=group-id
 aws ec2 authorize-security-group-ingress --region us-east-1 --group-id sg-0bf8503bfeee5a3c0 --ip-permissions "IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges=[{CidrIp=<IP>/32,Description=tv1-nha}]"
 ```
 
-Kiểm: người đó `ssh campus-a hostname` được. Chỉ khi **ít nhất TV1 vào được qua rule /32** mới xóa rule mở:
+**Trước khi xóa rule mở, việc `ssh` thành công không chứng minh rule /32 đúng**, vì `0.0.0.0/0` vẫn cho vào (review TV2, PR #46). Đối chiếu bằng hai việc: (a) trên đúng máy và mạng đang dùng, chạy `curl.exe -s https://checkip.amazonaws.com` rồi so với `<IP>/32` vừa thêm (khác nhau nghĩa là rule sai hoặc mạng đã đổi); (b) chạy lại lệnh `describe` ở trên, thấy rule /32 mới với Description đúng. Mở sẵn AWS Console (SG `campus-ingress-admin`) để khôi phục. Chỉ khi **cả hai khớp, cho ít nhất TV1**, mới xóa rule mở:
 
 ```bash
 # [THAY ĐỔI]
@@ -35,7 +35,9 @@ aws ec2 revoke-security-group-ingress --region us-east-1 --group-id sg-0bf8503bf
 
 Kiểm lại bằng lệnh `describe` ở trên: không còn dòng `22 … 0.0.0.0/0`; `443 0.0.0.0/0` vẫn còn; **không có** rule cổng 80.
 
-Lỡ tự khóa: Console AWS vẫn sửa SG được (không đi qua SSH). Không tắt fail2ban, không đổi `sshd`.
+**Sau khi xóa, bắt buộc mở kết nối SSH mới** từ máy TV1 và từng người có rule /32: không dùng phiên SSH đang mở và không dùng ControlMaster/ControlPath cũ, ví dụ `ssh -o ControlMaster=no -o ControlPath=none campus-a hostname`. Chỉ khi kết nối mới thành công mới coi là xong; phiên đang mở hoặc lệnh `describe` không thay được phép kiểm này.
+
+Lỡ tự khóa: Console AWS vẫn sửa SG được (không đi qua SSH): thêm lại rule cổng 22 từ `0.0.0.0/0` hoặc sửa rule /32 trên Console, rồi tìm nguyên nhân. Không tắt fail2ban, không đổi `sshd`.
 
 ## 3. Quét lại từ ngoài (FR-INF-05)
 
