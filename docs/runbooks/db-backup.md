@@ -96,11 +96,11 @@ openstack object show campus-backups db/shlink-<UTC>.dump -c etag -c content-len
 ## 5. Restore thử và bản ngoài A
 
 ```
-ssh campus-db 'sudo SLUGS="tv2g4-20261111" campus-db-restore-test latest'   # ⚠️ tao lai DB campus_restore_test
+ssh campus-db 'sudo DROP_AFTER=1 SLUGS="tv4fix1 tv4fix2 tv4fix3 tv4fix4 tv4fix5" campus-db-restore-test latest'   # ⚠️ tao lai DB campus_restore_test roi xoa
 ./app/db/backup/pull-latest.sh                                              # laptop: tai ban moi nhat, sha256sum -c
 ```
 
-Đạt khi `shlink` và `campus_restore_test` cùng `short_urls`, `visits`, `migration` (trừ khi có ghi mới sau lúc dump), slug thử trỏ đúng đích.
+Đạt khi `shlink` và `campus_restore_test` cùng `short_urls`, `visits`, `migration` (trừ khi có ghi mới sau lúc dump), và cả 5 slug fixture (H5) có dòng `OK slug`: đích trùng DB thật, visit trong bản khôi phục ≤ DB thật. Slug thiếu hoặc khác đích thì script in `FAIL` và thoát 1. `DROP_AFTER=1` xóa `campus_restore_test` sau khi in (bỏ biến này nếu cần giữ DB tạm để xem thêm). Bảng mong đợi đầy đủ: `docs/handoffs/H5-fixture-backup-restore.md` mục 3.2.
 
 Restore ở chỗ khác (ví dụ TV1 trên Compose local), từ file đã kiểm sha256:
 
