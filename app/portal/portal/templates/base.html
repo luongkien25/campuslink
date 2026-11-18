@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}CampusLink{% endblock %} · CampusLink</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --fg:#1d2330; --muted:#5f6b7a; --line:#dde2e8; --accent:#1f5fbf; --bad:#b42318; --ok:#127a3e; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--fg); }
+  header { background:var(--card); border-bottom:1px solid var(--line); padding:10px 16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  header b { margin-right:auto; }
+  main { max-width:960px; margin:0 auto; padding:16px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:16px; margin-bottom:16px; }
+  h1 { font-size:22px; margin:0 0 12px; } h2 { font-size:17px; margin:0 0 10px; }
+  table { width:100%; border-collapse:collapse; } th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:13px; }
+  .scroll { overflow-x:auto; }
+  label { display:block; margin:8px 0 4px; font-weight:600; font-size:14px; }
+  input, select, textarea { width:100%; padding:8px; border:1px solid var(--line); border-radius:6px; font:inherit; }
+  textarea { min-height:110px; font-family:ui-monospace, monospace; font-size:13px; }
+  button { margin-top:10px; padding:8px 14px; border:0; border-radius:6px; background:var(--accent); color:#fff; font:inherit; cursor:pointer; }
+  button.danger { background:var(--bad); } button.link { background:none; color:var(--accent); padding:0; margin:0; }
+  .muted { color:var(--muted); font-size:13px; } .msg { padding:8px 12px; border-radius:6px; background:#e8f1fd; margin-bottom:16px; }
+  .err { background:#fdecea; color:var(--bad); padding:8px 12px; border-radius:6px; }
+  .tag { display:inline-block; padding:1px 8px; border-radius:10px; font-size:12px; background:#eef1f5; }
+  .tag.open { background:#e6f4ec; color:var(--ok); } .tag.closed { background:#fdecea; color:var(--bad); }
+  .grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); }
+  a { color:var(--accent); } code { font-size:13px; word-break:break-all; }
+</style>
+</head>
+<body>
+<header>
+  <b>CampusLink · Cổng chiến dịch</b>
+  {% if user %}
+    <span class="muted">{{ user.username }} · {{ {'admin':'Quản trị','unit':'Đơn vị','viewer':'Người xem'}[user.role] }}{% if user.unit_name %} · {{ user.unit_name }}{% endif %}</span>
+    <form method="post" action="/logout" style="margin:0"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="link" type="submit">Đăng xuất</button></form>
+  {% endif %}
+</header>
+<main>
+{% if msg %}<div class="msg">{{ msg }}</div>{% endif %}
+{% block body %}{% endblock %}
+</main>
+</body>
+</html>

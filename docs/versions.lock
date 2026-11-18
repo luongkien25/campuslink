@@ -37,12 +37,12 @@ web_client_dist=shlink-web-client_4.8.1_dist.zip
 web_client_dist_sha256=85c96539fd609ef80ea7d366cced743a1c0af1d9987d9f8d4517e969d519a120   # da doi chieu tren A 27/10/2026 (sha256sum -c OK), TV1
 nginx_version=1.24.0   # apt Ubuntu 24.04 (noble), cai tren A 27/10/2026, TV1
 certbot_version=2.9.0   # apt Ubuntu 24.04 (noble), cai tren A 27/10/2026, TV1
-postgresql_version=16.REPLACE_PATCH
-redis_version=REPLACE_VERSION   # SRS 1.3: can >= 6.2 (XAUTOCLAIM) va bat AOF (O-17)
+postgresql_version=16.15   # Ubuntu 16.15-0ubuntu0.24.04.1 tren campus-db 10.20.0.10, kiem 2026-11-08 UTC, TV3 (evidence/G3/20261108-FR-INF-12-db-vm.txt)
+redis_version=7.0.15   # apt Ubuntu 24.04 tren campus-db, >= 6.2 (co XAUTOCLAIM), appendonly=yes, maxmemory=256mb, noeviction (O-17, ADR-09), kiem 2026-11-08 UTC, TV3
 
 # SRS 1.3: dich vu nhom tu viet, build tu repo nhom; ghi digest sau khi build that
 campus_portal_image_digest=REPLACE_DIGEST   # portal + worker cung image, khac ROLE
 campus_stats_image_digest=REPLACE_DIGEST
 
-recorded_utc=REPLACE_YYYY-MM-DDTHH:MM:SSZ
-recorded_by=REPLACE_TV
+recorded_utc=2026-11-15T07:55:00Z
+recorded_by=TV4

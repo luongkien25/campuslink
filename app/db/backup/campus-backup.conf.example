@@ -1,0 +1,10 @@
+# CampusLink - cau hinh backup DB (FR-INF-15). Khong co secret; cai vao /etc/campus-backup.conf tren DB VM.
+# Credential (id=, secret=) nam rieng o /root/campus-backup/cred (0600), khong o day.
+KEYSTONE_URL=http://10.11.0.10/identity
+SWIFT_URL=http://10.11.0.10:8080/v1/AUTH_07af3a3dd4c24d1ba028efcb6d28ef84
+CONTAINER=campus-backups
+PREFIX=db/
+DB=shlink
+# O-19 (de xuat): moi gio + 10 phut sau boot; giu 48 ban trong Swift (~2 ngay chay), 2 ban tren dia DB VM
+KEEP_REMOTE=48
+KEEP_LOCAL=2

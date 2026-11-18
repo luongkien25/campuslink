@@ -1,0 +1,85 @@
+# FR-INF-15 / FR-INF-16 / O-19 / issue #38 + FR-INF-12 "reboot: link con" / NFR-11. TV3, 12/11/2026 (15:53Z-16:15Z).
+# Lam theo docs/runbooks/db-backup.md. Lenh tren A bang tv3, OS_CLOUD=campus-tv3 (member); tren DB VM qua VM nhay tam.
+# Khong co secret: credential chi nam trong /root/campus-backup/cred tren DB VM (0600); ban tren A da xoa.
+
+== after-start phan 1 (15:56Z)
+campus-a, uptime -s 2026-11-12 15:53:53; br-ex 172.24.4.1/24; khong unit failed; campus-nat nginx apache2 active
+# B bi bat nham vai phut roi Stop ngay (ghi issue #4)
+
+== FR-INF-12 "reboot DB VM: link con" + NFR-11 (link con sau stop/start EC2)
+console campus-db (boot cung A, sau nhieu lan stop/start EC2 tu 11/11):
+  campus-db-check: short_urls=1 visits=2            # link tv2g4-20261111 TV2 tao 11/11
+openstack server reboot --wait campus-db (15:56:45Z) -> Complete; console 15:57:19Z:
+  campus-db-check: OK mount /var/lib/postgresql /dev/vdb ext4
+  campus-db-check: OK postgresql 16.15 (...) max_connections=50 data=/var/lib/postgresql/16/main
+  campus-db-check: short_urls=1 visits=2            # giong truoc reboot
+  campus-db-check: OK redis v=7.0.15 PING=PONG
+DB shlink (psql tren DB VM, 16:05Z): tv2g4-20261111|https://example.org/campuslink-tv2-g4
+=> FR-INF-12 PASS du 2 phan (thieu mount: evidence/G3/20261108-FR-INF-12-db-vm.txt)
+
+== credential backup (tren A)
+lan 1: make-backup-cred.sh tao credential 98d78808... nhung doc sai khoa JSON cua OSC ("ID"/"Secret" viet hoa) -> secret mat,
+       file rong. Da xoa credential 98d78808 (TV3 xac nhan), sua script, tao lai.
+OK credential campus-db-backup id=380fe7ee... (ID day du trong docs/inventory.yaml) het han 2026-12-31T00:00:00, unrestricted False, 5 access rule:
+  PUT|GET|HEAD|DELETE /v1/AUTH_07af3a3dd4c24d1ba028efcb6d28ef84/campus-backups/db/*
+  GET                 /v1/AUTH_07af3a3dd4c24d1ba028efcb6d28ef84/campus-backups
+Thu access rules bang curl tu A (token 201):
+  PUT campus-backups/db/_probe-tv3                 201
+  HEAD campus-backups/db/_probe-tv3                200
+  GET list campus-backups?prefix=db/               200
+  DELETE campus-backups/db/_probe-tv3              204
+  PUT campus-backups/_ngoai-db                     401   (ngoai db/)
+  GET campus-secrets/app/db_password               401
+  GET list campus-secrets                          401
+
+== VM nhay tam (H2 muc 4.1)
+SG campus-jump-sg (22 tu 172.24.4.0/24); campus-jump cirros256 ACTIVE campus-az-a, FIP 172.24.4.106, key tv3
+SG ssh-from-jump-tv3 (22 tu campus-jump-sg) gan them vao campus-db-port; campus-db-sg giu nguyen
+Host key campus-jump doi chieu console log (ssh-rsa, ecdsa); campus-db: console khong con in host key (chi boot dau),
+  chap nhan lan dau qua duong noi bo A -> jump -> 10.20.0.10; ED25519 SHA256:ADcHyo0E7RMz+FVGzHSD6f1omo4EjuUNlWmmlE8Oixo
+
+== cai va chay lan dau tren DB VM
+install.sh --cred-stdin -> OK da cai; cred: 2/2 dong hop le; /root/campus-backup/cred -rw------- root root
+lan 1 (16:02:54Z): dump OK, PUT dump + .sha256 OK, nhung "curl: (18) transfer closed with 36764 bytes remaining" o HEAD
+  -> FAIL HEAD loi mang. Nguyen nhan: curl -X HEAD cho than theo Content-Length (Swift gia luc thu local tra 0).
+  Sua: HEAD dung curl -I. Ban dump 160254Z van nam trong Swift, tinh vao retention.
+lan 2 (16:04:24Z):
+  campus-db-backup: dump shlink-20261112T160424Z.dump 36764 byte sha256=c3bfe38adac2bb7d99e95c241b96aaa8a523a2ae1f796e7406ac45159bf6e12a
+  campus-db-backup: OK campus-backups/db/shlink-20261112T160424Z.dump etag khop md5, meta sha256 khop
+  campus-db-backup: retention: Swift co 2 ban, xoa 0 (giu 48); dia giu 2
+  /var/lib/campus-backup/last: OK 20261112T160424Z campus-backups/db/shlink-20261112T160424Z.dump 36764
+openstack object show campus-backups db/shlink-20261112T160424Z.dump (tu A):
+  content-length 36764, etag c99452c5a26130f8e148ca6d0a8ae69c, properties {'Sha256': 'c3bfe38a...e12a'}
+
+== timer (O-19)
+systemctl enable --now campus-db-backup.timer; NEXT 16:07:06 UTC (OnBootSec=10min, hourly, Persistent=true)
+
+== FR-INF-16 restore thu (campus-db-restore-test latest, SLUGS=tv2g4-20261111)
+OK tai campus-backups/db/shlink-20261112T160424Z.dump 36764 byte, sha256 khop (c3bfe38a...e12a)
+OK pg_restore vao campus_restore_test trong 1364 ms
+shlink:              short_urls=1 visits=2 migration=ShlinkMigrations\Version20260607082210
+campus_restore_test: short_urls=1 visits=2 migration=ShlinkMigrations\Version20260607082210
+slug tv2g4-20261111: campus_restore_test -> https://example.org/campuslink-tv2-g4
+rc=0
+# FR-INF-16 "Kiem bang" can 5 slug fixture da chot: chua co fixture (H5), moi kiem 1 slug that
+
+== ban ve may nhom (FR-INF-15, NFR-11)
+pull-latest.sh (laptop TV3) -> shlink-20261112T160424Z.dump: OK; 36764 byte, sha256sum -c OK
+timer chay tu dong (OnBootSec=10min):
+  2026-11-12T16:07:33Z campus-db-backup: dump shlink-20261112T160733Z.dump 36764 byte sha256=3211b2cf...e33d
+  2026-11-12T16:07:34Z campus-db-backup: OK campus-backups/db/shlink-20261112T160733Z.dump etag khop md5, meta sha256 khop
+  2026-11-12T16:07:34Z campus-db-backup: retention: Swift co 3 ban, xoa 0 (giu 48); dia giu 2
+  NEXT 17:01:07 UTC (hourly + RandomizedDelaySec)
+
+== don (16:08Z)
+port unset ssh-from-jump-tv3; xoa SG ssh-from-jump-tv3, campus-jump, FIP 172.24.4.106, SG campus-jump-sg; rm ~/campus-backup-cred tren A
+hau kiem: campus-db-port sg ['15d5d84d-...'] (chi campus-db-sg); server list: campus-db ACTIVE; floating ip: (rong);
+  SG: campus-db-sg campus-app-sg default
+Swift campus-backups/db/: shlink-20261112T160254Z, 160424Z, 160733Z (.dump + .sha256)
+
+Ket luan:
+FR-INF-15 PASS: dump trong Swift co checksum (ETag md5 + meta sha256 + object .sha256), timer moi gio da chay, retention 48,
+  1 ban ve may nhom sha256 khop.
+FR-INF-16: restore vao campus_restore_test dung so dong va migration, 1 slug that dung dich; con 5 slug fixture (H5) va
+  Shlink chay tren ban khoi phuc voi Redis namespace khac.
+FR-INF-12 PASS (them phan reboot: link con). NFR-11: link con sau stop/start EC2 va reboot DB VM; co ban dump ngoai host A.

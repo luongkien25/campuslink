@@ -1,0 +1,47 @@
+# FR-APP-01..12, NFR-12 - h1-smoke.sh sau khi chuyen API key khoi argv curl (theo review TV2 o PR #45). Compose LOCAL, 2 replica. TV3, 16/11/2026.
+# Muc dich: chuan bi chay tren cum tu DB VM (VM dung chung) ma key khong lo qua 'ps'. KHONG phai evidence tren cum.
+# Key: admin local (tv3-admin-h5), 2 key --author-only (portal-donvi-a/b). Header ghi vao file 0600 trong mktemp, curl -H @file.
+# DB_STOP_CMD/DB_START_CMD: docker compose stop/start postgres; REDIS_PING_CMD: redis-cli ping co xac thuc trong container.
+# Lay mau 'ps -eo args' moi 50 ms: bat duoc 1 dong curl (1 dong dang -H @file); so lan xuat hien cua tung key trong cac dong do: 0, 0, 0 (curl qua nhanh nen lay mau bat it; ket luan chinh dua tren ma).
+
+run_id=20261116T144558Z A=http://127.0.0.1:18080 B=http://127.0.0.1:18081 slug=tv3-smoke-20261116t144558z
+== health
+PASS  FR-APP-11  health A  (=200 pass)
+PASS  FR-APP-11  health B  (=200 pass)
+PASS  FR-INF-09  Redis PING co xac thuc  (=PONG)
+== API key
+PASS  FR-APP-07  POST khong key  (=401)
+PASS  FR-APP-07  POST key sai  (=401)
+== tao, trung slug, 404
+PASS  FR-APP-01  POST tao link  (=200)
+PASS  FR-APP-01  shortUrl dung domain  (=http://localhost:18080/tv3-smoke-20261116t144558z)
+PASS  FR-APP-12  tao trung slug  (=400 non-unique-slug)
+PASS  FR-APP-12  slug khong ton tai  (=404)
+== redirect, sua, nhat quan 2 replica
+PASS  FR-APP-02  GET qua A  (=302 https://example.org/?campus=20261116T144558Z)
+PASS  FR-APP-02  GET qua B (cache truoc khi sua)  (=302 https://example.org/?campus=20261116T144558Z)
+PASS  FR-APP-03  PATCH qua A  (=200)
+PASS  NFR-12  GET qua B sau PATCH o A  (=302 https://example.org/?campus=updated-20261116T144558Z)
+PASS  NFR-12  GET qua A sau PATCH  (=302 https://example.org/?campus=updated-20261116T144558Z)
+== visit (task nen ghi bat dong bo)
+PASS  FR-APP-04  so visit = so GET  (=24)
+INFO  FR-APP-04  visit du sau .038653949s ke tu GET cuoi
+== tag
+PASS  FR-APP-05  tags/stats co campus-smoke, co link va visit  (=true true)
+== author-only
+PASS  FR-APP-08  key don vi A tao link  (=200)
+PASS  FR-APP-08  key A doc link cua A  (=200)
+PASS  FR-APP-08  key B doc link cua A  (=404)
+PASS  FR-APP-08  danh sach cua key B khong co link A  (=0)
+PASS  FR-APP-08  key B sua link cua A  (=404)
+== CORS
+PASS  FR-APP-10  preflight allow-origin  (=https://admin.44-198-215-187.sslip.io)
+PASS  FR-APP-10  preflight cho x-api-key  (=yes)
+PASS  FR-APP-10  origin la khong duoc allow  (=none)
+== DB loi
+PASS  FR-APP-11  health khi DB dung  (=503 fail)
+PASS  FR-APP-11  health sau khi bat lai DB  (=200)
+PASS  FR-APP-02  redirect sau khi DB len lai  (=302 https://example.org/?campus=updated-20261116T144558Z)
+== ket qua: 0 FAIL
+
+# Sau phep thu dung DB: portal /healthz -> {"status":"pass","checks":{"db":"pass","redis":"pass"}}
