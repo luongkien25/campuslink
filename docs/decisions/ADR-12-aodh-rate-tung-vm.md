@@ -1,6 +1,6 @@
 # ADR-12: Sửa cách Aodh tính `rate:mean` cho alarm CPU: lấy rate từng VM rồi mới trung bình (một bản vá cục bộ trên host A)
 
-- Ngày: 15/11/2026 · Người quyết: TV1 · Trạng thái (cập nhật 18/11/2026): **đã áp thử có kiểm soát trên host A lúc 17/11/2026 13:35:09Z (TV1); gate dữ liệu CHƯA ĐẠT; chưa bật action; chờ TV2 và nhóm xác nhận giữ bản vá** theo `AGENTS.md` mục 3 và 7 (sửa mã dịch vụ nền đã khóa phiên bản). TV2 duyệt là bắt buộc (chủ FR-INF-10/11, NFR-05 và đồng sở hữu `/infra/devstack/`). Kết quả phiên 17/11 ở mục "Kết quả phiên 17/11/2026".
+- Ngày: 15/11/2026 · Người quyết: TV1 · Trạng thái (cập nhật 18/11/2026): **đã áp thử có kiểm soát trên host A lúc 17/11/2026 13:35:09Z (TV1); gate dữ liệu CHƯA ĐẠT; chưa bật action; giữ bản vá trên A (TV2 ghi nhận trong [mô tả PR #64](https://github.com/luongkien25/campuslink/pull/64), 18/11/2026)** theo `AGENTS.md` mục 3 và 7 (sửa mã dịch vụ nền đã khóa phiên bản). TV2 duyệt là bắt buộc (chủ FR-INF-10/11, NFR-05 và đồng sở hữu `/infra/devstack/`); nếu TV2 hoặc nhóm yêu cầu lùi thì lùi theo mục "Cách áp, kiểm và lùi". Kết quả phiên 17/11 ở mục "Kết quả phiên 17/11/2026".
 
 ## Bối cảnh
 
