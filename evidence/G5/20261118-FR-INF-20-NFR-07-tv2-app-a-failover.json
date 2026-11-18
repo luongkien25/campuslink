@@ -1,0 +1,863 @@
+{
+  "source_files": {
+    "20261118T142327Z-workload-30rps-raw.csv": "4e02407cf14dece9a61625618bb72d228a3a685166b029c825191f7ae21fcadf",
+    "20261118T145026Z-workload-10rps-raw.csv": "57ed94f316440ab2140475f537834ecc72d7b10b0fb7804203b20bd6e89e993d"
+  },
+  "notes": [
+    "steady only",
+    "windows use request start timestamp, not completion",
+    "599 is client synthetic timeout or connection error, not an HTTP response",
+    "p95 uses runner indexing convention"
+  ],
+  "baseline_30rps": {
+    "requests": 30600,
+    "status_counts": {
+      "200": 6109,
+      "302": 24444,
+      "599": 47
+    },
+    "request_types": {
+      "redirect": 24480,
+      "visits": 4590,
+      "create": 1530
+    },
+    "redirect_302": 24444,
+    "http_5xx_excluding_599": 0,
+    "client_599": 47,
+    "status_0": 0,
+    "error_total": 47,
+    "error_pct": 0.15359477124183007,
+    "redirect_p50_ms": 1060.205,
+    "redirect_p95_ms": 2674.03,
+    "first_request_utc": "2026-11-18T14:25:30.132083+00:00",
+    "last_request_utc": "2026-11-18T14:47:00.575932+00:00"
+  },
+  "failover_10rps": {
+    "requests": 10200,
+    "status_counts": {
+      "200": 2038,
+      "302": 8155,
+      "599": 7
+    },
+    "request_types": {
+      "redirect": 8160,
+      "visits": 1530,
+      "create": 510
+    },
+    "redirect_302": 8155,
+    "http_5xx_excluding_599": 0,
+    "client_599": 7,
+    "status_0": 0,
+    "error_total": 7,
+    "error_pct": 0.06862745098039216,
+    "redirect_p50_ms": 919.72,
+    "redirect_p95_ms": 2634.77,
+    "first_request_utc": "2026-11-18T14:52:27.864072+00:00",
+    "last_request_utc": "2026-11-18T15:09:27.763903+00:00"
+  },
+  "windows_10rps": {
+    "before": {
+      "start_utc": "2026-11-18T14:52:27.860000+00:00",
+      "end_exclusive_utc": "2026-11-18T14:57:27.063046+00:00",
+      "requests": 2992,
+      "status_counts": {
+        "200": 595,
+        "302": 2396,
+        "599": 1
+      },
+      "request_types": {
+        "redirect": 2396,
+        "visits": 447,
+        "create": 149
+      },
+      "redirect_302": 2396,
+      "http_5xx_excluding_599": 0,
+      "client_599": 1,
+      "status_0": 0,
+      "error_total": 1,
+      "error_pct": 0.03342245989304813,
+      "redirect_p50_ms": 932.745,
+      "redirect_p95_ms": 2726.17,
+      "first_request_utc": "2026-11-18T14:52:27.864072+00:00",
+      "last_request_utc": "2026-11-18T14:57:26.963580+00:00"
+    },
+    "fault": {
+      "start_utc": "2026-11-18T14:57:27.063046+00:00",
+      "end_exclusive_utc": "2026-11-18T15:02:28.479184+00:00",
+      "requests": 3015,
+      "status_counts": {
+        "200": 604,
+        "302": 2409,
+        "599": 2
+      },
+      "request_types": {
+        "redirect": 2411,
+        "visits": 453,
+        "create": 151
+      },
+      "redirect_302": 2409,
+      "http_5xx_excluding_599": 0,
+      "client_599": 2,
+      "status_0": 0,
+      "error_total": 2,
+      "error_pct": 0.06633499170812604,
+      "redirect_p50_ms": 925.33,
+      "redirect_p95_ms": 2613.36,
+      "first_request_utc": "2026-11-18T14:57:27.063955+00:00",
+      "last_request_utc": "2026-11-18T15:02:28.463564+00:00"
+    },
+    "after": {
+      "start_utc": "2026-11-18T15:02:28.479184+00:00",
+      "end_exclusive_utc": "2026-11-18T15:09:29+00:00",
+      "requests": 4193,
+      "status_counts": {
+        "200": 839,
+        "302": 3350,
+        "599": 4
+      },
+      "request_types": {
+        "redirect": 3353,
+        "visits": 630,
+        "create": 210
+      },
+      "redirect_302": 3350,
+      "http_5xx_excluding_599": 0,
+      "client_599": 4,
+      "status_0": 0,
+      "error_total": 4,
+      "error_pct": 0.09539709038874314,
+      "redirect_p50_ms": 907.03,
+      "redirect_p95_ms": 2561.17,
+      "first_request_utc": "2026-11-18T15:02:28.563668+00:00",
+      "last_request_utc": "2026-11-18T15:09:27.763903+00:00"
+    }
+  },
+  "detail_10rps": {
+    "detection": {
+      "start_utc": "2026-11-18T14:57:27.063046+00:00",
+      "end_exclusive_utc": "2026-11-18T14:57:36.529516+00:00",
+      "requests": 95,
+      "status_counts": {
+        "200": 20,
+        "302": 74,
+        "599": 1
+      },
+      "request_types": {
+        "redirect": 75,
+        "visits": 15,
+        "create": 5
+      },
+      "redirect_302": 74,
+      "http_5xx_excluding_599": 0,
+      "client_599": 1,
+      "status_0": 0,
+      "error_total": 1,
+      "error_pct": 1.0526315789473684,
+      "redirect_p50_ms": 916.4749999999999,
+      "redirect_p95_ms": 2664.51,
+      "first_request_utc": "2026-11-18T14:57:27.063955+00:00",
+      "last_request_utc": "2026-11-18T14:57:36.463822+00:00"
+    },
+    "b_only": {
+      "start_utc": "2026-11-18T14:57:36.529516+00:00",
+      "end_exclusive_utc": "2026-11-18T15:02:28.479184+00:00",
+      "requests": 2920,
+      "status_counts": {
+        "200": 584,
+        "302": 2335,
+        "599": 1
+      },
+      "request_types": {
+        "redirect": 2336,
+        "visits": 438,
+        "create": 146
+      },
+      "redirect_302": 2335,
+      "http_5xx_excluding_599": 0,
+      "client_599": 1,
+      "status_0": 0,
+      "error_total": 1,
+      "error_pct": 0.03424657534246575,
+      "redirect_p50_ms": 925.54,
+      "redirect_p95_ms": 2613.36,
+      "first_request_utc": "2026-11-18T14:57:36.563822+00:00",
+      "last_request_utc": "2026-11-18T15:02:28.463564+00:00"
+    },
+    "recovery": {
+      "start_utc": "2026-11-18T15:02:28.479184+00:00",
+      "end_exclusive_utc": "2026-11-18T15:03:19.474286+00:00",
+      "requests": 510,
+      "status_counts": {
+        "200": 101,
+        "302": 409
+      },
+      "request_types": {
+        "redirect": 409,
+        "visits": 76,
+        "create": 25
+      },
+      "redirect_302": 409,
+      "http_5xx_excluding_599": 0,
+      "client_599": 0,
+      "status_0": 0,
+      "error_total": 0,
+      "error_pct": 0.0,
+      "redirect_p50_ms": 917.38,
+      "redirect_p95_ms": 2007.73,
+      "first_request_utc": "2026-11-18T15:02:28.563668+00:00",
+      "last_request_utc": "2026-11-18T15:03:19.463768+00:00"
+    },
+    "two_online": {
+      "start_utc": "2026-11-18T15:03:19.474286+00:00",
+      "end_exclusive_utc": "2026-11-18T15:09:29+00:00",
+      "requests": 3683,
+      "status_counts": {
+        "200": 738,
+        "302": 2941,
+        "599": 4
+      },
+      "request_types": {
+        "visits": 554,
+        "create": 185,
+        "redirect": 2944
+      },
+      "redirect_302": 2941,
+      "http_5xx_excluding_599": 0,
+      "client_599": 4,
+      "status_0": 0,
+      "error_total": 4,
+      "error_pct": 0.10860711376595167,
+      "redirect_p50_ms": 904.49,
+      "redirect_p95_ms": 2575.46,
+      "first_request_utc": "2026-11-18T15:03:19.563891+00:00",
+      "last_request_utc": "2026-11-18T15:09:27.763903+00:00"
+    }
+  },
+  "requirements": [
+    "FR-INF-20",
+    "NFR-07"
+  ],
+  "issue": "https://github.com/luongkien25/campuslink/issues/66",
+  "client_crosscheck": "https://github.com/luongkien25/campuslink/issues/66#issuecomment-6982725009",
+  "workload": {
+    "target_rps": 10,
+    "workers": 100,
+    "warmup_seconds": 120,
+    "configured_steady_seconds": 1020,
+    "run_start_utc": "2026-11-18T14:50:25.9070216Z",
+    "steady_start_utc": "2026-11-18T14:52:27.860Z",
+    "steady_end_output_utc": "2026-11-18T15:09:29Z",
+    "run_end_utc": "2026-11-18T15:09:33.7070356Z"
+  },
+  "core": {
+    "shlink_version": "5.1.8",
+    "vip_pool_id": "e7014f7e-6883-4198-861e-bf23b0247f9f",
+    "app_a": {
+      "uuid": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+      "ip": "10.20.0.195"
+    },
+    "app_b": {
+      "uuid": "a43d4b4b-6fd5-4244-833b-94c59e856a70",
+      "ip": "10.20.0.196"
+    }
+  },
+  "fault": {
+    "scope": "Nova stop/start app A",
+    "detection_observed_seconds": 9.46647,
+    "stop_request_to_start_request_seconds": 301.416138,
+    "recovery_to_two_members_online_observed_seconds": 50.995102,
+    "recovery_to_https_health_pass_seconds": 51.12379,
+    "b_online_samples": 57,
+    "events": [
+      {
+        "utc": "2026-11-18T14:54:35.953557+00:00",
+        "event": "scheduled",
+        "stop_epoch": 1795013847.0,
+        "start_epoch": 1795014147.0,
+        "end_epoch": 1795014567.0
+      },
+      {
+        "utc": "2026-11-18T14:57:19.059359+00:00",
+        "event": "pre_stop_verified",
+        "members": {
+          "10.20.0.195": "ONLINE",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:57:27.063046+00:00",
+        "event": "stop_requested",
+        "app": "523d67b4-9234-4b09-b3dc-c814e6b868fc"
+      },
+      {
+        "utc": "2026-11-18T14:57:28.536996+00:00",
+        "event": "stop_ack",
+        "app": "523d67b4-9234-4b09-b3dc-c814e6b868fc"
+      },
+      {
+        "utc": "2026-11-18T14:57:29.885343+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ONLINE",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:57:31.261210+00:00",
+        "event": "a_first_shutoff"
+      },
+      {
+        "utc": "2026-11-18T14:57:36.529447+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:57:36.529516+00:00",
+        "event": "a_member_first_not_online",
+        "state": "ERROR"
+      },
+      {
+        "utc": "2026-11-18T14:57:41.765612+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:57:47.013342+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:57:52.285649+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:57:57.540294+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:58:02.769976+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:58:08.014587+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:58:13.238772+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:58:18.477781+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:58:23.708573+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:58:28.956084+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:58:34.173842+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:58:39.410951+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:58:44.632562+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:58:49.898534+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:58:55.217601+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:59:00.473523+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:59:05.757403+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:59:11.000017+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:59:16.233212+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:59:21.442519+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:59:26.696996+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:59:31.952524+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:59:37.313105+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:59:42.595362+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:59:47.848917+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:59:53.141736+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T14:59:58.400217+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:00:03.634283+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:00:08.853389+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:00:14.066736+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:00:19.300306+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:00:24.534055+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:00:29.762892+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:00:35.002345+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:00:40.246528+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:00:45.518914+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:00:50.797619+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:00:56.032879+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:01:01.301467+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:01:06.528610+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:01:11.757097+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:01:16.990936+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:01:22.232354+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:01:27.475257+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:01:32.695968+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:01:38.049196+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:01:43.302963+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:01:48.561468+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:01:53.817650+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:01:59.079884+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:02:04.389729+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:02:09.754511+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:02:15.050900+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:02:20.379976+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:02:25.686236+00:00",
+        "event": "during_members",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        }
+      },
+      {
+        "utc": "2026-11-18T15:02:28.479184+00:00",
+        "event": "start_requested",
+        "app": "523d67b4-9234-4b09-b3dc-c814e6b868fc"
+      },
+      {
+        "utc": "2026-11-18T15:02:30.094196+00:00",
+        "event": "start_ack",
+        "app": "523d67b4-9234-4b09-b3dc-c814e6b868fc"
+      },
+      {
+        "utc": "2026-11-18T15:02:32.913105+00:00",
+        "event": "recovery_sample",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        },
+        "a_status": "SHUTOFF"
+      },
+      {
+        "utc": "2026-11-18T15:02:40.644345+00:00",
+        "event": "recovery_sample",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        },
+        "a_status": "ACTIVE"
+      },
+      {
+        "utc": "2026-11-18T15:02:48.476012+00:00",
+        "event": "recovery_sample",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        },
+        "a_status": "ACTIVE"
+      },
+      {
+        "utc": "2026-11-18T15:02:56.388272+00:00",
+        "event": "recovery_sample",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        },
+        "a_status": "ACTIVE"
+      },
+      {
+        "utc": "2026-11-18T15:03:04.088783+00:00",
+        "event": "recovery_sample",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        },
+        "a_status": "ACTIVE"
+      },
+      {
+        "utc": "2026-11-18T15:03:11.758392+00:00",
+        "event": "recovery_sample",
+        "members": {
+          "10.20.0.195": "ERROR",
+          "10.20.0.196": "ONLINE"
+        },
+        "a_status": "ACTIVE"
+      },
+      {
+        "utc": "2026-11-18T15:03:19.474286+00:00",
+        "event": "recovery_sample",
+        "members": {
+          "10.20.0.195": "ONLINE",
+          "10.20.0.196": "ONLINE"
+        },
+        "a_status": "ACTIVE"
+      },
+      {
+        "utc": "2026-11-18T15:03:19.602974+00:00",
+        "event": "two_online_health_pass"
+      }
+    ]
+  },
+  "separate_redirect_probe": {
+    "observed_utc_seconds": "2026-11-18T14:59:11Z",
+    "fixture": "tv4fix1",
+    "status": 302,
+    "request_id": "6592e83f-d11d-4eb0-a2de-de5d086355ef",
+    "location": "https://example.org/campuslink-fixture-1",
+    "backend_basis": "A Nova SHUTOFF; A member ERROR and B only ONLINE in adjacent LB samples; no per-guest log match"
+  },
+  "postcheck": {
+    "two_members_online": true,
+    "https_health_pass": true,
+    "redirect_302_correct_location": true,
+    "alarms_disabled_empty_actions_repeat_false": true,
+    "db_volume_in_use": true
+  },
+  "limits": [
+    "One run at 10 RPS",
+    "Poll timestamps are observations, not exact transition times",
+    "A recovery verified with Nova/LB and HTTPS through VIP; no request ID correlated to app A guest logs",
+    "The TV2 functional probe is separate from the TV1 CSV",
+    "Host-level failover and autoscaling are outside this run"
+  ]
+}
