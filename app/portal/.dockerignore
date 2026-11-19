@@ -1,4 +1,5 @@
-__pycache__/
-*.pyc
-smoke/
+# Chi dua ma nguon da commit vao image (NFR-14): bo file sinh ra tren may build
+**/__pycache__
+**/*.pyc
+smoke
 README.md
