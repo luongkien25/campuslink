@@ -1,0 +1,101 @@
+#!/bin/bash
+# CampusLink - backup DB shlink -> Swift (FR-INF-15, O-19, issue #38). TV3.
+# Chay tren DB VM bang root (campus-db-backup.service, timer moi gio). Khong in secret.
+#   1. pg_dump -Fc shlink (user postgres, peer auth) -> /var/backups/campus/shlink-<UTC>.dump + .sha256
+#   2. token Keystone bang application credential (file /root/campus-backup/cred: id=..., secret=...)
+#   3. PUT len <container>/<prefix>shlink-<UTC>.dump (+ .sha256), HEAD lai so etag va sha256
+#   4. retention: giu KEEP_REMOTE ban trong Swift, KEEP_LOCAL ban tren dia
+# Cau hinh khong bi mat: /etc/campus-backup.conf (xem campus-backup.conf.example).
+set -euo pipefail
+umask 077
+
+CONF=${CAMPUS_BACKUP_CONF:-/etc/campus-backup.conf}
+# shellcheck source=/dev/null
+[[ -r $CONF ]] && . "$CONF"
+: "${KEYSTONE_URL:?}" "${SWIFT_URL:?}"
+CONTAINER=${CONTAINER:-campus-backups}
+PREFIX=${PREFIX:-db/}
+DB=${DB:-shlink}
+KEEP_REMOTE=${KEEP_REMOTE:-48}
+KEEP_LOCAL=${KEEP_LOCAL:-2}
+CRED=${CRED:-/root/campus-backup/cred}
+LOCAL_DIR=${LOCAL_DIR:-/var/backups/campus}
+STATE=${STATE:-/var/lib/campus-backup/last}
+
+log() { echo "campus-db-backup: $*"; }
+fail() { log "FAIL $*"; mkdir -p "$(dirname "$STATE")"; echo "FAIL $(date -u +%FT%TZ) $*" > "$STATE"; exit 1; }
+
+work=$(mktemp -d /run/campus-backup.XXXXXX)
+trap 'rm -rf "$work"' EXIT
+
+# --- token (secret chi di qua file trong /run, khong qua argv) ---
+get_token() {
+  local id secret
+  [[ -r $CRED ]] || fail "khong doc duoc $CRED"
+  id=$(sed -n 's/^id=//p' "$CRED"); secret=$(sed -n 's/^secret=//p' "$CRED")
+  [[ -n $id && -n $secret ]] || fail "$CRED thieu id= hoac secret="
+  printf '{"auth":{"identity":{"methods":["application_credential"],"application_credential":{"id":"%s","secret":"%s"}}}}' \
+    "$id" "$secret" > "$work/auth.json"
+  local code
+  code=$(curl -sS -m 20 -o /dev/null -D "$work/auth.hdr" -w '%{http_code}' -H 'Content-Type: application/json' \
+    --data @"$work/auth.json" "$KEYSTONE_URL/v3/auth/tokens") || fail "khong goi duoc Keystone"
+  rm -f "$work/auth.json"
+  [[ $code == 201 ]] || fail "Keystone tra $code"
+  printf 'X-Auth-Token: %s\n' "$(sed -n 's/^[Xx]-[Ss]ubject-[Tt]oken: *//p' "$work/auth.hdr" | tr -d '\r')" > "$work/token.hdr"
+  rm -f "$work/auth.hdr"
+}
+sw() { # method, path (sau URL container), [curl args...] -> in http code
+  local m=$1 p=$2; shift 2
+  # HEAD phai dung -I: voi -X HEAD curl cho than theo Content-Length va bao loi (18) tren Swift that
+  local how=(-X "$m"); [[ $m == HEAD ]] && how=(-I)
+  curl -sS -m 120 -o "$work/sw.out" -D "$work/sw.hdr" -w '%{http_code}' "${how[@]}" -H @"$work/token.hdr" "$@" \
+    "$SWIFT_URL/$CONTAINER$p"
+}
+hdr() { sed -n "s/^$1: *//Ip" "$work/sw.hdr" | tr -d '\r'; }
+
+# --- 1. dump ---
+ts=$(date -u +%Y%m%dT%H%M%SZ)
+name=shlink-$ts.dump
+install -d -o postgres -g postgres -m 700 "$LOCAL_DIR"
+runuser -u postgres -- pg_dump -Fc -d "$DB" -f "$LOCAL_DIR/$name" || fail "pg_dump loi"
+sha=$(sha256sum "$LOCAL_DIR/$name" | cut -d' ' -f1)
+md5=$(md5sum "$LOCAL_DIR/$name" | cut -d' ' -f1)
+printf '%s  %s\n' "$sha" "$name" > "$LOCAL_DIR/$name.sha256"
+size=$(stat -c %s "$LOCAL_DIR/$name")
+log "dump $name $size byte sha256=$sha"
+
+# --- 2-3. upload + kiem ---
+get_token
+code=$(sw PUT "/$PREFIX$name" -T "$LOCAL_DIR/$name" -H "ETag: $md5" -H "X-Object-Meta-Sha256: $sha" \
+  -H 'Content-Type: application/octet-stream') || fail "PUT dump loi mang"
+[[ $code == 201 ]] || fail "PUT $PREFIX$name tra $code"
+code=$(sw PUT "/$PREFIX$name.sha256" -T "$LOCAL_DIR/$name.sha256" -H 'Content-Type: text/plain') || fail "PUT sha256 loi mang"
+[[ $code == 201 ]] || fail "PUT $PREFIX$name.sha256 tra $code"
+code=$(sw HEAD "/$PREFIX$name") || fail "HEAD loi mang"
+[[ $code == 200 && $(hdr etag) == "$md5" && $(hdr x-object-meta-sha256) == "$sha" ]] \
+  || fail "HEAD $PREFIX$name: code=$code, etag/sha256 khong khop"
+log "OK $CONTAINER/$PREFIX$name etag khop md5, meta sha256 khop"
+
+# --- 4. retention ---
+code=$(sw GET "?prefix=${PREFIX}shlink-&format=json") || fail "list loi mang"
+[[ $code == 200 ]] || fail "list $CONTAINER tra $code"
+mapfile -t dumps < <(python3 -c 'import json,sys; [print(o["name"]) for o in json.load(open(sys.argv[1])) if o["name"].endswith(".dump")]' "$work/sw.out" | sort)
+n=${#dumps[@]}; del=0
+if (( n > KEEP_REMOTE )); then
+  for o in "${dumps[@]:0:n-KEEP_REMOTE}"; do
+    for x in "$o" "$o.sha256"; do
+      code=$(sw DELETE "/$x") || true
+      [[ $code == 204 || $code == 404 ]] || log "canh bao: DELETE $x tra $code"
+    done
+    del=$((del+1))
+  done
+fi
+mapfile -t locals < <(ls -1 "$LOCAL_DIR"/shlink-*.dump 2>/dev/null | sort)
+if (( ${#locals[@]} > KEEP_LOCAL )); then
+  for f in "${locals[@]:0:${#locals[@]}-KEEP_LOCAL}"; do rm -f "$f" "$f.sha256"; done
+fi
+log "retention: Swift co $n ban, xoa $del (giu $KEEP_REMOTE); dia giu $KEEP_LOCAL"
+
+mkdir -p "$(dirname "$STATE")"
+echo "OK $ts $CONTAINER/$PREFIX$name $size $sha" > "$STATE"
+log "xong"

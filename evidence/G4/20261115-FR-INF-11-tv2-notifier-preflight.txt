@@ -1,0 +1,52 @@
+CampusLink TV2 — GĐ7 chỉ đọc — FR-INF-10/11, NFR-05/06
+Ngày15/11/2026, giờ dưới đây là UTC. KHÔNG phải nghiệm thu autoscaling.
+
+Nguồn: main đã merge43/39, SHA416a680374bfecb07e019425902f65fb4118d970 đọc qua GitHub.
+Local tv2/autoscaling tại d155dc73cac1af4e47615c7923d3c07f6359d01d, sạch lúc nhận phiên.
+Không merge/rebase main vào checkout hoặc publish Git trong phiên.
+
+SSH tv2 xác minh05:28:33Z, pin host A đúng SHA256:gW49fIVoerNVuAjMh+jjss2w49V0mAVJwCo4BHxT2hM.
+A boot05:23:07 theo uptime-s; chưa quan sát StartB/StopAWS. Không copy private key lên cloud.
+
+Preflight05:30:55Z:
+- DB6d17a9e8...10.20.0.10 ACTIVE; appA523d67b4...195 và B157e3878...150 ACTIVE ở đúng2AZ.
+- Cùng image2c43a06d-1db8-4c01-bd31-98803325d932; flavor campus.app1vCPU/2048MiB/10GiB.
+- Core816bd58d...CREATE_COMPLETE; alarmstackf5b0c4cf...UPDATE_COMPLETE.
+- Pool e7014f7e-6883-4198-861e-bf23b0247f9f có2memberONLINE, protocolTCP/SOURCE_IP_PORT.
+- VIPFIP172.24.4.117→10.20.0.128; volume DBf43fbbd2...10GiB in-use.
+- Quota member kiểm cuối:6instances/8cores/12288MiB. Không tạo/xóa/sửa cloud resources.
+
+Source đọc trên A:
+Aodh e07aeb6d118b4b9099947028e6e809a6bdd8fe22;
+Heat0314e484098416cd21e1be80521c3f955f3d27c0;
+Gnocchi4a41c1d05052bcabf19fbe2e5bfb5a036a321d32.
+- Heat ScalingPolicy.signal_url dùng native API cần credential; alarm_url là pre-signed và có thể tạo key khi resolve.
+- Aodh có plugin trust+http/trust+https. TrustRestNotifier đặt X-Auth-Token rồi gọi REST POST.
+- Aodh API tạo/xóa trust khi thay action trust+; chưa thử quyền/runtime, chưa tạo trust hoặc lấy target thật.
+- trust+heat là autohealing mark-unhealthy/update stack, không nhận đó là ScalingPolicy signal.
+- REST notifier INFO log action URL; không chọn signed target chứa credential để thử mù.
+
+Metric API05:39:45Z:
+- Query group/project/ended_at=null/deleted_at=null đúng2app hiện hành.
+- Dynamic aggregate needed_overlap=0 trả bucket05:39:00Z khi truy vấn05:39:45Z, bucket chưa kết thúc.
+- Collector/analyzer GĐ6 chạy trong bộ nhớ05:43:26Z:6bucket đầy đủ05:37–05:42 PASS.
+  CPU nhóm%:0.616667,0.658333,0.683333,0.708333,0.625,0.65.
+  high_state=ok/low_state=alarm ở đây là phép tính analyzer, KHÔNG phải alarm transition mới.
+
+Gate thiếu dữ liệu CHƯA ĐẠT:
+- threshold._bound_duration dùng end=now; additional_ingestion_lag kéo start, không trì hoãn end.
+- gnocchi._sanitize chỉ lọc granularity/lấy nđiểm cuối, không lọc timestamp hoặc giá trị âm;
+  AggregationByResources dùng needed_overlap=0.
+- Characterization05:43:27Z, dữ liệu GIẢ trong bộ nhớ qua code Aodh import từ venv:
+  2bucket đầy đủ +1bucket hiện tại:accepted_count3, low comparator trảalarm;
+  3giá trị âm:accepted_count3, low comparator trảalarm.
+- KHÔNG tạo/sửa alarm cho phép kiểm này. Chưa chứng minh daemon đã falsealarm hoặc scale sai.
+- Cần TV1 xác minh/chốt phương án trước bật action. Analyzer local không bảo vệ evaluator đang chạy.
+
+Hậu kiểm05:44:55Z:high37680d7a... và low90f9060e... đều enabledfalse/action0.
+campus-check05:44:56.195277Z RC0/OK. Đã đóng SSH (Exit request sent).
+Không bật action/evaluation, update stack, gửi scaling signal, tạo trust hoặc lab/jump/SG/FIP.
+Không thay DB/volume/SG/Nginx/DevStack/EC2; không có env chứa target thật do phiên này tạo.
+
+FR-INF-11 tự2→3→2:CHƯA KIỂM. Workload/lịchTV4 chờ#44, H1b/worker theo#40 báo riêng.
+Source/JSON đầy đủ đã lọc nằm trong file cùng tên.json; không chứa credential/action URL thật.

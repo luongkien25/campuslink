@@ -1,0 +1,74 @@
+# FR-INF-16 / H5 (#50) - 5 slug fixture tren cum va restore thu vao campus_restore_test. TREN CUM. TV3, 16/11/2026.
+# A boot 08:29:49 UTC, B TAT. Key admin tv3-admin do TV2 cap (#53, object trung chuyen campus-secrets/ops/... da xoa).
+# Key doc tu file 0600 tren A, dua vao curl bang --config <(...) (khong len argv), khong in ra.
+
+== 0. Key (tren A, user tv3)
+key: len=36 dang-uuid=1 quyen=600
+# object ops/shlink_api_key_tv3-admin: da xoa sau khi doc; "con object ops/: 0"
+
+== 1. Quan sat khi chi bat A: 8 lan GET https://s.44-198-215-187.sslip.io/rest/health (moi lan -m 6)
+000 TO 200 200 200 200 200 000 TO 000 TO
+# member LB: 10.20.0.195 (A) ONLINE, 10.20.0.185 (B, host B tat) van ONLINE -> khoang nua request toi B timeout.
+# Nguyen nhan chua kiem. Cach lam o day: gui lai toi khi tra loi (request toi B khong toi Shlink nao nen khong ghi gi;
+# customSlug co dinh nen POST lap lai tra 400 non-unique-slug, khong ghi de).
+
+== 2. Tao 5 fixture qua HTTPS (POST /rest/v3/short-urls, customSlug, tags campus-open-day,load-test), ~08:38 UTC
+POST tv4fix1 -> 200
+POST tv4fix2 -> 200
+POST tv4fix3 -> 200
+POST tv4fix4 -> 200
+POST tv4fix5 -> 200
+== doc lai (GET /rest/v3/short-urls/<slug>)
+200 tv4fix1 https://example.org/campuslink-fixture-1 campus-open-day,load-test visits=0 validUntil=None maxVisits=None
+200 tv4fix2 https://example.org/campuslink-fixture-2 campus-open-day,load-test visits=0 validUntil=None maxVisits=None
+200 tv4fix3 https://example.org/campuslink-fixture-3 campus-open-day,load-test visits=0 validUntil=None maxVisits=None
+200 tv4fix4 https://example.org/campuslink-fixture-4 campus-open-day,load-test visits=0 validUntil=None maxVisits=None
+200 tv4fix5 https://example.org/campuslink-fixture-5 campus-open-day,load-test visits=0 validUntil=None maxVisits=None
+== GET https://s.44-198-215-187.sslip.io/<slug> (1 lan moi slug, cert verify binh thuong, khong -k)
+GET tv4fix1 -> 302 https://example.org/campuslink-fixture-1
+GET tv4fix2 -> 302 https://example.org/campuslink-fixture-2
+GET tv4fix3 -> 302 https://example.org/campuslink-fixture-3
+GET tv4fix4 -> 302 https://example.org/campuslink-fixture-4
+GET tv4fix5 -> 302 https://example.org/campuslink-fixture-5
+
+== 3. Duong vao DB VM: campus-jump (cirros256, AZ-A, keypair tv3), FIP 172.24.4.115, SG tam nhu runbook db-backup.md muc 3
+# host key jump doi chieu console (RSA SHA256:bp6Q8ZGZ..., ECDSA SHA256:GQZLbjTx...);
+# campus-db ED25519 SHA256:ADcHyo0E7RMz+FVGzHSD6f1omo4EjuUNlWmmlE8Oixo = runbook.
+# /usr/local/sbin/campus-db-restore-test sha256 8720d6e9747648038b8d0ea16600b858556a72c4505f0f0223c299121531c92d = ban cua PR #52.
+
+== 4. Backup do TIMER tu chay (OnBootSec 10 phut), sau khi tao fixture
+ExecMainExitTimestamp=Mon 2026-11-16 08:41:55 UTC
+ExecMainStatus=0
+campus-db-backup: dump shlink-20261116T084155Z.dump 177266 byte sha256=1130799d6f7e10c77629bad6b8bd5759d33e433a2d72ad817db6ee49091c55dd
+campus-db-backup: OK campus-backups/db/shlink-20261116T084155Z.dump etag khop md5, meta sha256 khop
+campus-db-backup: retention: Swift co 27 ban, xoa 0 (giu 48); dia giu 2
+campus-db-backup: xong
+
+== 5. Restore thu: sudo DROP_AFTER=1 SLUGS="tv4fix1 tv4fix2 tv4fix3 tv4fix4 tv4fix5" campus-db-restore-test latest
+campus-db-restore-test: OK tai campus-backups/db/shlink-20261116T084155Z.dump 177266 byte, sha256 khop (1130799d6f7e10c77629bad6b8bd5759d33e433a2d72ad817db6ee49091c55dd)
+campus-db-restore-test: OK pg_restore vao campus_restore_test trong 1187 ms
+campus-db-restore-test: shlink: short_urls=6 visits=40952 migration=ShlinkMigrations\Version20260607082210
+campus-db-restore-test: campus_restore_test: short_urls=6 visits=40952 migration=ShlinkMigrations\Version20260607082210
+campus-db-restore-test: OK slug tv4fix1: campus_restore_test -> https://example.org/campuslink-fixture-1 visits=1 | shlink -> https://example.org/campuslink-fixture-1 visits=1
+campus-db-restore-test: OK slug tv4fix2: campus_restore_test -> https://example.org/campuslink-fixture-2 visits=1 | shlink -> https://example.org/campuslink-fixture-2 visits=1
+campus-db-restore-test: OK slug tv4fix3: campus_restore_test -> https://example.org/campuslink-fixture-3 visits=1 | shlink -> https://example.org/campuslink-fixture-3 visits=1
+campus-db-restore-test: OK slug tv4fix4: campus_restore_test -> https://example.org/campuslink-fixture-4 visits=1 | shlink -> https://example.org/campuslink-fixture-4 visits=1
+campus-db-restore-test: OK slug tv4fix5: campus_restore_test -> https://example.org/campuslink-fixture-5 visits=1 | shlink -> https://example.org/campuslink-fixture-5 visits=1
+campus-db-restore-test: ghi chu: so lieu cua shlink la luc chay lenh, co the lon hon ban dump neu co ghi moi sau khi dump
+campus-db-restore-test: OK da DROP campus_restore_test (DROP_AFTER=1)
+campus-db-restore-test: PASS restore db/shlink-20261116T084155Z.dump
+rc=0
+# kiem lai: select count(*) from pg_database where datname='campus_restore_test' -> 0
+
+== 6. Don (runbook db-backup.md muc 6)
+go SG tam khoi campus-db-port
+xoa ssh-from-jump-tv3
+xoa campus-jump
+xoa FIP 172.24.4.115
+xoa campus-jump-sg
+# Sau don: 3 VM, FIP chi 172.24.4.117 (VIP), SG campus-app-sg campus-db-sg default, campus-db-port chi campus-db-sg.
+
+== Ket luan
+PASS FR-INF-16 (cot "Kiem bang"): cung migration (Version20260607082210) o shlink va campus_restore_test, cung so ban ghi
+(short_urls=6 visits=40952), 5 slug fixture dung dich, visit khoi phuc = DB that (1 moi slug). campus_restore_test da DROP.
+Chua kiem: Shlink chay tren campus_restore_test (redirect tu ban khoi phuc); xem H5 muc 4.

@@ -1,0 +1,43 @@
+FR-INF-11 / NFR-05 — Kiểm sau vá ADR-12, 17/11/2026
+Phạm vi: evaluation-only, mọi actions rỗng, repeat_actions=false; scale TAY2->3->2.
+FR-INF-11: ĐẠT MỘT PHẦN. Gate dữ liệu CHƯA ĐẠT; không nghiệm thu tự scale.
+
+Source Aodh: e07aeb6d118b4b9099947028e6e809a6bdd8fe22 + đúng patch
+9afebdfcd1e9ceeab495c4353e393034d64500becce3b66cb6a20a41ddc96d20.
+Chỉ thay aodh/evaluator/gnocchi.py; hash file đang chạy
+8bc8a1153ce36c4732236834e173bb86cdf52d0fbc43170ce47eb331ad1dbb38.
+
+UTC:
+- Stack alarm UPDATE_COMPLETE updated_time13:48:03; enabled verified13:48:25.489451.
+- Low ->OK14:27:10.959201; trướcoutCPU A44.5%/B48.3167%, actions[].
+- OUT14:28:00.867902 (rc0);3ACTIVE/3ONLINE first-full-poll14:29:27.626751.
+- IN14:36:51.419738 (rc0); giữ3app443.792987s;2healthy first-poll14:37:30.276865.
+- NewB a43d4b4b-6fd5-4244-833b-94c59e856a70 /10.20.0.196 /campus-az-b.
+  OldB6ed60f3b.../.102 đã Heat xóa. A523d67b4.../.195 giữ nguyên.
+- Low ->ALARM15:04:10.971003 sau dừngtải. Không có high->ALARM trong history đã thu.
+- Disabled verified15:05:13.384996; final-check15:05:35.024500.
+
+Tải do TV1 cung cấp (không tính lại từ fullCSV):
+- A: START14:22:09.5635659, END14:44:12.4118855; warmup10RPS120s, target30RPS1200s.
+- B1: START14:45:32.7379069, END14:50:26.4; HỦY, khoảng32RPS/32threads.
+- B2: START14:51:19.4319679, END15:00:24.3251797; DỪNG CƯỠNG BỨC.
+  17880/25200requests, khoảng33RPS/160threads; p95 ghi nguyên văn "9.267 ms";
+  31lỗi599 theo báo cáo nguồn tải. Không diễn giải dấu phân cách p95/không quy599choapp.
+- Không nhậnB1/B2 là đã hoàn tất60RPS. B2 bucketđóng14:52-14:57 meanCPU39.175-51.191667%,
+  chưa>60%. High chưa được nghiệm thu bằng tải đủ ngưỡng (O-10); không hạ threshold.
+
+Đối chiếu query sau vá với hiệu counter từngVM: không lệch ở các snapshot đã lưu;
+65dòng được reviewer tính lại. Các cửa sổ trùng nhau, không cộng thành65bucketđộc lập.
+Collector: 139dòng đã ghi, 130dòng cóstate+metric,
+9dòngpartial/lỗi; thêmuncaughtSSHtimeout của lầncollectorđầu.
+Khoảng thiếu14:22:50->14:27:07 có snapshotphép tính riêng14:25:41, không gọi làzero-gap.
+Không điền CPUthiếu thành0; lỗiVMmới thiếu metric đã giữ nguyên trong evidence.
+
+Cuối phiên: DB+2appACTIVE,2membersONLINE; VIPHTTP200/pass,HTTPS200/pass verifyTLS.
+2alarmsdisabled,3actions[]/repeatfalse;2appports giữSGgốc,VIPFIPgốc vàDBvolume10GiB giữnguyên.
+Không tạo jump/SG/FIPtạm hoặc restartdịchvụ trong phầnTV2.
+campus-check rc=1: KHONG TAT: con 4 muc o tren. Hoi tren Zalo truoc.
+Không Stop EC2. Cần phối hợp người đang dùng trướcStop.
+
+Nguồn chi tiết: 20261117-FR-INF-11-tv2-postpatch-run.json và các snapshot cùngprefix.
+Không commit/push/PR/merge từ agent.

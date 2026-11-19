@@ -1,0 +1,130 @@
+Evidence FR-INF-25 tang 1 (G3): Cinder snapshot campus-db-data -> volume moi -> DB VM thu -> PostgreSQL len tren du lieu khoi phuc; do RTO; VM thu o A va o B.
+Ngay: 2026-11-12 (gio VN). A boot 14:04:30Z (uptime -s). B bat 21:55 gio VN (14:55Z) theo TV1, chua doi chieu bang last -x. TV1 tu chay lenh tren A (ubuntu@campus-a) roi scp file ve laptop cho Claude Code doi chieu; Claude khong SSH.
+Script: dr-tier1.sh (ngoai repo, docs/_scripts/dr-tier1/ o may TV1). Chi dung credential member campus-tv2 cho snapshot, volume, VM, console log; quyen admin chi de DOC host cua VM thu (lan 3).
+Cach lam: snapshot --force volume campus-db-data (dang gan vao campus-db, nen la crash-consistent; KHONG ghi gi vao DB that) -> volume moi dr-t1-vol tu snapshot -> VM thu dr-t1-vm (campus.db, ubuntu-noble-base, campus-db-sg, KHONG FIP, KHONG SSH) -> gan volume -> user-data cai postgresql-16, mount volume nhan campus-db-data, khoi dong PostgreSQL truc tiep tren du lieu khoi phuc (cong 5433, socket /tmp, khong cau hinh Debian) -> in ket qua ra console log -> script doc console log, do thoi gian, don sach.
+Ba lan chay (file cong don, moc thoi gian trong output la UTC):
+  Lan 1 14:41:41Z, VM thu o campus-az-a:                   8 PASS, RTO 158 s
+  Lan 2 15:06:11Z, VM thu o campus-az-b (host chua ghi):   8 PASS, RTO 139 s; VM ACTIVE sau 78 s (B keo image lan dau)
+  Lan 3 15:11:56Z, VM thu o campus-az-b, host campus-b duoc DOC bang quyen admin va khop: 9 PASS, RTO 124 s; VM ACTIVE sau 26 s
+Ket qua tren ban khoi phuc (ca 3 lan): co DB postgres va shlink; short_urls=1; visits=2; link thu tv2g4-20261111 co mat (known=1). Trong guest o B: lsblk thay vdb 10G ext4 nhan campus-db-data.
+Thoi gian thanh phan (xap xi): snapshot 2 s + volume 10 s; tao VM ACTIVE 26-27 s (78 s neu B chua co image); tu ACTIVE den luc cloud-init chay 25-90 s (bien dong lon); apt install postgresql-16 34-37 s; PostgreSQL len 1-2 s.
+GIOI HAN (khong doc thanh ket luan rong hon):
+  (1) Du lieu rat nho (1 link, 2 luot xem). RTO se lon hon voi du lieu va WAL that; day chua phai RTO san xuat.
+  (2) Snapshot crash-consistent (chup luc DB dang chay); ca 3 lan PostgreSQL tu phuc hoi duoc.
+  (3) RTO do bang tham do console log moi 10 s nen sai so toi +-10 s; do tu luc bat dau snapshot toi luc PostgreSQL tra loi truy van.
+  (4) CHUA gom viec dua DB VM ve dung IP 10.20.0.10, dung lai cau hinh Debian, pg_hba va role cho app ket noi (phan TV3 chua thu, runbook db-vm.md muc 8). Chua co DB campus_portal.
+  (5) Lan 2 khong ghi host thuc cua VM thu; chi lan 3 co bang chung host campus-b. Lan 1 va 2 chi co AZ yeu cau.
+  (6) Mot dong lsblk o lan 2 chua ky tu ve cay bi hong tren console; cac byte ngoai ASCII da duoc doi thanh ? khi dua vao evidence (khong sua gi khac).
+  (7) Chua chot nguong RTO cho tang 1 (NFR-20: chot sau lan dien tap dau, can TV1 va TV3 dong y).
+
+== Output cua script (tu /home/ubuntu/dr-tier1-20261112.txt tren A; 3 lan chay noi tiep)
+== dr-tier1 run bat dau 2026-11-12T14:41:41Z tren campus-a
+INFO  == FR-INF-25 tang 1: snapshot campus-db-data -> volume moi -> DB VM thu
+INFO  nguon: campus-db-data status=in-use size=10 GiB
+INFO    | instances                   |     6 |
+INFO    | instances_used              |     1 |
+INFO    | max_total_backup_gigabytes  |  1000 |
+INFO    | max_total_instances         |     6 |
+INFO    | max_total_volume_gigabytes  |    30 |
+INFO    | max_total_volumes           |     5 |
+INFO    | total_backup_gigabytes_used |     0 |
+INFO    | total_gigabytes_used        |    10 |
+INFO    | total_instances_used        |     1 |
+INFO    | total_volumes_used          |     1 |
+INFO  1. snapshot campus-db-data (--force: dang gan vao campus-db, crash-consistent)
+PASS  snapshot available sau 2 s (created_at=2026-11-12T14:41:49.000000)
+INFO  2. volume moi tu snapshot
+PASS  volume dr-t1-vol available sau 10 s (tu luc bat dau)
+INFO  3. DB VM thu (campus.db, campus-az-a, campus-db-sg, khong FIP, khong SSH)
+PASS  dr-t1-vm ACTIVE sau 27 s
+INFO  4. gan volume khoi phuc vao VM thu
+PASS  volume in-use sau 40 s
+INFO  5. doi console log co DR-TEST READY (toi da 900s)
+INFO  console: DR-TEST START 14:43:38
+INFO  console: DR-TEST APT-DONE 14:44:12
+INFO  console: DR-TEST MOUNT-OK PG_VERSION=16 14:44:12
+INFO  console: DR-TEST PG-UP 14:44:14
+INFO  console: DR-TEST DBS postgres,shlink
+INFO  console: DR-TEST COUNTS short_urls=1 visits=2 known=1
+INFO  console: DR-TEST READY 14:44:15
+PASS  PostgreSQL len tren du lieu khoi phuc: RTO do duoc (tu luc bat dau snapshot) = 158 s
+PASS  truy van duoc bang short_urls tren ban khoi phuc
+PASS  link thu tv2g4-20261111 co trong ban khoi phuc
+INFO  == don: server, volume, snapshot dr-t1-*
+PASS  don: khong con tai nguyen dr-t1-*
+== ket qua: 8 PASS, 0 FAIL (2026-11-12T14:44:45Z). File: /home/ubuntu/dr-tier1-20261112.txt
+== dr-tier1 run bat dau 2026-11-12T15:06:11Z tren campus-a
+INFO  == FR-INF-25 tang 1: snapshot campus-db-data -> volume moi -> DB VM thu (AZ cua VM thu: campus-az-b)
+INFO  nguon: campus-db-data status=in-use size=10 GiB
+INFO    | instances                   |     6 |
+INFO    | instances_used              |     1 |
+INFO    | max_total_backup_gigabytes  |  1000 |
+INFO    | max_total_instances         |     6 |
+INFO    | max_total_volume_gigabytes  |    30 |
+INFO    | max_total_volumes           |     5 |
+INFO    | total_backup_gigabytes_used |     0 |
+INFO    | total_gigabytes_used        |    10 |
+INFO    | total_instances_used        |     1 |
+INFO    | total_volumes_used          |     1 |
+INFO  1. snapshot campus-db-data (--force: dang gan vao campus-db, crash-consistent)
+PASS  snapshot available sau 2 s (created_at=2026-11-12T15:06:19.000000)
+INFO  2. volume moi tu snapshot
+PASS  volume dr-t1-vol available sau 10 s (tu luc bat dau)
+INFO  3. DB VM thu (campus.db, campus-az-a, campus-db-sg, khong FIP, khong SSH)
+PASS  dr-t1-vm ACTIVE sau 78 s
+INFO  4. gan volume khoi phuc vao VM thu
+PASS  volume in-use sau 91 s
+INFO  5. doi console log co DR-TEST READY (toi da 900s)
+INFO  console: DR-TEST START 15:07:54
+INFO  console: DR-TEST APT-DONE 15:08:31
+INFO  console: DR-TEST MOUNT-OK PG_VERSION=16 15:08:31
+INFO  console: DR-TEST LSBLK vda       10G        ;??????????????????vda1     9G ext4   cloudimg-rootfs;??????????????????vda14    4M        ;??????????????????vda15  106M vfat   UEFI;??????????????????vda16  913M ext4   BOOT;vdb       10G ext4   campus-db-data;
+INFO  console: DR-TEST HOST dr-t1-vm
+INFO  console: DR-TEST PG-UP 15:08:33
+INFO  console: DR-TEST DBS postgres,shlink
+INFO  console: DR-TEST COUNTS short_urls=1 visits=2 known=1
+INFO  console: DR-TEST READY 15:08:33
+PASS  PostgreSQL len tren du lieu khoi phuc: RTO do duoc (tu luc bat dau snapshot) = 139 s
+PASS  truy van duoc bang short_urls tren ban khoi phuc
+PASS  link thu tv2g4-20261111 co trong ban khoi phuc
+INFO  == don: server, volume, snapshot dr-t1-*
+PASS  don: khong con tai nguyen dr-t1-*
+== ket qua: 8 PASS, 0 FAIL (2026-11-12T15:08:56Z). File: /home/ubuntu/dr-tier1-20261112.txt
+== dr-tier1 run bat dau 2026-11-12T15:11:56Z tren campus-a
+INFO  == FR-INF-25 tang 1: snapshot campus-db-data -> volume moi -> DB VM thu (AZ cua VM thu: campus-az-b)
+INFO  nguon: campus-db-data status=in-use size=10 GiB
+INFO    | instances                   |     6 |
+INFO    | instances_used              |     1 |
+INFO    | max_total_backup_gigabytes  |  1000 |
+INFO    | max_total_instances         |     6 |
+INFO    | max_total_volume_gigabytes  |    30 |
+INFO    | max_total_volumes           |     5 |
+INFO    | total_backup_gigabytes_used |     0 |
+INFO    | total_gigabytes_used        |    10 |
+INFO    | total_instances_used        |     1 |
+INFO    | total_volumes_used          |     1 |
+INFO  1. snapshot campus-db-data (--force: dang gan vao campus-db, crash-consistent)
+PASS  snapshot available sau 2 s (created_at=2026-11-12T15:12:04.000000)
+INFO  2. volume moi tu snapshot
+PASS  volume dr-t1-vol available sau 10 s (tu luc bat dau)
+INFO  3. DB VM thu (campus.db, campus-az-b, campus-db-sg, khong FIP, khong SSH)
+PASS  dr-t1-vm ACTIVE sau 26 s
+PASS  dr-t1-vm chay tren host campus-b (dung voi AZ campus-az-b)
+INFO  4. gan volume khoi phuc vao VM thu
+PASS  volume in-use sau 41 s
+INFO  5. doi console log co DR-TEST READY (toi da 900s)
+INFO  console: DR-TEST START 15:13:23
+INFO  console: DR-TEST APT-DONE 15:13:59
+INFO  console: DR-TEST MOUNT-OK PG_VERSION=16 15:13:59
+INFO  console: DR-TEST LSBLK vda     10G        ;vda1     9G ext4   cloudimg-rootfs;vda14    4M        ;vda15  106M vfat   UEFI;vdb     10G ext4   campus-db-data;vda16  913M ext4   BOOT;
+INFO  console: DR-TEST HOST dr-t1-vm
+INFO  console: DR-TEST PG-UP 15:14:01
+INFO  console: DR-TEST DBS postgres,shlink
+INFO  console: DR-TEST COUNTS short_urls=1 visits=2 known=1
+INFO  console: DR-TEST READY 15:14:01
+PASS  PostgreSQL len tren du lieu khoi phuc: RTO do duoc (tu luc bat dau snapshot) = 124 s
+PASS  truy van duoc bang short_urls tren ban khoi phuc
+PASS  link thu tv2g4-20261111 co trong ban khoi phuc
+INFO  == don: server, volume, snapshot dr-t1-*
+PASS  don: khong con tai nguyen dr-t1-*
+== ket qua: 9 PASS, 0 FAIL (2026-11-12T15:14:26Z). File: /home/ubuntu/dr-tier1-20261112.txt

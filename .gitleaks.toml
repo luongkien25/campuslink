@@ -1,0 +1,34 @@
+# gitleaks: giu bo luat mac dinh, chi them ngoai le HEP da kiem la khong phai secret (SRS 1.4 FR-INF-23, PR #36).
+# Moi ngoai le can ca duong dan lan dang dong (condition = AND) de secret that o cho khac van bi bat.
+title = "campuslink"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "manifest image TV2: dong 'ten-file: sha256' (ten co chu secrets, gia tri la hash 64 hex, khong phai secret)"
+condition = "AND"
+paths = ['''evidence/G4/.*image-manifest.*\.json$''']
+regexTarget = "line"
+regexes = ['''"[A-Za-z0-9_./-]+": "[0-9a-f]{64}"''']
+
+[[allowlists]]
+description = "evidence H1 TV2: dong liet ke TEN file api_key_tv2-*, khong chua gia tri (dong truoc ghi ro khong in gia tri)"
+condition = "AND"
+paths = ['''evidence/G3/20261107-H1-tv2-smoke-local\.txt$''']
+regexTarget = "line"
+regexes = ['''Ten file: api_key_''']
+
+[[allowlists]]
+description = "evidence TV3 (PR #39): dong ghi ID cua application credential campus-db-backup (ID chi la dinh danh, khong phai secret xac thuc: xac thuc can ca ID va secret, secret khong duoc in trong file do)"
+condition = "AND"
+paths = ['''evidence/G3/20261112-FR-INF-15-16-backup-restore-cum[.]txt$''']
+regexTarget = "line"
+regexes = ['''credential campus-db-backup id=[0-9a-f]{32} het han''']
+
+[[allowlists]]
+description = "evidence TV3 (PR #63): dong GPG_KEY=<40 hex> trong output env cua image python goc; day la ID khoa CONG KHAI ky ban phat hanh Python, khong phai secret (gitleaks quet moi nhanh nen bao nham tren moi PR)"
+condition = "AND"
+paths = ['''evidence/G3/20261118-H1b-FR-APP-13-portal-image-build[.]txt$''']
+regexTarget = "line"
+regexes = ['''GPG_KEY=[0-9A-F]{40}''']

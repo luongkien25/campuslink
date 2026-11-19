@@ -1,0 +1,76 @@
+# H1b (TV3) - DB campus_portal tren DB VM, secret portal trong Swift, nhanh Swift cua portal voi credential campus-svc. TREN CUM.
+# Ngay 15/11/2026, UTC 16:02 (A boot) - 16:45. B tat (app B van ACTIVE trong Nova). TV3 chay qua ssh campus-a / VM nhay campus-jump.
+# Khong in secret: mat khau di qua stdin/bien moi truong, chi in ten object, kich thuoc, etag khop/khong khop.
+# Script: app/db/put-secrets.sh (che do portal), app/db/portal-db.sh, nhanh tv3/h1b-portal-cum. Portal: app/portal (PR #45).
+
+== 0. Duong vao (runbook db-backup.md muc 3)
+campus-jump (cirros256, AZ-A, keypair tv3), FIP 172.24.4.155; SG tam campus-jump-sg + ssh-from-jump-tv3 gan them vao campus-db-port.
+Host key campus-jump doi chieu console log (RSA SHA256:yx2qlA8O..., ECDSA SHA256:C7xsyfZQ...).
+Host key campus-db ED25519 SHA256:ADcHyo0E7RMz+FVGzHSD6f1omo4EjuUNlWmmlE8Oixo = gia tri trong runbook.
+App VM stack campus-app dung keypair campus-tv2 (openstack server show) -> TV3 khong vao app VM; key admin Shlink nho TV2 (#53).
+
+== 1. Secret portal (tren A, OS_CLOUD=campus-tv3 ./put-secrets.sh portal)
+tao /home/tv3/campus-db-secrets/portal_db_password
+tao /home/tv3/campus-db-secrets/portal_db_url
+tao /home/tv3/campus-db-secrets/portal_secret_key
+OK campus-secrets/app/portal_db_url etag khop md5 file local (106 byte)
+OK campus-secrets/app/portal_secret_key etag khop md5 file local (65 byte)
+rc=0
+# file tren A: -rw------- 49 portal_db_password, 106 portal_db_url, 65 portal_secret_key
+# openstack object list campus-secrets --prefix app/:
+app/db_password
+app/portal_db_url
+app/portal_secret_key
+app/redis_servers
+app/swift_app_cred
+# portal_db_password KHONG len Swift (chi di vao DB VM qua stdin).
+
+== 2. Role + DB campus_portal (DB VM: ssh campus-a 'cat .../portal_db_password' | ssh campus-db 'sudo bash portal-db.sh')
+OK role + DB campus_portal
+OK them dong pg_hba campus_portal
+hba 134 campus_portal campus_portal 10.20.0.0 scram-sha-256
+role campus_portal 10 t
+db campus_portal campus_portal
+rc=0
+# pg_hba.conf.bak-20261115T163604Z giu ban truoc khi sua; pg_reload_conf(), KHONG restart PostgreSQL.
+
+== 3. Dang nhap bang URL lay TU SWIFT (dung thu app VM se nhan), TCP toi 10.20.0.10 tu DB VM (thuoc 10.20.0.0/24)
+url host/db: 10.20.0.10:5432/campus_portal
+campus_portal|campus_portal|10.20.0.10|PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on
+campus_portal -> DB shlink:
+connection to server at "10.20.0.10", port 5432 failed: FATAL:  no pg_hba.conf entry for host "10.20.0.10", user "campus_portal", database "
+shlink -> DB campus_portal:
+connection to server at "10.20.0.10", port 5432 failed: FATAL:  no pg_hba.conf entry for host "10.20.0.10", user "shlink", database "campus_
+# => PASS: URL dung; cach ly 2 chieu giua shlink va campus_portal.
+
+== 4. Nhanh Swift cua portal (QR_STORAGE=swift), credential campus-svc that
+# Tren A (user tv3, venv tam httpx 0.27.2 / qrcode 8.0 / reportlab 4.2.5 = requirements.txt), chinh cards.py + storage.py
+# cua PR #45; swift_app_cred lay tu campus-secrets vao file 0600, xoa ngay sau khi chay; ~/h1b-test da xoa.
+# AUTH=http://10.11.0.10/identity  SWIFT_URL=http://10.11.0.10:8080/v1/AUTH_07af3a3dd4c24d1ba028efcb6d28ef84
+cred: 1 id, 1 secret
+INFO  PDF 72219 byte, 10 the, sha256 806a6d49cfbd01b5...
+PASS  SwiftStorage.put campus-qr/h1b-thu-20261115/v1/lo-1.pdf (201)
+PASS  SwiftStorage.get tra dung noi dung (sha256)  (mong doi 806a6d49cfbd01b5eeb8aa592f7ed3fd0702491b301f6f87dff5adf7070e59b7, thuc te 806a6d49cfbd01b5eeb8aa592f7ed3fd0702491b301f6f87dff5adf7070e59b7)
+PASS  ghi de cung ten (chay lai) van 201  (mong doi ok, thuc te ok)
+PASS  PUT vao campus-backups bi chan  (mong doi Swift PUT db/h1b-thu-khong-duoc-ghi.pdf tra 401, thuc te Swift PUT db/h1b-thu-khong-duoc-ghi.pdf tra 401)
+PASS  DELETE object trong campus-qr bi chan  (mong doi 401, thuc te 401)
+== ket qua: 0 FAIL
+rc=0
+# openstack object list campus-qr --long (member campus-tv3):
+h1b-thu-20261115/v1/lo-1.pdf 72219 7d9facf725e07ed1a65e2b708274c72b application/pdf 2026-11-15T16:43:13.788170
+# campus-backups --prefix db/h1b: 0 object (PUT bi chan that).
+# Object thu con lai trong campus-qr (campus-svc khong DELETE duoc): nho TV1 xoa hoac giu lam mau.
+
+== Chua kiem (khong doc thanh ket luan rong hon)
+- Portal chay that tren app VM qua VIP (H4b, TV2): can image co digest (chua co registry, cho nhom chot) va listener 8081.
+- Migration campus_portal: chay luc portal khoi dong lan dau (pg_advisory_xact_lock); DB hien rong.
+- Duong app VM -> Keystone/Swift: lan nay chay tu A, khong tu guest (ADR-10 da thu tu guest A/B ngay 07/11, 09/11).
+
+== Don (16:5x UTC, runbook db-backup.md muc 6)
+go SG tam khoi campus-db-port
+xoa ssh-from-jump-tv3
+xoa campus-jump
+xoa FIP 172.24.4.155
+xoa campus-jump-sg
+# Sau don: 3 VM (campus-db + 2 app), FIP chi 172.24.4.117 (VIP), SG: campus-app-sg campus-db-sg default,
+# campus-db-port chi con campus-db-sg (15d5d84d-...). ~/campus-db-secrets tren A giu lai (0600, chi tv3).

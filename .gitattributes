@@ -8,3 +8,5 @@ ops/** text eol=lf
 *.example text eol=lf
 *.png binary
 *.pdf binary
+# ADR-12: ban va ap len ma tren Linux; CRLF lam lech sha256 va git apply
+*.patch text eol=lf

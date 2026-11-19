@@ -1,0 +1,709 @@
+{
+  "observed_utc": "2026-11-17T14:31:54.931447+00:00",
+  "alarms": [
+    {
+      "alarm_id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+      "enabled": true,
+      "repeat_actions": false,
+      "state": "ok",
+      "evaluate_timestamp": "2026-11-17T14:31:11",
+      "state_timestamp": "2026-11-14T07:10:13.562986",
+      "threshold": 36000000000.0,
+      "evaluation_periods": 2,
+      "granularity": 60
+    },
+    {
+      "alarm_id": "90f9060e-af83-4bba-834c-52753144421c",
+      "enabled": true,
+      "repeat_actions": false,
+      "state": "ok",
+      "evaluate_timestamp": "2026-11-17T14:31:11",
+      "state_timestamp": "2026-11-14T07:10:14.496072",
+      "threshold": 15000000000.0,
+      "evaluation_periods": 3,
+      "granularity": 60
+    }
+  ],
+  "members": [
+    {
+      "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+      "address": "10.20.0.195",
+      "operating_status": "ONLINE",
+      "provisioning_status": "ACTIVE"
+    },
+    {
+      "id": "1d1b931f-9702-4d05-852c-2f8edc479b81",
+      "address": "10.20.0.102",
+      "operating_status": "ONLINE",
+      "provisioning_status": "ACTIVE"
+    },
+    {
+      "id": "4d64c077-95e3-422a-93ad-3b52b1d2b704",
+      "address": "10.20.0.196",
+      "operating_status": "ONLINE",
+      "provisioning_status": "ACTIVE"
+    }
+  ],
+  "metric_snapshot": {
+    "schema_version": 1,
+    "collected_at_utc": "2026-11-17T14:31:54.931447+00:00",
+    "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+    "query": {
+      "and": [
+        {
+          "=": {
+            "server_group": "campuslink-app"
+          }
+        },
+        {
+          "=": {
+            "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84"
+          }
+        },
+        {
+          "=": {
+            "ended_at": null
+          }
+        },
+        {
+          "=": {
+            "deleted_at": null
+          }
+        }
+      ]
+    },
+    "resources": [
+      {
+        "uuid": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+        "vcpus": 1,
+        "vcpus_metric_id": "05418399-d872-4659-a41a-e1b71d91c229",
+        "group": "campuslink-app",
+        "ended_at": null,
+        "deleted_at": null,
+        "metric_id": "123ecdaf-efc2-4815-931e-cd846de6e910",
+        "unit": "ns",
+        "archive_policy": {
+          "name": "ceilometer-high-rate",
+          "aggregation_methods": [
+            "mean",
+            "rate:mean"
+          ],
+          "definition": [
+            {
+              "granularity": 1.0,
+              "points": 3600,
+              "timespan": 3600.0
+            },
+            {
+              "granularity": 60.0,
+              "points": 1440,
+              "timespan": 86400.0
+            },
+            {
+              "granularity": 3600.0,
+              "points": 8760,
+              "timespan": 31536000.0
+            }
+          ]
+        },
+        "rows": [
+          {
+            "timestamp": "2026-11-17T14:11:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 45610000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:12:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 45980000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:13:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 46330000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:14:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 46730000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:15:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 47090000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:16:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 47460000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:17:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 47830000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:18:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 48190000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:19:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 48560000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:20:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 48920000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:21:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 49290000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:22:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 49620000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:23:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 58790000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:24:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 69130000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:25:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 93570000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:26:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 120270000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:27:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 148850000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:28:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 177540000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:29:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 205280000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:30:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 224390000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:11:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 390000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:12:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 370000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:13:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 350000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:14:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 400000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:15:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 360000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:16:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 370000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:17:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 370000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:18:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 360000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:19:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 370000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:20:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 360000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:21:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 370000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:22:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 330000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:23:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 9170000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:24:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 10340000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:25:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 24440000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:26:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 26700000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:27:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 28580000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:28:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 28690000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:29:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 27740000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:30:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 19110000000.0,
+            "aggregation": "rate:mean"
+          }
+        ]
+      },
+      {
+        "uuid": "6ed60f3b-aa27-4679-b762-ca7e88264785",
+        "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+        "vcpus": 1,
+        "vcpus_metric_id": "016f4491-70e2-4f7e-8329-cc3af73cda20",
+        "group": "campuslink-app",
+        "ended_at": null,
+        "deleted_at": null,
+        "metric_id": "5a78700a-ad78-41a2-80d0-e5a8464aff36",
+        "unit": "ns",
+        "archive_policy": {
+          "name": "ceilometer-high-rate",
+          "aggregation_methods": [
+            "mean",
+            "rate:mean"
+          ],
+          "definition": [
+            {
+              "granularity": 1.0,
+              "points": 3600,
+              "timespan": 3600.0
+            },
+            {
+              "granularity": 60.0,
+              "points": 1440,
+              "timespan": 86400.0
+            },
+            {
+              "granularity": 3600.0,
+              "points": 8760,
+              "timespan": 31536000.0
+            }
+          ]
+        },
+        "rows": [
+          {
+            "timestamp": "2026-11-17T14:11:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 43280000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:12:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 43650000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:13:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 44010000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:14:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 44380000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:15:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 44740000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:16:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 45090000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:17:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 45450000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:18:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 45820000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:19:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 46170000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:20:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 46560000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:21:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 46990000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:22:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 47360000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:23:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 58560000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:24:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 70490000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:25:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 99440000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:26:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 128430000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:27:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 157690000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:28:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 185980000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:29:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 214100000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:30:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 234980000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:11:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 350000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:12:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 370000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:13:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 360000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:14:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 370000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:15:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 360000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:16:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 350000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:17:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 360000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:18:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 370000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:19:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 350000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:20:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 390000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:21:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 430000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:22:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 370000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:23:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 11200000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:24:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 11930000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:25:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 28950000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:26:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 28990000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:27:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 29260000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:28:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 28290000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:29:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 28120000000.0,
+            "aggregation": "rate:mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:30:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 20880000000.0,
+            "aggregation": "rate:mean"
+          }
+        ]
+      },
+      {
+        "uuid": "a43d4b4b-6fd5-4244-833b-94c59e856a70",
+        "project_id": "07af3a3dd4c24d1ba028efcb6d28ef84",
+        "vcpus": 1,
+        "vcpus_metric_id": "918b6854-14f1-4489-ab3d-0733e48e59d6",
+        "group": "campuslink-app",
+        "ended_at": null,
+        "deleted_at": null,
+        "metric_id": "88612106-fd05-4ce6-983b-37c14f1a80b1",
+        "unit": "ns",
+        "archive_policy": {
+          "name": "ceilometer-high-rate",
+          "aggregation_methods": [
+            "mean",
+            "rate:mean"
+          ],
+          "definition": [
+            {
+              "granularity": 1.0,
+              "points": 3600,
+              "timespan": 3600.0
+            },
+            {
+              "granularity": 60.0,
+              "points": 1440,
+              "timespan": 86400.0
+            },
+            {
+              "granularity": 3600.0,
+              "points": 8760,
+              "timespan": 31536000.0
+            }
+          ]
+        },
+        "rows": [
+          {
+            "timestamp": "2026-11-17T14:29:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 25320000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:30:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 46820000000.0,
+            "aggregation": "mean"
+          },
+          {
+            "timestamp": "2026-11-17T14:30:00+00:00",
+            "granularity_seconds": 60.0,
+            "value": 21500000000.0,
+            "aggregation": "rate:mean"
+          }
+        ]
+      }
+    ]
+  },
+  "patched_arithmetic_check": {
+    "operations": [
+      "aggregate",
+      "mean",
+      [
+        "metric",
+        "cpu",
+        "rate:mean"
+      ]
+    ],
+    "needed_overlap": 0,
+    "closed_bucket_comparisons": [
+      {
+        "timestamp": "2026-11-17T14:30:00+00:00",
+        "counter_reference_mean_ns": 20496666666.666668,
+        "corrected_query_mean_ns": 20496666666.666668,
+        "match": true,
+        "cohort_count": 3
+      }
+    ],
+    "limits": "Only observed closed buckets; not a data guard and not evidence of automatic scaling safety"
+  }
+}

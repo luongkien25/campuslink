@@ -1,0 +1,47 @@
+# FR-INF-16 / H5 (#50) - thu campus-db-restore-test voi 5 slug fixture tv4fix1..5 (CHUA PHAI tren cum). TV3, 15/11/2026.
+# Muc dich: kiem phan so slug + visit va DROP_AFTER moi them truoc phien cloud.
+# Cach thu:
+#   - Compose local: tao 5 fixture (longUrl https://example.org/campuslink-fixture-N, tag campus-open-day, load-test)
+#     bang key admin local, moi slug tv4fixN co N visit; pg_dump -Fc DB shlink.
+#   - "DB VM" = container postgres:16 (+curl, python3); DB shlink "that" = pg_restore tu chinh dump do.
+#   - Keystone + Swift GIA (python, 127.0.0.1:5000) phat dump + .sha256; script that app/db/backup/campus-db-restore-test.
+# Chua thu duoc o day: Swift/Keystone that, credential that (da thu tren cum 12/11, xem 20261112-FR-INF-15-16-backup-restore-cum.txt).
+
+== CASE 1: 5 slug fixture
+campus-db-restore-test: OK tai campus-backups/db/shlink-20261115T155010Z.dump 66546 byte, sha256 khop (7342ec2ab0ae9dd1484cfbceda113b2eb0eca6e3402963361a36a4e61ac7114c)
+campus-db-restore-test: OK pg_restore vao campus_restore_test trong 207 ms
+campus-db-restore-test: shlink: short_urls=93 visits=4667 migration=ShlinkMigrations\Version20260607082210
+campus-db-restore-test: campus_restore_test: short_urls=93 visits=4667 migration=ShlinkMigrations\Version20260607082210
+campus-db-restore-test: OK slug tv4fix1: campus_restore_test -> https://example.org/campuslink-fixture-1 visits=1 | shlink -> https://example.org/campuslink-fixture-1 visits=1
+campus-db-restore-test: OK slug tv4fix2: campus_restore_test -> https://example.org/campuslink-fixture-2 visits=2 | shlink -> https://example.org/campuslink-fixture-2 visits=2
+campus-db-restore-test: OK slug tv4fix3: campus_restore_test -> https://example.org/campuslink-fixture-3 visits=3 | shlink -> https://example.org/campuslink-fixture-3 visits=3
+campus-db-restore-test: OK slug tv4fix4: campus_restore_test -> https://example.org/campuslink-fixture-4 visits=4 | shlink -> https://example.org/campuslink-fixture-4 visits=4
+campus-db-restore-test: OK slug tv4fix5: campus_restore_test -> https://example.org/campuslink-fixture-5 visits=5 | shlink -> https://example.org/campuslink-fixture-5 visits=5
+campus-db-restore-test: ghi chu: so lieu cua shlink la luc chay lenh, co the lon hon ban dump neu co ghi moi sau khi dump
+campus-db-restore-test: PASS restore db/shlink-20261115T155010Z.dump
+rc=0
+
+== CASE 2: slug khong ton tai -> phai FAIL
+campus-db-restore-test: OK slug tv4fix1: campus_restore_test -> https://example.org/campuslink-fixture-1 visits=1 | shlink -> https://example.org/campuslink-fixture-1 visits=1
+campus-db-restore-test: FAIL slug khongco: campus_restore_test -> KHONG CO | shlink -> KHONG CO
+campus-db-restore-test: FAIL 1 slug thieu hoac khac dich trong campus_restore_test
+rc=1
+
+== CASE 3: doi dich tv4fix5 trong DB shlink sau khi dump -> phai FAIL
+campus-db-restore-test: OK slug tv4fix4: campus_restore_test -> https://example.org/campuslink-fixture-4 visits=4 | shlink -> https://example.org/campuslink-fixture-4 visits=4
+campus-db-restore-test: FAIL slug tv4fix5: campus_restore_test -> https://example.org/campuslink-fixture-5 visits=5 | shlink -> https://example.org/campuslink-fixture-5?doi visits=5
+campus-db-restore-test: FAIL 1 slug thieu hoac khac dich trong campus_restore_test
+rc=1
+
+== CASE 4: DROP_AFTER=1 (#50: xoa campus_restore_test sau khi chup)
+campus-db-restore-test: OK slug tv4fix1: campus_restore_test -> https://example.org/campuslink-fixture-1 visits=1 | shlink -> https://example.org/campuslink-fixture-1 visits=1
+campus-db-restore-test: OK slug tv4fix2: campus_restore_test -> https://example.org/campuslink-fixture-2 visits=2 | shlink -> https://example.org/campuslink-fixture-2 visits=2
+campus-db-restore-test: OK slug tv4fix3: campus_restore_test -> https://example.org/campuslink-fixture-3 visits=3 | shlink -> https://example.org/campuslink-fixture-3 visits=3
+campus-db-restore-test: OK slug tv4fix4: campus_restore_test -> https://example.org/campuslink-fixture-4 visits=4 | shlink -> https://example.org/campuslink-fixture-4 visits=4
+campus-db-restore-test: OK slug tv4fix5: campus_restore_test -> https://example.org/campuslink-fixture-5 visits=5 | shlink -> https://example.org/campuslink-fixture-5 visits=5
+campus-db-restore-test: OK da DROP campus_restore_test (DROP_AFTER=1)
+campus-db-restore-test: PASS restore db/shlink-20261115T155010Z.dump
+rc=0
+pg_database co campus_restore_test: 0
+
+Ket qua: CASE 1 va 4 PASS (rc=0), CASE 2 va 3 FAIL dung mong doi (rc=1).
