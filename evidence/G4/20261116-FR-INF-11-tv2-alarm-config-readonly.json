@@ -1,0 +1,65 @@
+{
+  "checked_utc": "2026-11-16T05:42:08.609980+00:00",
+  "requirements": [
+    "FR-INF-11",
+    "NFR-05"
+  ],
+  "issue": 47,
+  "operation": "Read-only Aodh REST GET /v2/alarms via campus-tv2 member; allowlisted fields only",
+  "alarms": [
+    {
+      "alarm_id": "90f9060e-af83-4bba-834c-52753144421c",
+      "name": "campus-app-cpu-alarms-cpu_low-b2jftvqpeutt",
+      "state": "alarm",
+      "enabled": false,
+      "repeat_actions": false,
+      "rule": {
+        "threshold": 15000000000.0,
+        "evaluation_periods": 3,
+        "granularity": 60,
+        "aggregation_method": "rate:mean",
+        "comparison_operator": "lt",
+        "metric": "cpu",
+        "resource_type": "instance"
+      },
+      "alarm_actions": [],
+      "ok_actions": [],
+      "insufficient_data_actions": []
+    },
+    {
+      "alarm_id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+      "name": "campus-app-cpu-alarms-cpu_high-pkzh3rpjme4t",
+      "state": "ok",
+      "enabled": false,
+      "repeat_actions": false,
+      "rule": {
+        "threshold": 36000000000.0,
+        "evaluation_periods": 2,
+        "granularity": 60,
+        "aggregation_method": "rate:mean",
+        "comparison_operator": "gt",
+        "metric": "cpu",
+        "resource_type": "instance"
+      },
+      "alarm_actions": [],
+      "ok_actions": [],
+      "insufficient_data_actions": []
+    }
+  ],
+  "members": [
+    {
+      "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+      "address": "10.20.0.195",
+      "status": "ONLINE",
+      "enabled": true
+    },
+    {
+      "id": "88445d87-f93f-4aae-8229-f45cb9a58e29",
+      "address": "10.20.0.185",
+      "status": "ONLINE",
+      "enabled": true
+    }
+  ],
+  "changes": "None; no alarm evaluation/actions update or Aodh patch applied",
+  "historical_load_evidence": "20261115-FR-INF-11-tv2-manual-probe.json"
+}

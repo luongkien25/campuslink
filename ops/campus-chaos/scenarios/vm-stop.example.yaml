@@ -1,0 +1,25 @@
+# Kich ban mau cho campus-chaos (FR-INF-24). Chep ra file that (khong dung duoi .example), doi cac gia tri REPLACE_...
+# Gia thuyet: tat 1 app VM -> LB ngung gui tai toi VM do nhanh, khong loi phia client, VM tro lai sau khi bat lai.
+name: tat-vm-1
+action: vm-stop            # vm-stop | member-disable | port-disable
+duration_s: 45             # thoi gian giu loi, toi da 300
+baseline_s: 10             # do nen truoc khi gay loi
+target:
+  server: REPLACE_TEN_APP_VM          # phai co metadata campus_role=app, neu khong bi tu choi
+  pool: REPLACE_POOL_ID_HOAC_TEN      # pool LB chua member cua VM nay
+probe:
+  url: http://REPLACE_FIP_CUA_VIP:8080/
+  rate_per_s: 4
+  timeout_s: 1
+  marker: REPLACE_CHUOI_CHI_CO_O_VM_DICH   # chuoi xuat hien trong than tra loi khi VM dich phuc vu (vd hostname); bo trong neu khong co
+stop_if:
+  error_rate_gt: 0.2                  # dung som neu ti le loi trong cua so vuot 20%
+  window_s: 5
+  min_probes: 8
+  online_members_lt: 1                # dung som neu khong con member ONLINE
+hypothesis:
+  detect_within_s: 15
+  max_errors_after_detect: 0
+  recover_within_s: 150
+report:
+  swift_container: campus-reports

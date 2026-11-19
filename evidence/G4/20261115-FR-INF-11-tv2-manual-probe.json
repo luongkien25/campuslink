@@ -1,0 +1,707 @@
+{
+  "kind": "manual_diagnostic_not_autoscaling_acceptance",
+  "requirements": [
+    "FR-INF-11",
+    "NFR-05"
+  ],
+  "source": "Whitelisted API observations and operator run on host A, 2026-11-15 UTC",
+  "final": {
+    "checked_utc": "2026-11-15T07:50:00.095635+00:00",
+    "state": {
+      "run_kind": "manual diagnosis with TV1 read-only probe; NOT automatic scaling",
+      "directory": "/home/tv2/campuslink-g7-diag-20261115-0710",
+      "core": "816bd58d-ca22-47b8-abe5-9729719d894e",
+      "pool": "e7014f7e-6883-4198-861e-bf23b0247f9f",
+      "baseline": {
+        "utc": "2026-11-15T07:35:58.962908+00:00",
+        "apps": [
+          {
+            "id": "157e3878-4555-4e11-8186-f60b825792e3",
+            "status": "ACTIVE",
+            "az": "campus-az-b",
+            "ips": [
+              "10.20.0.150"
+            ],
+            "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+          },
+          {
+            "id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+            "status": "ACTIVE",
+            "az": "campus-az-a",
+            "ips": [
+              "10.20.0.195"
+            ],
+            "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+          }
+        ],
+        "members": [
+          {
+            "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+            "address": "10.20.0.195",
+            "status": "ONLINE",
+            "enabled": true
+          },
+          {
+            "id": "0f4a7056-af4d-4dc3-8d6e-bc4274582b78",
+            "address": "10.20.0.150",
+            "status": "ONLINE",
+            "enabled": true
+          }
+        ],
+        "alarms": [
+          {
+            "id": "90f9060e-af83-4bba-834c-52753144421c",
+            "state": "alarm",
+            "enabled": false,
+            "action_count": 0
+          },
+          {
+            "id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+            "state": "ok",
+            "enabled": false,
+            "action_count": 0
+          }
+        ],
+        "ready": true
+      },
+      "smoke_before": {
+        "utc": "2026-11-15T07:35:59.053656+00:00",
+        "status": 302,
+        "location_ok": true
+      },
+      "load_started_utc": "2026-11-15T07:35:59.053906+00:00",
+      "load_command": [
+        "ab",
+        "-k",
+        "-t",
+        "900",
+        "-n",
+        "1000000",
+        "-c",
+        "32",
+        "-H",
+        "Host: s.44-198-215-187.sslip.io",
+        "http://172.24.4.117:8080/tv2g4-20261111"
+      ],
+      "load_pid": 21431,
+      "scale_out_started_utc": "2026-11-15T07:35:59.355796+00:00",
+      "scale_out_returncode": 0,
+      "scale_out_returned_utc": "2026-11-15T07:36:01.675821+00:00",
+      "observations": [
+        {
+          "utc": "2026-11-15T07:36:30.931658+00:00",
+          "apps": [
+            {
+              "id": "c6d98b28-a4c1-456f-b044-4b2affbb391a",
+              "status": "ACTIVE",
+              "az": "campus-az-b",
+              "ips": [
+                "10.20.0.185"
+              ],
+              "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+            },
+            {
+              "id": "157e3878-4555-4e11-8186-f60b825792e3",
+              "status": "ACTIVE",
+              "az": "campus-az-b",
+              "ips": [
+                "10.20.0.150"
+              ],
+              "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+            },
+            {
+              "id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+              "status": "ACTIVE",
+              "az": "campus-az-a",
+              "ips": [
+                "10.20.0.195"
+              ],
+              "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+            }
+          ],
+          "members": [
+            {
+              "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+              "address": "10.20.0.195",
+              "status": "ONLINE",
+              "enabled": true
+            },
+            {
+              "id": "0f4a7056-af4d-4dc3-8d6e-bc4274582b78",
+              "address": "10.20.0.150",
+              "status": "ONLINE",
+              "enabled": true
+            }
+          ],
+          "alarms": [
+            {
+              "id": "90f9060e-af83-4bba-834c-52753144421c",
+              "state": "alarm",
+              "enabled": false,
+              "action_count": 0
+            },
+            {
+              "id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+              "state": "ok",
+              "enabled": false,
+              "action_count": 0
+            }
+          ],
+          "ready": false
+        },
+        {
+          "utc": "2026-11-15T07:38:22.507728+00:00",
+          "apps": [
+            {
+              "id": "c6d98b28-a4c1-456f-b044-4b2affbb391a",
+              "status": "ACTIVE",
+              "az": "campus-az-b",
+              "ips": [
+                "10.20.0.185"
+              ],
+              "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+            },
+            {
+              "id": "157e3878-4555-4e11-8186-f60b825792e3",
+              "status": "ACTIVE",
+              "az": "campus-az-b",
+              "ips": [
+                "10.20.0.150"
+              ],
+              "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+            },
+            {
+              "id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+              "status": "ACTIVE",
+              "az": "campus-az-a",
+              "ips": [
+                "10.20.0.195"
+              ],
+              "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+            }
+          ],
+          "members": [
+            {
+              "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+              "address": "10.20.0.195",
+              "status": "ONLINE",
+              "enabled": true
+            },
+            {
+              "id": "0f4a7056-af4d-4dc3-8d6e-bc4274582b78",
+              "address": "10.20.0.150",
+              "status": "ONLINE",
+              "enabled": true
+            },
+            {
+              "id": "88445d87-f93f-4aae-8229-f45cb9a58e29",
+              "address": "10.20.0.185",
+              "status": "ONLINE",
+              "enabled": true
+            }
+          ],
+          "alarms": [
+            {
+              "id": "90f9060e-af83-4bba-834c-52753144421c",
+              "state": "alarm",
+              "enabled": false,
+              "action_count": 0
+            },
+            {
+              "id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+              "state": "ok",
+              "enabled": false,
+              "action_count": 0
+            }
+          ],
+          "ready": true
+        },
+        {
+          "utc": "2026-11-15T07:45:22.781175+00:00",
+          "apps": [
+            {
+              "id": "c6d98b28-a4c1-456f-b044-4b2affbb391a",
+              "status": "ACTIVE",
+              "az": "campus-az-b",
+              "ips": [
+                "10.20.0.185"
+              ],
+              "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+            },
+            {
+              "id": "157e3878-4555-4e11-8186-f60b825792e3",
+              "status": "ACTIVE",
+              "az": "campus-az-b",
+              "ips": [
+                "10.20.0.150"
+              ],
+              "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+            },
+            {
+              "id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+              "status": "ACTIVE",
+              "az": "campus-az-a",
+              "ips": [
+                "10.20.0.195"
+              ],
+              "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+            }
+          ],
+          "members": [
+            {
+              "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+              "address": "10.20.0.195",
+              "status": "ONLINE",
+              "enabled": true
+            },
+            {
+              "id": "0f4a7056-af4d-4dc3-8d6e-bc4274582b78",
+              "address": "10.20.0.150",
+              "status": "ONLINE",
+              "enabled": true
+            },
+            {
+              "id": "88445d87-f93f-4aae-8229-f45cb9a58e29",
+              "address": "10.20.0.185",
+              "status": "ONLINE",
+              "enabled": true
+            }
+          ],
+          "alarms": [
+            {
+              "id": "90f9060e-af83-4bba-834c-52753144421c",
+              "state": "alarm",
+              "enabled": false,
+              "action_count": 0
+            },
+            {
+              "id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+              "state": "ok",
+              "enabled": false,
+              "action_count": 0
+            }
+          ],
+          "ready": true
+        },
+        {
+          "utc": "2026-11-15T07:45:39.269067+00:00",
+          "apps": [
+            {
+              "id": "c6d98b28-a4c1-456f-b044-4b2affbb391a",
+              "status": "ACTIVE",
+              "az": "campus-az-b",
+              "ips": [
+                "10.20.0.185"
+              ],
+              "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+            },
+            {
+              "id": "157e3878-4555-4e11-8186-f60b825792e3",
+              "status": "DELETED",
+              "az": "campus-az-b",
+              "ips": [],
+              "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+            },
+            {
+              "id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+              "status": "ACTIVE",
+              "az": "campus-az-a",
+              "ips": [
+                "10.20.0.195"
+              ],
+              "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+            }
+          ],
+          "members": [
+            {
+              "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+              "address": "10.20.0.195",
+              "status": "ONLINE",
+              "enabled": true
+            },
+            {
+              "id": "88445d87-f93f-4aae-8229-f45cb9a58e29",
+              "address": "10.20.0.185",
+              "status": "ONLINE",
+              "enabled": true
+            }
+          ],
+          "alarms": [
+            {
+              "id": "90f9060e-af83-4bba-834c-52753144421c",
+              "state": "alarm",
+              "enabled": false,
+              "action_count": 0
+            },
+            {
+              "id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+              "state": "ok",
+              "enabled": false,
+              "action_count": 0
+            }
+          ],
+          "ready": false
+        },
+        {
+          "utc": "2026-11-15T07:47:03.262613+00:00",
+          "apps": [
+            {
+              "id": "c6d98b28-a4c1-456f-b044-4b2affbb391a",
+              "status": "ACTIVE",
+              "az": "campus-az-b",
+              "ips": [
+                "10.20.0.185"
+              ],
+              "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+            },
+            {
+              "id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+              "status": "ACTIVE",
+              "az": "campus-az-a",
+              "ips": [
+                "10.20.0.195"
+              ],
+              "image": "2c43a06d-1db8-4c01-bd31-98803325d932"
+            }
+          ],
+          "members": [
+            {
+              "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+              "address": "10.20.0.195",
+              "status": "ONLINE",
+              "enabled": true
+            },
+            {
+              "id": "88445d87-f93f-4aae-8229-f45cb9a58e29",
+              "address": "10.20.0.185",
+              "status": "ONLINE",
+              "enabled": true
+            }
+          ],
+          "alarms": [
+            {
+              "id": "90f9060e-af83-4bba-834c-52753144421c",
+              "state": "alarm",
+              "enabled": false,
+              "action_count": 0
+            },
+            {
+              "id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+              "state": "ok",
+              "enabled": false,
+              "action_count": 0
+            }
+          ],
+          "ready": true
+        }
+      ],
+      "three_online_observed_utc": "2026-11-15T07:38:22.507728+00:00",
+      "planned_scale_in_utc": "2026-11-15T07:45:22.507728+00:00",
+      "hold_seconds_before_scale_in": 420.273586,
+      "scale_in_started_utc": "2026-11-15T07:45:22.781320+00:00",
+      "scale_in_returncode": 0,
+      "scale_in_returned_utc": "2026-11-15T07:45:25.089945+00:00",
+      "load_stopped_utc": "2026-11-15T07:47:03.262872+00:00",
+      "smoke_after": {
+        "utc": "2026-11-15T07:47:04.088553+00:00",
+        "status": 302,
+        "location_ok": true
+      },
+      "two_online_observed_utc": "2026-11-15T07:47:03.262613+00:00"
+    },
+    "load_log": "This is ApacheBench, Version 2.3 <$Revision: 1903618 $>\nCopyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/\nLicensed to The Apache Software Foundation, http://www.apache.org/\n\nBenchmarking 172.24.4.117 (be patient)\n\n\nServer Software:        \nServer Hostname:        172.24.4.117\nServer Port:            8080\n\nDocument Path:          /tv2g4-20261111\nDocument Length:        0 bytes\n\nConcurrency Level:      32\nTime taken for tests:   664.204 seconds\nComplete requests:      23173\nFailed requests:        0\nNon-2xx responses:      23173\nKeep-Alive requests:    23173\nTotal transferred:      4704119 bytes\nHTML transferred:       0 bytes\nRequests per second:    34.89 [#/sec] (mean)\nTime per request:       917.211 [ms] (mean)\nTime per request:       28.663 [ms] (mean, across all concurrent requests)\nTransfer rate:          6.92 [Kbytes/sec] received\n\nConnection Times (ms)\n              min  mean[+/-sd] median   max\nConnect:        0    0   0.1      0       3\nProcessing:    41  862 142.8    870    1556\nWaiting:       41  862 142.8    870    1556\nTotal:         41  862 142.8    870    1556\n\nPercentage of the requests served within a certain time (ms)\n  50%    870\n  66%    914\n  75%    934\n  80%    947\n  90%   1001\n  95%   1090\n  98%   1325\n  99%   1366\n 100%   1556 (longest request)\n",
+    "access_registry": {
+      "created_utc": "2026-11-15T07:22:15.523151+00:00",
+      "app_port": "6c352539-4367-4b6b-8405-ac4e507f0e78",
+      "app_original_sgs": [
+        "b3eb3225-3e50-4c38-b43f-3823b6022d05"
+      ],
+      "image": "10ed8a67-8808-480b-b04d-1faf7d118ba1",
+      "flavor": "c1",
+      "keypair": "campus-tv2",
+      "jump_sg": "821b13a4-ecb0-4567-9d67-24ce6085bfdb",
+      "app_ssh_sg": "9dccbf25-219b-4c1f-846b-25812045ac01",
+      "jump_id": "c7deac48-fc16-4db0-b8b6-0191c351a74a",
+      "jump_port": "511188ea-5a72-4952-902c-1f927faf1c03",
+      "jump_fip_id": "6526bc2a-5f21-4323-b2fb-78b3a3bcec3c",
+      "jump_fip": "172.24.4.188",
+      "app_ssh_attached": false,
+      "cleaned_utc": "2026-11-15T07:31:23.621105+00:00"
+    },
+    "servers": [
+      {
+        "id": "c6d98b28-a4c1-456f-b044-4b2affbb391a",
+        "name": "ca-tcyx-6ft552tig63y-65qfdhkg7kzw-server-gx73k7qtvjmm",
+        "status": "ACTIVE",
+        "az": "campus-az-b",
+        "image_id": "2c43a06d-1db8-4c01-bd31-98803325d932",
+        "addresses": {
+          "campus-net": [
+            {
+              "version": 4,
+              "addr": "10.20.0.185",
+              "OS-EXT-IPS:type": "fixed",
+              "OS-EXT-IPS-MAC:mac_addr": "fa:16:3e:8f:9a:f3"
+            }
+          ]
+        }
+      },
+      {
+        "id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "name": "campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26",
+        "status": "ACTIVE",
+        "az": "campus-az-a",
+        "image_id": "2c43a06d-1db8-4c01-bd31-98803325d932",
+        "addresses": {
+          "campus-net": [
+            {
+              "version": 4,
+              "addr": "10.20.0.195",
+              "OS-EXT-IPS:type": "fixed",
+              "OS-EXT-IPS-MAC:mac_addr": "fa:16:3e:ab:8b:b3"
+            }
+          ]
+        }
+      },
+      {
+        "id": "6d17a9e8-4975-4c46-afd6-be1017e2a251",
+        "name": "campus-db",
+        "status": "ACTIVE",
+        "az": "campus-az-a",
+        "image_id": "b915f809-b352-4d03-a14a-ec9c294e85d8",
+        "addresses": {
+          "campus-net": [
+            {
+              "version": 4,
+              "addr": "10.20.0.10",
+              "OS-EXT-IPS:type": "fixed",
+              "OS-EXT-IPS-MAC:mac_addr": "fa:16:3e:7e:4c:96"
+            }
+          ]
+        }
+      }
+    ],
+    "volumes": [
+      {
+        "id": "f43fbbd2-b85f-4bb1-b403-ba54a2f84189",
+        "name": "campus-db-data",
+        "size": 10,
+        "status": "in-use",
+        "attachments": [
+          {
+            "server_id": "6d17a9e8-4975-4c46-afd6-be1017e2a251",
+            "device": "/dev/vdb"
+          }
+        ]
+      }
+    ],
+    "ports": [
+      {
+        "id": "6a28068f-52ef-470d-9404-4f7dac279c87",
+        "device_id": "c6d98b28-a4c1-456f-b044-4b2affbb391a",
+        "sg": [
+          "b3eb3225-3e50-4c38-b43f-3823b6022d05"
+        ],
+        "enabled": true,
+        "fixed_ips": [
+          {
+            "subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+            "ip_address": "10.20.0.185"
+          }
+        ]
+      },
+      {
+        "id": "6c352539-4367-4b6b-8405-ac4e507f0e78",
+        "device_id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "sg": [
+          "b3eb3225-3e50-4c38-b43f-3823b6022d05"
+        ],
+        "enabled": true,
+        "fixed_ips": [
+          {
+            "subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+            "ip_address": "10.20.0.195"
+          }
+        ]
+      },
+      {
+        "id": "7df6ea1d-2e8c-46d5-99b9-e121855d81b5",
+        "device_id": "6d17a9e8-4975-4c46-afd6-be1017e2a251",
+        "sg": [
+          "15d5d84d-f71a-4595-a5b2-ac75f818c040"
+        ],
+        "enabled": true,
+        "fixed_ips": [
+          {
+            "subnet_id": "59399337-e22b-4237-87dd-bf4ac035bcfa",
+            "ip_address": "10.20.0.10"
+          }
+        ]
+      }
+    ],
+    "fips": [
+      {
+        "id": "4de69ad4-b09e-4221-803f-f927715769fc",
+        "ip": "172.24.4.117",
+        "port_id": "9b107b20-4d06-4716-808b-a57f12a64c45"
+      }
+    ],
+    "temporary_sgs_absent": true,
+    "jump_absent": true,
+    "temporary_fip_absent": true,
+    "alarms": [
+      {
+        "id": "90f9060e-af83-4bba-834c-52753144421c",
+        "state": "alarm",
+        "enabled": false,
+        "repeat_actions": false,
+        "actions": {
+          "alarm_actions": 0,
+          "ok_actions": 0,
+          "insufficient_data_actions": 0
+        }
+      },
+      {
+        "id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "state": "ok",
+        "enabled": false,
+        "repeat_actions": false,
+        "actions": {
+          "alarm_actions": 0,
+          "ok_actions": 0,
+          "insufficient_data_actions": 0
+        }
+      }
+    ],
+    "stacks": [
+      {
+        "id": "f5b0c4cf-558b-46b2-a4e2-c28d835fc275",
+        "name": "campus-app-cpu-alarms",
+        "status": "UPDATE_COMPLETE"
+      },
+      {
+        "id": "816bd58d-ca22-47b8-abe5-9729719d894e",
+        "name": "campus-app",
+        "status": "CREATE_COMPLETE"
+      }
+    ],
+    "gnocchi_live_cohort": [
+      {
+        "id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "cpu": "123ecdaf-efc2-4815-931e-cd846de6e910",
+        "vcpus": "05418399-d872-4659-a41a-e1b71d91c229"
+      },
+      {
+        "id": "c6d98b28-a4c1-456f-b044-4b2affbb391a",
+        "cpu": "4ee9e4f4-6558-4d33-a08f-bfcb75b41c46",
+        "vcpus": "6cf28252-8ec2-48e6-9d88-4dd3596cdf0d"
+      }
+    ],
+    "load_process_live": false,
+    "campus_check": {
+      "finished_utc": "2026-11-15T07:50:01.153246+00:00",
+      "returncode": 1,
+      "passed": false
+    }
+  },
+  "closed_bucket_cpu": {
+    "utc": "2026-11-15T07:42:55.816215+00:00",
+    "method": "per-VM rate:mean /60e9*100, campus.app1vCPU; excludes unclosed bucket",
+    "instances": {
+      "523d67b4-9234-4b09-b3dc-c814e6b868fc": [
+        {
+          "bucket_utc": "2026-11-15T07:39:00+00:00",
+          "raw_ns": 39610000000.0,
+          "cpu_percent": 66.0167
+        },
+        {
+          "bucket_utc": "2026-11-15T07:40:00+00:00",
+          "raw_ns": 40270000000.0,
+          "cpu_percent": 67.1167
+        },
+        {
+          "bucket_utc": "2026-11-15T07:41:00+00:00",
+          "raw_ns": 39790000000.0,
+          "cpu_percent": 66.3167
+        }
+      ],
+      "157e3878-4555-4e11-8186-f60b825792e3": [
+        {
+          "bucket_utc": "2026-11-15T07:39:00+00:00",
+          "raw_ns": 32560000000.0,
+          "cpu_percent": 54.2667
+        },
+        {
+          "bucket_utc": "2026-11-15T07:40:00+00:00",
+          "raw_ns": 32730000000.0,
+          "cpu_percent": 54.55
+        },
+        {
+          "bucket_utc": "2026-11-15T07:41:00+00:00",
+          "raw_ns": 33060000000.0,
+          "cpu_percent": 55.1
+        }
+      ],
+      "c6d98b28-a4c1-456f-b044-4b2affbb391a": [
+        {
+          "bucket_utc": "2026-11-15T07:39:00+00:00",
+          "raw_ns": 370000000.0,
+          "cpu_percent": 0.6167
+        },
+        {
+          "bucket_utc": "2026-11-15T07:40:00+00:00",
+          "raw_ns": 600000000.0,
+          "cpu_percent": 1.0
+        },
+        {
+          "bucket_utc": "2026-11-15T07:41:00+00:00",
+          "raw_ns": 350000000.0,
+          "cpu_percent": 0.5833
+        }
+      ]
+    },
+    "aligned_group_cpu_percent": {
+      "2026-11-15T07:38:00+00:00": 40.3278,
+      "2026-11-15T07:39:00+00:00": 40.3,
+      "2026-11-15T07:40:00+00:00": 40.8889,
+      "2026-11-15T07:41:00+00:00": 40.6667
+    },
+    "load_process_present": true
+  },
+  "new_b_ssh_key_provenance": {
+    "checked_utc": "2026-11-15T07:54:46.893429+00:00",
+    "vm_id": "c6d98b28-a4c1-456f-b044-4b2affbb391a",
+    "ip": "10.20.0.185",
+    "source": "Nova first-boot console; no SSH check on this new VM",
+    "ed25519_public_keys": [
+      "AAAAC3NzaC1lZDI1NTE5AAAAIDElbhaVGHdZcBmltks+awH/e+u8pbEpVyFgY4OXg4hG"
+    ],
+    "sha256": "SHA256:u2L3oDsXR76+bRBibhcKx8ws+VzDkWWnsLhVf/VPLLs"
+  },
+  "safe_to_stop_check": {
+    "started_utc": "2026-11-15T07:52:42.930218+00:00",
+    "finished_utc": "2026-11-15T07:52:43.023609+00:00",
+    "returncode": 1,
+    "filtered_diagnostics": [
+      "ssh        ubuntu      01:34:47 sshd: ubuntu@pts/2",
+      "ssh        ubuntu         44:33 sshd: ubuntu@pts/4",
+      "KHONG TAT: con 2 muc o tren. Hoi tren Zalo truoc.",
+      "Neu la keepalive cua ban: ssh campus-a campus-keepalive 0",
+      ""
+    ],
+    "stdout_length": 210,
+    "stderr_length": 0
+  },
+  "limits": [
+    "Manual Heat signals; no Aodh automatic action or notifier acceptance. Both alarms disabled; all action lists empty.",
+    "ONLINE timestamps are first observed API snapshots, not exact underlying event times.",
+    "ApacheBench non-2xx includes redirects; failed=0 does not establish every response was HTTP302. Separate pre/post smoke verifies302 and Location.",
+    "Internal HTTP workload, not TV4 HTTPS/p95 acceptance.",
+    "CPU values are per-VM normalized complete-bucket means; not proof that Aodh evaluates partial or changing cohorts safely.",
+    "campus-check rc1 blocks stopping because two ubuntu SSH sessions remain; it is not an app health failure.",
+    "New B ED25519 key came from Nova first-boot console; SSH to new B was not tested.",
+    "Operator hold counter420.273586s differs by6 microseconds from UTC marker subtraction420.273592s; raw counter retained, derived summaries use UTC subtraction."
+  ],
+  "recovery_evidence": "20261115-FR-INF-09-tv2-app-a-recovery.json",
+  "hold_seconds_derived_from_utc_markers": 420.273592
+}

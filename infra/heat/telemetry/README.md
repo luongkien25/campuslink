@@ -116,3 +116,77 @@ Một bucket đang ghi từng trả aggregate âm khi các replica chưa có đ�
 Hai phép đo redirect chuyển tiếp dùng [`probe_app_pool.py`](../probe_app_pool.py): `--report` chấp nhận batch redirect đã lưu có status 302, `location_matches_target=true` và Request ID hợp lệ để đối chiếu guest logs mà không phát request mới. Boolean chỉ ghi việc so sánh Location với đích trong lệnh probe, không in header Location tùy ý; khi lưu evidence phải ghi đích fixture và lệnh đã dùng. Nếu upstream redirect không có ID dùng được, chưa có phép tương quan được xác minh và không báo PASS từ batch 401 khác.
 
 Nguồn tham khảo: [Heat 2026.1 resource reference](https://docs.openstack.org/heat/2026.1/template_guide/openstack.html), [Aodh 2026.1 alarms](https://docs.openstack.org/aodh/2026.1/admin/telemetry-alarms.html), [OpenStack SDK 2026.1 config](https://docs.openstack.org/openstacksdk/2026.1/user/config/reference.html). Tài liệu đúng nhánh không thay kiểm version/client/source thực trên cụm.
+
+## Chuẩn bị autoscaling: env riêng và timeline
+
+Hai helper dưới đây đã có kiểm thử offline; chúng không chứng minh notifier Aodh hoặc autoscaling trên cụm đã hoạt động. Không cần đọc credential bootstrap app để tạo env cho stack alarm riêng.
+
+### Env cho stack alarm riêng
+
+`make_alarm_env.py` nhận ba đường dẫn, không nhận URL action trực tiếp trên CLI:
+
+```bash
+python3 -B telemetry/make_alarm_env.py \
+  --action-file /REPLACE_PRIVATE_DIR/targets.json \
+  --params-file /REPLACE_PRIVATE_DIR/params.json \
+  --out /REPLACE_PRIVATE_DIR/alarm-env.json
+```
+
+Thư mục chứa mỗi input/output phải thuộc user hiện hành và mode0700; input là regular file0600, không symlink, tối đa16KiB. Output0600 được publish không ghi đè file cũ. Chạy trên A từ bản `infra/heat` đã chuyển lên trong phiên cloud được duyệt; không sao chép target thật vào repo hoặc chat.
+
+`params.json` cần đủ các field sau:
+
+| Field | Giá trị/ý nghĩa |
+| --- | --- |
+| project_id | Project UUID32hex của session đã kiểm |
+| group | campuslink-app |
+| high_threshold / low_threshold | 36000000000 / 15000000000; delta-ns/bucket60s,1vCPU |
+| evaluation_enabled / actions_enabled | Boolean, giữ false khi chuẩn bị |
+| telemetry_verified | Boolean xác nhận đã kiểm metric/query/freshness |
+| transport / transport_verified | unverified/native/signed và boolean xác nhận runtime notifier |
+
+Các field `telemetry_verified`, `transport`, `transport_verified` chỉ điều khiển validation của helper, không được ghi thành parameter HOT. Flag là xác nhận của người vận hành, không phải kết quả kiểm cloud tự động. Scheme/auth/visibility của native hoặc signed vẫn phải đối chiếu source/schema thực trước khi chọn; helper chỉ kiểm hai URI tuyệt đối, khác nhau, không ký tự điều khiển/fragment, không tự bảo đảm chúng trỏ đúng policy.
+
+`targets.json` chỉ có `high_action` và `low_action`; chương trình lấy target private trên A từ đúng core policy sau khi cơ chế được kiểm. High phải trỏ scale_out và low phải trỏ scale_in. Khi `actions_enabled=false`, helper không đọc file targets và ghi cả hai action rỗng, kể cả khi chỉ bật shadow evaluation. Khi bật actions phải có evaluation, telemetry và transport đã xác minh cùng đủ hai targets. Không truyền credential qua argv, không dùng output Heat công khai cho target, không in raw alarm/history hoặc exception chứa target.
+
+Template hiện có flag chung cho hai alarm. Không giả định helper hỗ trợ bật riêng high/low. Native validate và preview chỉ stack alarm riêng là bước cloud bắt buộc trước update; helper tạo file không thực hiện thay đổi cloud. Tắt evaluation không tự xóa action; muốn kết thúc phiên phải đặt cả hai flag false rồi xác nhận API đã lọc `enabled=false`, action count0.
+
+### Timeline tự scale hai chiều
+
+`analyze_auto_run.py` kiểm JSON đã chuẩn hóa và chỉ xuất report allowlist:
+
+```bash
+python3 -B telemetry/analyze_auto_run.py /REPLACE_SAFE_DIR/run.json
+```
+
+Schema_version1 có các phần sau; fixture giả tái lập cấu trúc ở [`test_auto_run.py`](tests/test_auto_run.py). Fixture đó không phải evidence cloud.
+
+| Phần | Nội dung bắt buộc |
+| --- | --- |
+| run_id, core, load | Run ID; stack/image/fixedA/project/group; UTC bắt đầu/giảm/kết thúc tải |
+| transitions | Hai chuyển ok→alarm, hướng out/in, UUID alarm, ngưỡng/periods/granularity, CPU snapshot và freshness limit |
+| policy_events | Đúng alarm_id/stack_id/direction/policy, origin=aodh; notifier UTC/status200/202/204, policy UTC và đường dẫn evidence |
+| manual_signals, cooldown_seconds | Danh sách signal tay phải rỗng trong lượt; cooldown>=180 |
+| capacity | Ba mốc2→3→2, danh sách guest UUID, A cố định, thêm đúng1VM ở bước out và bỏ đúng1VM ở bước in |
+| milestones | Sáu mốc VM mới, mỗi mốc có instance_id/event/utc/source/resolution_seconds/timing; chiếu ba field đầu khi gọi `collect_app_timeline.py` |
+| redirects, guest_request_ids | Request302/Location đúng, ID ghép duy nhất với log VM mới, UTC khớp first request quan sát |
+| deletion | UUID bị xóa, member_removed và vm_delete_started đúng thứ tự sau policy in |
+| cleanup | evaluation_enabled=false, action_count=0, tài nguyên tạm rỗng và db_unchanged=true |
+
+Analyzer tính lại CPU từ snapshot bằng `analyze_cpu.py`; kiểm đúng cohort2/3, project, bucket đầy đủ và cửa sổ tải tương ứng. Wrapper GĐ7 từ chối vCPU khác1 vì ngưỡng raw cố định36e9/15e9 chỉ đúng cho flavor này; bộ phân tích CPU dùng chung vẫn hỗ trợ vCPU khác để quy đổi. Nó không coi dữ liệu thiếu/âm/stale là CPU thấp. Rule dùng >60%/2bucket và <25%/3bucket; thời gian hai policy phải cách nhau ít nhất cooldown. VM ACTIVE khác app ready; ACK có thể sau WaitCondition COMPLETE nhưng mọi milestone phải nằm trong cửa sổ run. Mỗi milestone cần đường dẫn evidence nguồn, độ phân giải dương tính bằng giây và timing=event/first-observed. Report trả UTC alarm/policy/load và sáu milestone kèm metadata nguồn; metadata này vẫn phải được đối chiếu artifact thật. Request đầu quan sát có thể sau poll đầu thấy3ONLINE, không ép hai mốc đó thành một.
+
+Exit0 nghĩa là **các dữ liệu đầu vào đã chuẩn hóa nhất quán**, không xác thực nguồn log hoặc chứng minh field `origin=aodh` là thật. Người thu evidence phải đối chiếu notifier/history/Heat event/raw client logs cùng run và ghi nguồn kiểm; chỉ một boolean hoặc không thấy signal tay không đủ chứng minh tự scale. Thời gian lấy từ polling ghi rõ first-observed/độ phân giải nguồn; không tự biến thành timestamp chính xác của Nova. Chưa quan sát notifier runtime, missing-data fault hoặc scale tự động thì vẫn ghi chưa kiểm dù fixture PASS.
+
+Bộ kiểm này phục vụ một lượt core theo FR-INF-11/NFR-06. Nó không thay benchmark static-vs-auto >=3lượt của TV4, không chứng minh request đang xử lý không mất visit và không hoàn tất phần portal/worker NFR-19.
+
+## Kiểm chỉ đọc trước bật action — 15/11/2026
+
+Đã đối chiếu source Heat/Aodh trên A và plugin notifier đang cài: `trust+http`/`trust+https` dùng `TrustRestAlarmNotifier`, lấy token qua Keystone trust rồi POST tới native signal URL. Native `signal_url` riêng lẻ không có chữ ký và vẫn cần auth. `trust+heat` phục vụ autohealing/mark-unhealthy, không phải đường gọi ScalingPolicy trong phép thử này. Đây mới là xác minh source/plugin; chưa kiểm quyền tạo trust hoặc POST thực, chưa chọn transport là đã nghiệm thu.
+
+Không lấy signed `alarm_url` để thử: source REST notifier ghi action URL ở INFO, và Heat có thể tạo key khi resolve signed URL. Các target thật chưa được lấy hoặc ghi vào env trong lượt kiểm này. Native trust action cũng cần kiểm scope/visibility trước mutation, dù API Aodh có bước scrub trust ID khi trả dữ liệu.
+
+Gate dữ liệu chưa đủ căn cứ để bật action: source `_bound_duration` kết thúc query tại now; `additional_ingestion_lag` chỉ kéo start. `_sanitize` của Gnocchi evaluator lọc granularity/lấy n điểm cuối, không loại timestamp hiện tại hoặc giá trị âm; aggregation dùng `needed_overlap=0`. API thật trả bucket của phút đang chạy. Characterization các hàm đang cài với dữ liệu giả nhận hai bucket đầy đủ cộng một bucket hiện tại thành ba điểm, và low comparator nhận ba điểm âm thành ALARM. Phép kiểm này không tạo/sửa alarm, không phải bằng chứng đã xảy ra false alarm hoặc scale sai trên cloud.
+
+Collector/analyzer vẫn PASS trên sáu bucket đầy đủ của đúng hai app. Điều đó không chứng minh evaluator Aodh xử lý an toàn mọi trường hợp thiếu metric hoặc VM mới tham gia. Hai alarm giữ disabled/actions rỗng. [Issue #47](https://github.com/luongkien25/campuslink/issues/47) yêu cầu xác minh/chốt phương án trước bật action; workload chung theo [#44](https://github.com/luongkien25/campuslink/issues/44).
+
+Evidence: [bản ngắn](../../../evidence/G4/20261115-FR-INF-11-tv2-notifier-preflight.txt), [snapshot/source/characterization đã lọc](../../../evidence/G4/20261115-FR-INF-11-tv2-notifier-preflight.json). Chưa thực hiện nghiệm thu FR-INF-11 tự2→3→2.

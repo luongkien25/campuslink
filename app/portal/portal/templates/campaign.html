@@ -1,0 +1,51 @@
+{% extends "base.html" %}{% block title %}{{ c.name }}{% endblock %}
+{% block body %}
+<p><a href="{{ '/admin' if user.role == 'admin' else '/campaigns' }}">← Danh sách</a></p>
+<h1>{{ c.name }}</h1>
+<section>
+  <p>Tag <code>{{ c.tag }}</code> · hết hạn {{ c.ends_at|fmt }} ({{ tzname }}) ·
+  <span class="tag {{ c.status if c.ends_at > now else 'closed' }}">{{ c.status if c.ends_at > now else 'hết hạn' }}</span>
+  {% if visits is not none %} · <b>{{ visits }}</b> lượt quét/nhấp{% endif %}</p>
+  {% if user.role == 'unit' and c.status == 'open' %}
+  <details><summary>Sửa / đóng chiến dịch</summary>
+    <form method="post" action="/campaigns/{{ c.id }}/edit">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label for="n">Tên</label><input id="n" name="name" value="{{ c.name }}" required>
+      <label for="e">Hết hạn</label><input id="e" name="ends_at" type="datetime-local" value="{{ (c.ends_at|fmt).replace(' ', 'T') }}" required>
+      <button type="submit">Lưu</button>
+    </form>
+    <form method="post" action="/campaigns/{{ c.id }}/close" onsubmit="return confirm('Đóng chiến dịch? Mọi link sẽ ngừng chuyển hướng ngay.')">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><button class="danger" type="submit">Đóng chiến dịch</button>
+    </form>
+  </details>
+  {% endif %}
+</section>
+<section class="scroll">
+  <h2>Link</h2>
+  <table><tr><th>Short link</th><th>Đích</th><th>Nhãn</th></tr>
+  {% for l in links %}<tr><td><code>{{ l.short_url }}</code></td><td><code>{{ l.long_url }}</code></td><td>{{ l.label or '' }}</td></tr>
+  {% else %}<tr><td colspan="3" class="muted">Chưa có link</td></tr>{% endfor %}</table>
+  {% if user.role == 'unit' and c.status == 'open' %}
+  <form method="post" action="/campaigns/{{ c.id }}/links">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label for="l">Thêm link, mỗi dòng: <code>URL đích | nhãn</code></label><textarea id="l" name="links" required></textarea>
+    <button type="submit">Thêm</button>
+  </form>
+  {% endif %}
+</section>
+<section class="scroll">
+  <h2>Thẻ QR</h2>
+  <table><tr><th>Lần</th><th>Số thẻ</th><th>Trạng thái</th><th>Lúc</th><th></th></tr>
+  {% for b in batches %}<tr><td>v{{ b.version }}</td><td>{{ b.n }}</td><td>{{ b.status }}{% if b.error %} <span class="muted">{{ b.error }}</span>{% endif %}</td><td>{{ b.created_at|fmt }}</td>
+    <td>{% if b.status == 'done' %}<a href="/campaigns/{{ c.id }}/cards/{{ b.id }}.pdf">Tải PDF</a>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="5" class="muted">Chưa phát hành</td></tr>{% endfor %}</table>
+  {% if user.role == 'unit' and c.status == 'open' %}
+  <form method="post" action="/campaigns/{{ c.id }}/cards">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label for="t">URL đích của thẻ (mỗi người một short link riêng trỏ tới đây)</label><input id="t" name="target_url" type="url" required>
+    <label for="a">Người tham dự, mỗi dòng: <code>Họ tên, Đơn vị</code> (tối đa 300)</label><textarea id="a" name="attendees" required></textarea>
+    <button type="submit">Phát hành thẻ</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% block title %}Chiến dịch{% endblock %}
+{% block body %}
+<h1>Chiến dịch của {{ user.unit_name }}</h1>
+<section class="scroll">
+  <table><tr><th>#</th><th>Tên</th><th>Tag</th><th>Link</th><th>Hết hạn ({{ tzname }})</th><th>Trạng thái</th></tr>
+  {% for x in campaigns %}
+    <tr><td>{{ x.id }}</td><td><a href="/campaigns/{{ x.id }}">{{ x.name }}</a></td><td><code>{{ x.tag }}</code></td><td>{{ x.n_links }}</td>
+    <td>{{ x.ends_at|fmt }}</td><td><span class="tag {{ x.status if x.ends_at > now else 'closed' }}">{{ x.status if x.ends_at > now else 'hết hạn' }}</span></td></tr>
+  {% else %}<tr><td colspan="6" class="muted">Chưa có chiến dịch</td></tr>{% endfor %}</table>
+</section>
+{% if user.role == 'unit' %}
+<section>
+  <h2>Tạo chiến dịch</h2>
+  <form method="post" action="/campaigns">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label for="n">Tên chiến dịch</label><input id="n" name="name" required>
+    <div class="grid">
+      <div><label for="s">Bắt đầu (tùy chọn)</label><input id="s" name="starts_at" type="datetime-local"></div>
+      <div><label for="e">Hết hạn</label><input id="e" name="ends_at" type="datetime-local" required></div>
+    </div>
+    <label for="l">Link, mỗi dòng: <code>URL đích | nhãn</code></label>
+    <textarea id="l" name="links" placeholder="https://example.org/dang-ky | Đăng ký&#10;https://example.org/lich | Lịch"></textarea>
+    <p class="muted">Giờ theo {{ tzname }}. Mỗi link mang tag của chiến dịch; quá hạn thì link không còn chuyển hướng.</p>
+    <button type="submit">Tạo chiến dịch</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

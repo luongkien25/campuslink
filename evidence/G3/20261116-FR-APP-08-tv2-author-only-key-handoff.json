@@ -1,0 +1,243 @@
+{
+  "issue": 58,
+  "requirements": [
+    "FR-APP-08",
+    "NFR-08"
+  ],
+  "scope": "TV2 create two Shlink author-only API keys and hand off through Swift; no secret values in evidence",
+  "generation_options": [
+    "api-key:generate",
+    "--author-only",
+    "--no-ansi",
+    "--no-interaction"
+  ],
+  "preflight": {
+    "checked_utc": "2026-11-16T15:51:44.847825+00:00",
+    "members": [
+      {
+        "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+        "address": "10.20.0.195",
+        "status": "ONLINE",
+        "enabled": true
+      },
+      {
+        "id": "1d1b931f-9702-4d05-852c-2f8edc479b81",
+        "address": "10.20.0.102",
+        "status": "ONLINE",
+        "enabled": true
+      }
+    ],
+    "health": {
+      "status": 200,
+      "body_status": "pass"
+    },
+    "alarms": [
+      {
+        "alarm_id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "name": "campus-app-cpu-alarms-cpu_high-pkzh3rpjme4t",
+        "state": "ok",
+        "enabled": false,
+        "repeat_actions": false,
+        "rule": {
+          "threshold": 36000000000.0,
+          "evaluation_periods": 2,
+          "granularity": 60,
+          "aggregation_method": "rate:mean",
+          "comparison_operator": "gt"
+        },
+        "alarm_actions": [],
+        "ok_actions": [],
+        "insufficient_data_actions": []
+      },
+      {
+        "alarm_id": "90f9060e-af83-4bba-834c-52753144421c",
+        "name": "campus-app-cpu-alarms-cpu_low-b2jftvqpeutt",
+        "state": "alarm",
+        "enabled": false,
+        "repeat_actions": false,
+        "rule": {
+          "threshold": 15000000000.0,
+          "evaluation_periods": 3,
+          "granularity": 60,
+          "aggregation_method": "rate:mean",
+          "comparison_operator": "lt"
+        },
+        "alarm_actions": [],
+        "ok_actions": [],
+        "insufficient_data_actions": []
+      }
+    ]
+  },
+  "object_metadata_before": [
+    {
+      "name": "tv3-donvi-a",
+      "head_status": 404,
+      "content_length": "0"
+    },
+    {
+      "name": "tv3-donvi-b",
+      "head_status": 404,
+      "content_length": "0"
+    }
+  ],
+  "handoff": {
+    "completed_utc": "2026-11-16T15:55:42.602944+00:00",
+    "results": [
+      {
+        "key_name": "tv3-donvi-a",
+        "author_only_requested": true,
+        "object": "campus-secrets/ops/shlink_api_key_tv3-donvi-a",
+        "put_status": 201,
+        "head_status": 200,
+        "content_length": 37,
+        "etag_matches_generated_payload": true,
+        "internal_http_checks": {
+          "list": 200,
+          "foreign_admin_fixture": 404
+        }
+      },
+      {
+        "key_name": "tv3-donvi-b",
+        "author_only_requested": true,
+        "object": "campus-secrets/ops/shlink_api_key_tv3-donvi-b",
+        "put_status": 201,
+        "head_status": 200,
+        "content_length": 37,
+        "etag_matches_generated_payload": true,
+        "internal_http_checks": {
+          "list": 200,
+          "foreign_admin_fixture": 404
+        }
+      }
+    ],
+    "secret_printed": false,
+    "limits": "Checks do not replace TV3 full cross-key A/B smoke"
+  },
+  "temporary_access": {
+    "created_utc": "2026-11-16T15:53:55.120394+00:00",
+    "app_port": "6c352539-4367-4b6b-8405-ac4e507f0e78",
+    "app_original_sgs": [
+      "b3eb3225-3e50-4c38-b43f-3823b6022d05"
+    ],
+    "jump_sg": "f96b88aa-4cec-4517-9de4-c6a0979259ca",
+    "app_ssh_sg": "4bef2ed3-0254-4ee8-b288-578ddf7d1f49",
+    "jump_port": "974af07c-e069-453a-9463-6323c7336c56",
+    "jump_id": "e599e8de-2337-45e5-8d06-f545e7efa74a",
+    "jump_fip_id": "4e803170-706c-41c5-a6c1-a77d32bc2eff",
+    "jump_fip": "172.24.4.183",
+    "app_ssh_attached": true,
+    "active_observed_utc": "2026-11-16T15:54:09.584285+00:00"
+  },
+  "temporary_guest_key_files_removed": true,
+  "temporary_access_cleanup": {
+    "created_utc": "2026-11-16T15:53:55.120394+00:00",
+    "app_port": "6c352539-4367-4b6b-8405-ac4e507f0e78",
+    "app_original_sgs": [
+      "b3eb3225-3e50-4c38-b43f-3823b6022d05"
+    ],
+    "jump_sg": "f96b88aa-4cec-4517-9de4-c6a0979259ca",
+    "app_ssh_sg": "4bef2ed3-0254-4ee8-b288-578ddf7d1f49",
+    "jump_port": "974af07c-e069-453a-9463-6323c7336c56",
+    "jump_id": "e599e8de-2337-45e5-8d06-f545e7efa74a",
+    "jump_fip_id": "4e803170-706c-41c5-a6c1-a77d32bc2eff",
+    "jump_fip": "172.24.4.183",
+    "app_ssh_attached": false,
+    "active_observed_utc": "2026-11-16T15:54:09.584285+00:00",
+    "cleaned_utc": "2026-11-16T15:56:55.346740+00:00"
+  },
+  "final_check": {
+    "checked_utc": "2026-11-16T15:57:12.756148+00:00",
+    "host_a_boot_utc": "2026-11-16T13:26:06+00:00",
+    "apps": [
+      {
+        "id": "6ed60f3b-aa27-4679-b762-ca7e88264785",
+        "name": "ca-tcyx-6rqfc52yqxvk-mdhc76ui5e7u-server-oe2zug5ubkmb",
+        "status": "ACTIVE",
+        "az": "campus-az-b",
+        "ips": [
+          "10.20.0.102"
+        ]
+      },
+      {
+        "id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "name": "campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26",
+        "status": "ACTIVE",
+        "az": "campus-az-a",
+        "ips": [
+          "10.20.0.195"
+        ]
+      }
+    ],
+    "members": [
+      {
+        "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+        "address": "10.20.0.195",
+        "status": "ONLINE"
+      },
+      {
+        "id": "1d1b931f-9702-4d05-852c-2f8edc479b81",
+        "address": "10.20.0.102",
+        "status": "ONLINE"
+      }
+    ],
+    "alarms": [
+      {
+        "id": "37680d7a-7c46-4cf8-a789-035c7d990219",
+        "enabled": false,
+        "state": "ok",
+        "repeat_actions": false,
+        "action_count": 0
+      },
+      {
+        "id": "90f9060e-af83-4bba-834c-52753144421c",
+        "enabled": false,
+        "state": "alarm",
+        "repeat_actions": false,
+        "action_count": 0
+      }
+    ],
+    "health": {
+      "status": 200,
+      "body_status": "pass"
+    },
+    "cleanup": {
+      "jump_absent": true,
+      "jump_port_absent": true,
+      "temporary_fip_absent": true,
+      "temporary_sgs_absent": true,
+      "app_sgs_restored": true
+    },
+    "app_ports": [
+      {
+        "id": "6c352539-4367-4b6b-8405-ac4e507f0e78",
+        "device_id": "523d67b4-9234-4b09-b3dc-c814e6b868fc",
+        "security_group_ids": [
+          "b3eb3225-3e50-4c38-b43f-3823b6022d05"
+        ]
+      },
+      {
+        "id": "fc772682-b05d-48b9-b1fc-2c7a53cbbfa1",
+        "device_id": "6ed60f3b-aa27-4679-b762-ca7e88264785",
+        "security_group_ids": [
+          "b3eb3225-3e50-4c38-b43f-3823b6022d05"
+        ]
+      }
+    ],
+    "vip_fip_preserved": true,
+    "aodh_source": {
+      "sha": "e07aeb6d118b4b9099947028e6e809a6bdd8fe22",
+      "working_tree_clean": true
+    },
+    "campus_check": {
+      "returncode": 0,
+      "diagnostics": [
+        "OK: khong con ai dung. Tat duoc: B truoc, A sau."
+      ]
+    }
+  },
+  "limits": [
+    "Internal HTTP allow/deny checks are not the full TV3 cross-key A/B smoke or HTTPS acceptance.",
+    "TV3 receives two objects into0600files then deletes the transfer objects and runs own smoke; no secret value in Git/chat/evidence.",
+    "Temporary jump and ownSSHSGs were explicitly authorized by user; sharedSGs/Heat/alarm/DBVM/EC2 unchanged."
+  ]
+}

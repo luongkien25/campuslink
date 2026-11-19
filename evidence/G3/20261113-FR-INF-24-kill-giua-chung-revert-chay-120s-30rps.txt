@@ -1,0 +1,197 @@
+Evidence FR-INF-24 (G3), cot "Kiem bang" cua SRS 1.4: (1) kill -9 tien trinh campus_chaos GIUA CHUNG roi `campus_chaos.py revert` hoan tac duoc; (2) mot lan chay vm-stop 120 s voi probe 30 req/s, bao cao co du so do va dich tro ve trang thai truoc loi. Chay tren stack lab 2 VM sau LB ovn (chaos-lab.sh).
+Ngay: 2026-11-13 (gio VN 13:57-14:05), UTC 06:57:26Z-07:02:56Z; don lab lan 2 07:04:19Z-07:04:29Z. A boot 06:26:46Z (uptime -s). A Stop 14:07 gio VN theo TV1 (CHUA doi chieu last -x). B khong bat. TV1 tu chay lenh tren A (ubuntu@campus-a, trong tmux) roi scp file ve laptop cho Claude Code doi chieu; Claude khong SSH.
+Script: chaos-kill.sh run (+ chaos-lab.sh up/down, campus_chaos.py sha256 e1faff646a4e14ac3910cca555444c329f840c94f98ce2807a5754da5c7f26f7). Ban DA CHAY co sha256 76edbaa865d7e2fe3ab3476f0b77262aca4e7ea8c27fad27f8a28b289c301aef va co mot loi (xem GIOI HAN 5); ban trong repo (ops/campus-chaos/lab/chaos-kill.sh) da sua 2 dong, CHUA chay lai. Chi dung credential member campus-tv2 (sudo -u tv2), khong dung admin.
+KET QUA: chaos-kill 18 PASS, 2 FAIL. Hai FAIL giai thich o GIOI HAN 4 va 5; khong FAIL nao la ket qua thi nghiem.
+  (1) Kill -9 giua chung roi revert (lab o campus-az-a; giu loi 120 s, kill -9 ngay khi loi co hieu luc THAT):
+      Thi nghiem       state.json sau kill   loi van con sau kill   revert rc   hoi phuc sau revert (2 member ONLINE va chaos-lab-1 tra loi)   state.json sau revert
+      vm-stop          con                   con (VM SHUTOFF)       0           33,4 s (gom boot lai VM)                                        da xoa
+      member-disable   con                   con (admin_state_up=False)   0     2,9 s                                                           da xoa
+      Tien trinh campus_chaos bi kill -9 that (pgrep khong con thay); bao cao khong duoc ghi cho hai lan bi kill (dung ky vong: tien trinh chet truoc khi ghi).
+  (2) vm-stop 120 s, probe 30 req/s (nen 10 s), lab 2 member: verdict PASS. Phat hien 2,5 s; hoi phuc status 30,2 s; dich tra loi lai sau 29,6 s; 0 loi trong 3372 probe (khoang 28,0 req/s thuc te trong 120,4 s); 0 loi sau phat hien; 0 phan hoi tu muc tieu sau phat hien. Gia thuyet khai truoc (phat hien <= 15 s, 0 loi, hoi phuc <= 150 s) deu dat. Bao cao len Swift campus-reports/chaos/20261113T070229Z-tat-vm-120s-30rps.json; sau do campus_chaos.py status = "khong co thi nghiem dang chay".
+  Doi chieu SRS FR-INF-24 "Kiem bang": kich ban nham DB VM bi tu choi (da kiem cung ngay, evidence 20261113-FR-INF-24-campus-chaos-chay-tren-cum.txt); kill giua chung roi revert hoan tac duoc (muc 1 o tren); kich ban tat 1 app VM 120 s voi 30 req/s co bao cao du so do va dich tro ve (muc 2), NHUNG dieu kien thuc te khac SRS (xem GIOI HAN 1).
+GIOI HAN (khong doc thanh ket luan rong hon):
+  (1) SRS ghi "tat 1 app VM O B khi k6 chay 30 RPS". Lan nay: lab o AZ-A (B khong bat) va probe 30 req/s bang Python tu A (khong phai k6; thuc te khoang 28 req/s). Chua chay o B va chua chay k6.
+  (2) Kill -9 chi giet tien trinh Python, khong phai mat dien host A hay mat state.json. `revert` hoat dong vi state.json duoc ghi truoc khi gay loi va con lai tren dia; neu mat state.json thi phai hoan tac tay.
+  (3) Mot lan chay cho moi kich ban, mot lab, 2 member; chua lap lai.
+  (4) chaos-lab.sh down lan dau bao "con 1 tai nguyen chaos-lab (server/LB/FIP)" (FAIL thu hai trong ngay; lan dau 12/11 cung vay). Chay lai `down` luc 07:04:19Z ra "PASS khong con tai nguyen chaos-lab". Nguyen nhan chua xac dinh (nghi xoa LB tre hon thoi gian cho 90 s cua script; CHUA kiem).
+  (5) Loi cua chaos-kill.sh (ban da chay): ham summ doc khoa `scenario` khong co trong JSON in ra, nen buoc 3 in FAIL gia "khong doc duoc ket qua JSON" va bo qua hai kiem tra cuoi buoc do ("state.json da xoa", "dich tro ve trang thai truoc loi"). Ket qua that van thay trong JSON in ngay duoi dong FAIL (verdict PASS, dich_tro_lai true) va o buoc 5 (status: khong co thi nghiem dang chay). Da sua trong repo, chua chay lai.
+  (6) Dung credential member campus-tv2; chua co credential rieng campus-chaos voi access rules (phan con lai cua O-20).
+
+== Output cua chaos-kill.sh (tu /home/ubuntu/chaos-kill-20261113.txt tren A)
+== chaos-kill run bat dau 2026-11-13T06:57:26Z tren campus-a
+INFO  may: campus-a, 2026-11-13T06:57:26Z, boot 2026-11-13 06:26:46
+INFO  campus_chaos.py sha256: e1faff646a4e14ac3910cca555444c329f840c94f98ce2807a5754da5c7f26f7
+INFO  dinh dang kich ban: yaml
+PASS  preflight: file, quyen member, thu muc lam viec /tmp/campus-chaos
+INFO  == 1. dung lab (chaos-lab.sh up)
+INFO    INFO  == up: dung lab 2 VM + LB ovn
+INFO    PASS  up: chaos-lab-1 ACTIVE (campus_role=app, campus-az-a) ip=10.20.0.134
+INFO    PASS  up: chaos-lab-2 ACTIVE (campus_role=app, campus-az-a) ip=10.20.0.166
+INFO    PASS  up: LB ovn ACTIVE, VIP=10.20.0.145, FIP=172.24.4.137, pool SOURCE_IP_PORT, HM TCP 5/3/2, 2 member
+INFO    PASS  up: ca hai backend tra loi qua VIP (chaos-lab-1, chaos-lab-2)
+INFO    PASS  up: m1, m2 ONLINE
+PASS  lab san sang: 2 member ONLINE, VIP tra loi
+INFO  == 2. kill -9 giua chung roi revert (hanh dong vm-stop, roi member-disable)
+INFO  == kill giua chung: kill-vm-1 (vm-stop, giu loi 120 s; se kill -9 ngay khi loi co hieu luc) 06:58:35Z
+PASS  kill-vm-1: loi da co hieu luc that (vm-stop) va state.json da ghi
+PASS  kill-vm-1: tien trinh campus_chaos da bi kill -9 giua chung
+PASS  kill-vm-1: state.json con lai sau kill (de revert biet hoan tac gi)
+PASS  kill-vm-1: loi van con hieu luc sau kill (khong ai hoan tac, dung ky vong)
+INFO    {"name": "kill-vm-1", "action": "vm-stop", "ctx": {"server": "chaos-lab-1", "server_id": "10682d77-b0fb-4fb6-923d-9955fc365881", "ip": "10.20.0.134", "pool": "aed86280-b4e0-4ac1-b963-d6bffb58c8d8", "member_id": "c017df7c-b5fd-4280-9e2f-8e3d6a3bf673", "status_before": "ACTIVE"}, "started": 1794553117.872747}
+INFO    hoan tac rc=0
+PASS  kill-vm-1: campus_chaos.py revert rc=0
+PASS  kill-vm-1: sau revert, 2 member ONLINE va chaos-lab-1 tra loi lai sau 33.4 s tinh tu luc go revert
+PASS  kill-vm-1: state.json da xoa sau revert
+INFO  == kill giua chung: kill-member-1 (member-disable, giu loi 120 s; se kill -9 ngay khi loi co hieu luc) 06:59:23Z
+PASS  kill-member-1: loi da co hieu luc that (member-disable) va state.json da ghi
+PASS  kill-member-1: tien trinh campus_chaos da bi kill -9 giua chung
+PASS  kill-member-1: state.json con lai sau kill (de revert biet hoan tac gi)
+PASS  kill-member-1: loi van con hieu luc sau kill (khong ai hoan tac, dung ky vong)
+INFO    {"name": "kill-member-1", "action": "member-disable", "ctx": {"server": "chaos-lab-1", "server_id": "10682d77-b0fb-4fb6-923d-9955fc365881", "ip": "10.20.0.134", "pool": "aed86280-b4e0-4ac1-b963-d6bffb58c8d8", "member_id": "c017df7c-b5fd-4280-9e2f-8e3d6a3bf673", "status_before": "ACTIVE"}, "started": 1794553165.9361782}
+INFO    hoan tac rc=0
+PASS  kill-member-1: campus_chaos.py revert rc=0
+PASS  kill-member-1: sau revert, 2 member ONLINE va chaos-lab-1 tra loi lai sau 2.9 s tinh tu luc go revert
+PASS  kill-member-1: state.json da xoa sau revert
+INFO  == 3. chay that 120 s voi probe 30 req/s
+INFO  == chay that tat-vm-120s-30rps: vm-stop giu loi 120 s, probe 30 req/s (nen 10 s) 06:59:40Z
+INFO  rc=0
+FAIL  tat-vm-120s-30rps: khong doc duoc ket qua JSON
+INFO    {
+INFO    "verdict": "PASS",
+INFO    "checks": {
+INFO    "lenh_gay_loi_ok": true,
+INFO    "hoan_tac_ok": true,
+INFO    "phat_hien_trong_han": true,
+INFO    "khong_loi_sau_phat_hien": true,
+INFO    "dich_tro_lai": true
+INFO    },
+INFO    "metrics": {
+INFO    "detect_s": 2.5,
+INFO    "recover_status_s": 30.2,
+INFO    "target_back_s": 29.6,
+INFO    "probes_in_fault": 3372,
+INFO    "errors_in_fault": 0,
+INFO    "errors_after_detect": 0,
+INFO    "target_resp_after_detect": 0
+INFO    },
+INFO    "aborted_reason": null,
+INFO    "report": "/tmp/campus-chaos/reports/20261113T070229Z-tat-vm-120s-30rps.json"
+INFO    }
+INFO  == 4. bao cao tren Swift campus-reports/chaos/ (chi lan chay 120 s co bao cao; hai lan bi kill khong co, dung ky vong)
+PASS  Swift co bao cao tat-vm-120s-30rps: chaos/20261113T070229Z-tat-vm-120s-30rps.json
+INFO  == 5. trang thai cuoi
+INFO    khong co thi nghiem dang chay
+PASS  status: khong co thi nghiem dang chay
+INFO  == 6. don lab
+INFO    == chaos-lab down bat dau 2026-11-13T07:02:31Z tren campus-a
+INFO    INFO  == down: don lab
+INFO    FAIL  down: con 1 tai nguyen chaos-lab (server/LB/FIP); chay lai: sudo bash /home/ubuntu/chaos/chaos-lab.sh down
+INFO    == ket qua: 0 PASS, 1 FAIL (2026-11-13T07:02:54Z). File: /home/ubuntu/chaos-lab-20261113.txt
+FAIL  down: con 0 tai nguyen hoac con /home/ubuntu/.chaos-lab.state (chay lai: sudo bash chaos-kill.sh down)
+INFO  ban sao ket qua o /home/ubuntu/chaos-kill-reports: 13 file
+INFO  tong thoi gian 330.6 s
+== ket qua: 18 PASS, 2 FAIL (2026-11-13T07:02:56Z). File: /home/ubuntu/chaos-kill-20261113.txt
+
+== Output cua chaos-lab.sh (tu /home/ubuntu/chaos-lab-20261113.txt tren A; phan tu lan up luc 06:57Z den lan down thu hai luc 07:04Z)
+== chaos-lab up bat dau 2026-11-13T06:57:27Z tren campus-a
+INFO  == up: dung lab 2 VM + LB ovn
+INFO  han muc (member tv2):
+INFO    | floating_ips                |    -1 |
+INFO    | floating_ips_used           |     0 |
+INFO    | instances                   |     6 |
+INFO    | instances_used              |     1 |
+INFO    | max_total_cores             |     8 |
+INFO    | max_total_floating_ips      |    -1 |
+INFO    | max_total_instances         |     6 |
+INFO    | max_total_ram_size          | 12288 |
+INFO    | total_cores                 |     8 |
+INFO    | total_cores_used            |     1 |
+INFO    | total_floating_ips_used     |     0 |
+INFO    | total_instances_used        |     1 |
+INFO    | total_ram                   | 12288 |
+INFO    | total_ram_used              |  2048 |
+PASS  up: chaos-lab-1 ACTIVE (campus_role=app, campus-az-a) ip=10.20.0.134
+PASS  up: chaos-lab-2 ACTIVE (campus_role=app, campus-az-a) ip=10.20.0.166
+PASS  up: LB ovn ACTIVE, VIP=10.20.0.145, FIP=172.24.4.137, pool SOURCE_IP_PORT, HM TCP 5/3/2, 2 member
+PASS  up: ca hai backend tra loi qua VIP (chaos-lab-1, chaos-lab-2)
+PASS  up: m1, m2 ONLINE
+== ket qua: 5 PASS, 0 FAIL (2026-11-13T06:58:33Z). File: /home/ubuntu/chaos-lab-20261113.txt
+== chaos-lab down bat dau 2026-11-13T07:02:31Z tren campus-a
+INFO  == down: don lab
+FAIL  down: con 1 tai nguyen chaos-lab (server/LB/FIP); chay lai: sudo bash /home/ubuntu/chaos/chaos-lab.sh down
+== ket qua: 0 PASS, 1 FAIL (2026-11-13T07:02:54Z). File: /home/ubuntu/chaos-lab-20261113.txt
+== chaos-lab down bat dau 2026-11-13T07:04:19Z tren campus-a
+INFO  == down: don lab
+PASS  down: khong con tai nguyen chaos-lab
+== ket qua: 1 PASS, 0 FAIL (2026-11-13T07:04:29Z). File: /home/ubuntu/chaos-lab-20261113.txt
+
+== Ket qua lenh revert (revert-kill-vm-1.txt)
+hoan tac rc=0 
+
+== Ket qua lenh revert (revert-kill-member-1.txt)
+hoan tac rc=0 
+
+== Bao cao JSON tren Swift: campus-reports/chaos/20261113T070229Z-tat-vm-120s-30rps.json
+{
+  "scenario": {
+    "name": "tat-vm-120s-30rps",
+    "action": "vm-stop",
+    "duration_s": 120,
+    "baseline_s": 10,
+    "target": {
+      "server": "chaos-lab-1",
+      "pool": "aed86280-b4e0-4ac1-b963-d6bffb58c8d8"
+    },
+    "probe": {
+      "url": "http://172.24.4.137:8080/",
+      "rate_per_s": 30,
+      "timeout_s": 1,
+      "marker": "chaos-lab-1"
+    },
+    "stop_if": {
+      "error_rate_gt": 0.2,
+      "window_s": 5,
+      "min_probes": 8,
+      "online_members_lt": 1
+    },
+    "hypothesis": {
+      "detect_within_s": 15,
+      "max_errors_after_detect": 0,
+      "recover_within_s": 150
+    },
+    "report": {
+      "swift_container": "campus-reports"
+    }
+  },
+  "target": {
+    "server": "chaos-lab-1",
+    "server_id": "10682d77-b0fb-4fb6-923d-9955fc365881",
+    "ip": "10.20.0.134",
+    "pool": "aed86280-b4e0-4ac1-b963-d6bffb58c8d8",
+    "member_id": "c017df7c-b5fd-4280-9e2f-8e3d6a3bf673",
+    "status_before": "ACTIVE"
+  },
+  "verdict": "PASS",
+  "checks": {
+    "lenh_gay_loi_ok": true,
+    "hoan_tac_ok": true,
+    "phat_hien_trong_han": true,
+    "khong_loi_sau_phat_hien": true,
+    "dich_tro_lai": true
+  },
+  "metrics": {
+    "detect_s": 2.5,
+    "recover_status_s": 30.2,
+    "target_back_s": 29.6,
+    "probes_in_fault": 3372,
+    "errors_in_fault": 0,
+    "errors_after_detect": 0,
+    "target_resp_after_detect": 0
+  },
+  "aborted_reason": null,
+  "fault_rc": 0,
+  "revert_rc": 0,
+  "t0": 1794553193.2004824,
+  "t1": 1794553313.6098585,
+  "finished_utc": "20261113T070229Z"
+}
