@@ -25,3 +25,10 @@ condition = "AND"
 paths = ['''evidence/G3/20261112-FR-INF-15-16-backup-restore-cum[.]txt$''']
 regexTarget = "line"
 regexes = ['''credential campus-db-backup id=[0-9a-f]{32} het han''']
+
+[[allowlists]]
+description = "evidence TV3 (PR #63): dong GPG_KEY=<40 hex> trong output env cua image python goc; day la ID khoa CONG KHAI ky ban phat hanh Python, khong phai secret (gitleaks quet moi nhanh nen bao nham tren moi PR)"
+condition = "AND"
+paths = ['''evidence/G3/20261118-H1b-FR-APP-13-portal-image-build[.]txt$''']
+regexTarget = "line"
+regexes = ['''GPG_KEY=[0-9A-F]{40}''']
