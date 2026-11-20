@@ -18,18 +18,27 @@ ADMIN="${SHLINK_ADMIN:-https://s.44-198-215-187.sslip.io}"
 
 ensure_slug() {
   local slug="$1" url="$2"
-  local code
+  local code body actual_url
   code=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${ADMIN}/rest/v3/short-urls" \
     -H "Content-Type: application/json" \
     --data "{\"longUrl\":\"${url}\",\"customSlug\":\"${slug}\",\"tags\":[\"campus-open-day\",\"load-test\"]}" \
     --config <(printf 'header = "X-Api-Key: %s"\n' "$SHLINK_API_KEY"))
-  if [[ "$code" == "200" ]]; then
-    echo "  [CREATED] ${slug} -> ${url}"
-  elif [[ "$code" == "400" ]]; then
-    echo "  [EXISTS]  ${slug} (da ton tai, giu nguyen)"
-  else
+  if [[ "$code" != "200" && "$code" != "400" ]]; then
     echo "  [ERROR]   ${slug} -> HTTP ${code}" >&2
     return 1
+  fi
+  # Xac minh lai longUrl va tags qua GET /rest/v3/short-urls/{slug} (H5 muc 3.1: Shlink tra 400 ca khi trung slug khac dich)
+  body=$(curl -sS "${ADMIN}/rest/v3/short-urls/${slug}" \
+    --config <(printf 'header = "X-Api-Key: %s"\n' "$SHLINK_API_KEY"))
+  actual_url=$(python3 -c 'import json,sys; d=json.loads(sys.stdin.read()); print(d.get("longUrl",""))' <<<"$body" 2>/dev/null || true)
+  if [[ "$actual_url" != "$url" ]]; then
+    echo "  [MISMATCH] ${slug}: mong doi longUrl='${url}', thuc te='${actual_url:-KHONG_DOC_DUOC}'" >&2
+    return 1
+  fi
+  if [[ "$code" == "200" ]]; then
+    echo "  [CREATED]  ${slug} -> ${actual_url}"
+  else
+    echo "  [VERIFIED] ${slug} -> ${actual_url} (da ton tai, khop dich)"
   fi
 }
 
