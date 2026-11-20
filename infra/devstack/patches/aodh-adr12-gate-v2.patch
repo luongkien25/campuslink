@@ -1,8 +1,8 @@
 diff --git a/aodh/evaluator/gnocchi.py b/aodh/evaluator/gnocchi.py
-index 6497f498..4fbd210e 100644
+index 6497f498..be5d3a3e 100644
 --- a/aodh/evaluator/gnocchi.py
 +++ b/aodh/evaluator/gnocchi.py
-@@ -12,11 +12,14 @@
+@@ -12,12 +12,16 @@
  # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
  # License for the specific language governing permissions and limitations
  # under the License.
@@ -15,9 +15,11 @@ index 6497f498..4fbd210e 100644
  from oslo_log import log
 +from oslo_utils import timeutils
  
++from aodh import evaluator
  from aodh.evaluator import threshold
  from aodh import keystone_client
-@@ -142,7 +145,80 @@ class GnocchiAggregationMetricsThresholdEvaluator(GnocchiBase):
+ 
+@@ -142,7 +146,95 @@ class GnocchiAggregationMetricsThresholdEvaluator(GnocchiBase):
  
  
  class GnocchiAggregationResourcesThresholdEvaluator(GnocchiBase):
@@ -91,6 +93,21 @@ index 6497f498..4fbd210e 100644
 +            self._campus_reject(rule, 'negative')
 +        return [[(epoch + datetime.timedelta(seconds=t)).isoformat(), gran,
 +                 mean[t]] for t in want]
++
++    def _transition_alarm(self, alarm, state, trending_state, statistics,
++                          outside_count, unknown_reason):
++        # CAMPUS ADR-12 gate v2.1: alarm dang insufficient data ma cua so lan
++        # lon (equivocal) thi upstream lay trending_state theo bucket cuoi
++        # (threshold.py _transition_alarm). Voi rate:* giu insufficient data
++        # cho toi khi co cua so quyet dinh (du N bucket cung chieu).
++        if (trending_state and alarm.state == evaluator.UNKNOWN and
++                alarm.rule['aggregation_method'].startswith('rate:')):
++            LOG.info('campus-gate hold=equivocal op=%s n=%s trend=%s',
++                     alarm.rule['comparison_operator'],
++                     alarm.rule['evaluation_periods'], trending_state)
++            return
++        super()._transition_alarm(alarm, state, trending_state, statistics,
++                                  outside_count, unknown_reason)
 +
      def _statistics(self, rule, start, end):
 +        if rule['aggregation_method'].startswith('rate:'):

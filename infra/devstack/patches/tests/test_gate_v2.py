@@ -278,5 +278,119 @@ class TestGateV2(unittest.TestCase):
                 self.assertEqual(0, ev._gnocchi_client.calls[0]['needed_overlap'])
 
 
+class FakeAlarm(object):
+    # chi cac truong ma evaluate()/_transition_alarm()/_refresh() doc
+    def __init__(self, rule, state):
+        self.alarm_id = 'a-' + rule['comparison_operator']
+        self.project_id = 'p'
+        self.rule = dict(rule)
+        self.state = state
+        self.state_reason = state
+        self.repeat_actions = False  # nhu infra/heat/alarms.yaml
+        self.time_constraints = []
+        self.severity = 'low'
+
+
+def make_full_ev(cls, vms):
+    ev = make_ev(cls, vms)
+    ev.conf.record_history = False
+    ev.conf.enable_evaluation_results_metrics = False
+    ev.storage_conn = mock.Mock()
+    ev.notifier = mock.Mock()
+    return ev
+
+
+def window(vals, last='09:59'):
+    # N bucket lien tiep ket thuc o bucket dong gan nhat, gia tri % CPU
+    t = ts(last) - datetime.timedelta(seconds=60 * (len(vals) - 1))
+    out = {}
+    for v in vals:
+        out[t] = pct(v)
+        t += datetime.timedelta(seconds=60)
+    return out
+
+
+def run_full(cls, rule, state, vals, now=NOW):
+    """Chay evaluate() (tang tren evaluate_rule): tra (state, refresh_calls)."""
+    ev = make_full_ev(cls, {'a': {'pts': window(vals)},
+                            'b': {'pts': window(vals)}})
+    alarm = FakeAlarm(rule, state)
+    with mock.patch.object(ev, '_refresh', wraps=ev._refresh) as spy:
+        with mock.patch.object(timeutils, 'utcnow', return_value=now):
+            ev.evaluate(alarm)
+    return alarm.state, [c.args[1] for c in spy.call_args_list], ev
+
+
+def load_upstream():
+    spec = importlib.util.spec_from_file_location('up_gnocchi2',
+                                                  UPSTREAM_GNOCCHI)
+    up = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(up)
+    return up.GnocchiAggregationResourcesThresholdEvaluator
+
+
+UNKNOWN = 'insufficient data'
+
+
+class TestGateV21Evaluate(unittest.TestCase):
+    # Ca hoi phuc o tang evaluate() (TV2 review PR #81): tu insufficient data,
+    # cua so lan lon KHONG duoc dung trending_state.
+
+    def test_a_insufficient_high_lan_lon_khong_alarm(self):
+        state, calls, ev = run_full(EV, HIGH, UNKNOWN, [55, 65])
+        self.assertEqual(UNKNOWN, state)
+        self.assertEqual([], calls)
+        self.assertEqual([], ev.notifier.notify.call_args_list)
+
+    def test_b_insufficient_high_quyet_dinh_alarm(self):
+        state, calls, ev = run_full(EV, HIGH, UNKNOWN, [65, 70])
+        self.assertEqual(('alarm', ['alarm']), (state, calls))
+        self.assertEqual(1, len(ev.notifier.notify.call_args_list))
+
+    def test_c_insufficient_low_lan_lon_khong_alarm(self):
+        state, calls, ev = run_full(EV, LOW, UNKNOWN, [30, 30, 20])
+        self.assertEqual((UNKNOWN, []), (state, calls))
+        self.assertEqual([], ev.notifier.notify.call_args_list)
+
+    def test_d_insufficient_low_quyet_dinh_alarm(self):
+        state, calls, ev = run_full(EV, LOW, UNKNOWN, [20, 22, 18])
+        self.assertEqual(('alarm', ['alarm']), (state, calls))
+
+    def test_e_insufficient_high_quyet_dinh_khong_vuot_ok(self):
+        state, calls, ev = run_full(EV, HIGH, UNKNOWN, [30, 35])
+        self.assertEqual(('ok', ['ok']), (state, calls))
+
+    def test_f_ok_lan_lon_giu_ok(self):
+        state, calls, ev = run_full(EV, HIGH, 'ok', [55, 65])
+        self.assertEqual(('ok', []), (state, calls))
+        state, calls, ev = run_full(EV, LOW, 'ok', [30, 30, 20])
+        self.assertEqual(('ok', []), (state, calls))
+
+    def test_g_alarm_lan_lon_giu_alarm(self):
+        state, calls, ev = run_full(EV, HIGH, 'alarm', [55, 65])
+        self.assertEqual(('alarm', []), (state, calls))
+        state, calls, ev = run_full(EV, LOW, 'alarm', [30, 30, 20])
+        self.assertEqual(('alarm', []), (state, calls))
+
+    def test_h_khong_rate_giong_upstream(self):
+        self.assertTrue(UPSTREAM_GNOCCHI, 'can duong dan gnocchi.py upstream')
+        UP = load_upstream()
+        rule = dict(HIGH, aggregation_method='mean', threshold=pct(60))
+        for state0 in (UNKNOWN, 'ok', 'alarm'):
+            for vals in ([55, 65], [65, 70], [30, 35], [65, 55]):
+                for now in (NOW, ts('10:00', 5)):
+                    r_up = run_full(UP, rule, state0, vals, now)
+                    r_v2 = run_full(EV, rule, state0, vals, now)
+                    self.assertEqual(r_up[:2], r_v2[:2])
+                    self.assertEqual(
+                        [c.args[1:] for c in
+                         r_up[2].notifier.notify.call_args_list],
+                        [c.args[1:] for c in
+                         r_v2[2].notifier.notify.call_args_list])
+        # nhanh trending cua upstream van con voi aggregation khong rate:
+        st, calls, ev = run_full(EV, rule, UNKNOWN, [55, 65])
+        self.assertEqual(('alarm', ['alarm']), (st, calls))
+
+
 if __name__ == '__main__':
     unittest.main(argv=[sys.argv[0], '-v'])

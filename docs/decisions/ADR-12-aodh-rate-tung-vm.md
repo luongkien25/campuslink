@@ -133,12 +133,12 @@ Phép kiểm metric thiếu/reset/cũ trước hết làm offline với source �
 
 Chỉ khi cả hai phần đạt, TV1 xác nhận bằng evidence và TV2 đối chiếu độc lập thì mới **đề xuất** bật actions theo `AGENTS.md` mục 6. Trước đó giữ actions rỗng, kể cả khi bản vá đã được phép thử có kiểm soát. Giữ #47 mở cho tới khi có kết luận và bằng chứng tương ứng.
 
-## Gate v2 (20/11/2026)
+## Gate v2.1 (20/11/2026)
 
-Trạng thái: **đề xuất, CHƯA áp trên A, chưa có review của TV2.** Mới kiểm offline (mục "Kết quả kiểm offline"); chưa có bằng chứng evaluator chạy gate trên cụm. Vẫn là Heat + Aodh + Gnocchi; chỉ sửa lớp `GnocchiAggregationResourcesThresholdEvaluator` trong `aodh/evaluator/gnocchi.py`. **Không đổi** ngưỡng, granularity, `evaluation_periods`, cooldown, template Heat hay `threshold.py`.
+Trạng thái: **đề xuất, CHƯA áp trên A.** TV2 review PR #81 (bản v2, sha256 `efbde2e5…`) và tìm ra lỗ hổng ở nhánh hồi phục từ `insufficient data` (mục "Nhánh trending khi alarm đang insufficient data"); v2.1 sửa lỗ hổng đó, gộp vào cùng file patch (v2 chưa áp trên A, PR #81 chưa merge). Mới kiểm offline (mục "Kết quả kiểm offline"); chưa có bằng chứng evaluator chạy gate trên cụm. Vẫn là Heat + Aodh + Gnocchi; chỉ sửa lớp `GnocchiAggregationResourcesThresholdEvaluator` trong `aodh/evaluator/gnocchi.py`. **Không đổi** ngưỡng, granularity, `evaluation_periods`, cooldown, template Heat hay `threshold.py`.
 
-- Bản vá: `infra/devstack/patches/aodh-adr12-gate-v2.patch`, sha256 `efbde2e5fef311741f4609ae00bac30388d213c96ebf1005459142c5399f67d9`; bản vá **tăng dần**, áp **sau** `aodh-adr12-rate-per-vm.patch` (v1); 1 file, 76 dòng thêm, 0 dòng xóa.
-- sha256 của `aodh/evaluator/gnocchi.py` (tính offline): upstream `e07aeb6d` = `d63b84f4c61cd8f05a4f76488bc179720edf461592e94bb0c825cba91dd01ca0`; upstream + v1 = `8bc8a1153ce36c4732236834e173bb86cdf52d0fbc43170ce47eb331ad1dbb38`; upstream + v1 + v2 = `443751e5126a08e0abf237238f2148c8d3f088bc6fddecd0fdeb3e4fc76a77e7`.
+- Bản vá: `infra/devstack/patches/aodh-adr12-gate-v2.patch` (nội dung v2.1), sha256 `ea3d1ceed6cd054a2fad3b5f7df10f712d56ba974668dd1293cccca97bd41bc2`; bản vá **tăng dần**, áp **sau** `aodh-adr12-rate-per-vm.patch` (v1); 1 file, 92 dòng thêm, 0 dòng xóa.
+- sha256 của `aodh/evaluator/gnocchi.py` (tính offline): upstream `e07aeb6d` = `d63b84f4c61cd8f05a4f76488bc179720edf461592e94bb0c825cba91dd01ca0`; upstream + v1 = `8bc8a1153ce36c4732236834e173bb86cdf52d0fbc43170ce47eb331ad1dbb38`; upstream + v1 + v2.1 = `3d2bed8247161e54cfdaad29efcc6f5e040cc6011c251e32c000dda2798a56fb` (bản v2 cũ cho `443751e5…`, không dùng nữa).
 
 ### Cơ chế
 
@@ -148,7 +148,22 @@ Chỉ áp cho aggregation có tiền tố `rate:` (alarm CPU high/low). Aggregat
 2. **Đủ VM ở mọi bucket:** truy vấn `['aggregate', 'mean', ['metric', 'cpu', 'rate:mean']]` với `needed_overlap=100`. Theo mã Gnocchi 4.7.1 (`gnocchi/rest/aggregates/processor.py:200-220`, `api.py:169-178`), khi có `start/stop` và một VM thiếu điểm ở bất kỳ timestamp nào trong cửa sổ, Gnocchi **trả 400 cho cả truy vấn** (không loại riêng bucket đó). Gate bắt `BadRequest` → `reject=gnocchi_400`. Không thay điểm thiếu bằng 0, không bỏ VM.
 3. **Đủ N bucket liền nhau và mới:** bucket mới nhất phải đúng là bucket đóng gần nhất (`reject=stale`), đủ cả N timestamp cách nhau 60 s (`reject=missing_bucket`, ví dụ mọi VM cùng thiếu một bucket giữa).
 4. **Counter reset / giá trị không hữu hạn:** truy vấn thứ hai `['aggregate', 'min', ['metric', 'cpu', 'rate:mean']]` cùng cửa sổ; min < 0 ở bất kỳ bucket nào → `reject=negative` (phép mean che giá trị âm của một VM); NaN/inf ở mean hoặc min → `reject=nonfinite`. Timestamp không đọc được → `reject=bad_timestamp`.
-5. Đạt cả bốn mục thì trả đúng N điểm cho `_sanitize`/`evaluate_rule` như cũ; so sánh ngưỡng và chuyển state không đổi.
+5. Đạt cả bốn mục thì trả đúng N điểm cho `_sanitize`/`evaluate_rule` như cũ; so sánh ngưỡng không đổi.
+6. **Không hồi phục theo xu hướng (v2.1):** lớp override `_transition_alarm`; khi aggregation có tiền tố `rate:`, alarm đang `insufficient data` và cửa sổ lẫn lộn (có `trending_state`), evaluator ghi `LOG.info("campus-gate hold=equivocal op=… n=… trend=…")` và **không đổi state** (không gọi `_refresh`, không notify). Mọi trường hợp khác gọi nguyên `_transition_alarm` của upstream.
+
+### Nhánh trending khi alarm đang insufficient data (lỗ hổng của v2, TV2 phát hiện)
+
+Đọc lại đúng source `e07aeb6d` trên cây upstream + v1 + v2:
+
+- `aodh/evaluator/threshold.py:100-119` `_process_statistics`: khi các điểm không cùng chiều (`unequivocal` sai), trả `(None, trending_state, …)` với `trending_state = ALARM if compared[-1] else OK`, tức chỉ theo **bucket cuối**.
+- `threshold.py:146-157` `_transition_alarm`: nếu có `trending_state` và `alarm.state == UNKNOWN` (`'insufficient data'`, `aodh/evaluator/__init__.py:44`) thì lấy `state = trending_state` và gọi `_refresh` (`__init__.py:120-145`), tức chuyển state và notify (phát `alarm_actions` nếu có).
+- `threshold.py:168-183` `evaluate`: gọi `evaluate_rule` rồi `_transition_alarm`. 11 ca của v2 chỉ gọi `evaluate_rule` nên không đi qua nhánh này.
+
+Hệ quả với v2: ngay sau một lần gate từ chối (alarm sang `insufficient data`), cửa sổ high `[55%, 65%]` hoặc low `[30%, 30%, 20%]` vẫn làm alarm sang ALARM với `count=1`, trái NFR-05 (đủ 2 bucket high hoặc 3 bucket low). Đã tái hiện offline: hai ca (a), (c) dưới đây **không đạt** trên v2 cũ.
+
+Cách chọn: override `_transition_alarm` trong lớp, chỉ chặn đúng nhánh (UNKNOWN + trending + `rate:`). Đã loại: sửa `_process_statistics` (đổi cả nhánh `repeat_actions=true` khi alarm đang OK/ALARM và khó chứng minh không đổi đường mã khác); sửa `threshold.py` (ảnh hưởng mọi loại alarm, ngoài phạm vi một lớp); ném `InsufficientDataError` khi cửa sổ lẫn lộn (sẽ kéo alarm đang OK/ALARM về `insufficient data`, đổi hành vi khi alarm cũ là OK hoặc ALARM).
+
+Rủi ro mới: alarm có thể ở `insufficient data` lâu hơn v2/upstream, tới khi có một cửa sổ quyết định (đủ N bucket cùng chiều: N bucket > 60% cho ALARM, hoặc N bucket không vượt thì OK). Với CPU dao động quanh ngưỡng, alarm có thể nằm ở `insufficient data` nhiều phút; vì `insufficient_data_actions` rỗng nên không có action sai, nhưng scale-out bị trễ tương ứng. Khi alarm đã là OK/ALARM thì hành vi như upstream (cửa sổ lẫn lộn không đổi state).
 
 ### Định nghĩa
 
@@ -158,11 +173,11 @@ Chỉ áp cho aggregation có tiền tố `rate:` (alarm CPU high/low). Aggregat
 
 ### Kết quả kiểm offline (20/11/2026, laptop Windows, không chạm cụm)
 
-Mã Aodh `e07aeb6d118b4b9099947028e6e809a6bdd8fe22` clone từ opendev, `git rev-parse HEAD` khớp; v1 kiểm sha256 `9afebdfc…` khớp, `git apply --check` rồi áp. v2: `git apply --check` trên cây upstream + v1: đạt; sau khi áp `git apply -R --check`: đạt; áp lần lượt v1 rồi v2 lên cây upstream sạch cho file trùng byte với cây phát triển. Python 3.13 trên Windows, dependency bản mới nhất từ PyPI (không phải upper-constraints 2026.1; A chạy Python 3.12): **chưa kiểm** trên đúng môi trường của A.
+Mã Aodh `e07aeb6d118b4b9099947028e6e809a6bdd8fe22` clone từ opendev, `git rev-parse HEAD` khớp; v1 kiểm sha256 `9afebdfc…` khớp, `git apply --check` rồi áp. v2.1 (sha256 `ea3d1cee…`): `git apply --check` trên cây upstream + v1: đạt; sau khi áp `git apply -R --check`: đạt, lùi xong cây về đúng v1; áp lần lượt v1 rồi v2.1 lên cây upstream sạch cho file trùng byte với cây phát triển (`3d2bed82…`). Python 3.13 trên Windows, dependency bản mới nhất từ PyPI (không phải upper-constraints 2026.1; A chạy Python 3.12): **chưa kiểm** trên đúng môi trường của A.
 
-`infra/devstack/patches/tests/test_gate_v2.py` chạy mã evaluator thật (`evaluate_rule` của Aodh) với Gnocchi **giả** mô phỏng `aggregated()` của Gnocchi 4.7.1 (needed_overlap, cắt `[start, stop)`, lọc `ended_at`):
+`infra/devstack/patches/tests/test_gate_v2.py` chạy mã evaluator thật của Aodh với Gnocchi **giả** mô phỏng `aggregated()` của Gnocchi 4.7.1 (needed_overlap, cắt `[start, stop)`, lọc `ended_at`). Ca 1–11 ở tầng `evaluate_rule`; ca (a)–(h) ở tầng `evaluate()` (đi qua `_transition_alarm` và `_refresh`; storage và notifier là mock), cấu hình như `infra/heat/alarms.yaml` (high `gt` 36e9 ns, N = 2; low `lt` 15e9 ns, N = 3; granularity 60; `repeat_actions=false`).
 
-| Ca | Kết quả mong đợi | v1 + v2 | chỉ v1 (đối chứng) |
+| Ca | Kết quả mong đợi | v1 + v2.1 | chỉ v1 (đối chứng) |
 | --- | --- | --- | --- |
 | 1. 2 VM ổn định, 2 bucket đóng > 60% | ALARM; truy vấn `start=09:58`, `stop=10:00`, `needed_overlap=100` | đạt | không đạt |
 | 2. Bucket đang ghi (một VM có điểm âm) | bucket bị loại khỏi cửa sổ, vẫn ALARM | đạt | không đạt |
@@ -175,16 +190,31 @@ Mã Aodh `e07aeb6d118b4b9099947028e6e809a6bdd8fe22` clone từ opendev, `git rev
 | 9. VM rời cohort chưa có `ended_at` | insufficient, kẹt tới khi có `ended_at` | đạt | không đạt |
 | 10. low: 3 bucket < 25% | ALARM | đạt | đạt |
 | 11. Aggregation không `rate:` | kết quả và tham số truy vấn trùng upstream | đạt | đạt |
-| 12. Test upstream `aodh/tests/unit/evaluator/test_gnocchi.py` (25 test) | | upstream 25/25; v1 24/25; v1 + v2 20/25 | |
+| 12. Test upstream `aodh/tests/unit/evaluator/test_gnocchi.py` (25 test) | | upstream 25/25; v1 24/25; v1 + v2.1 20/25 (v2 cũ cũng 20/25, cùng 5 test) | |
 
-Ca 12: v1 làm `TestGnocchiAggregationResourcesThresholdEvaluate.test_simple_alarm_trip` đổi kết quả (test khẳng định truy vấn cũ). v2 làm cả 5 test của lớp này đổi kết quả **có chủ đích**: dữ liệu mẫu của upstream gán cùng một timestamp dạng epoch cho mọi điểm và chỉ chuẩn bị một lần `fetch`, nên gate từ chối; 20 test của hai evaluator còn lại không đổi. Mức bảo đảm: Gnocchi giả viết theo đọc mã 4.7.1, **không phải Gnocchi thật**.
+Ca ở tầng `evaluate()` (v2.1), cột thứ tư là **v2 cũ** (`efbde2e5…`) để đối chứng lỗ hổng:
+
+| Ca | Kết quả mong đợi | v1 + v2.1 | v1 + v2 cũ |
+| --- | --- | --- | --- |
+| (a) insufficient + high `[55, 65]` | giữ `insufficient data`, không `_refresh`, không notify | đạt | không đạt (sang ALARM) |
+| (b) insufficient + high `[65, 70]` | ALARM (một `_refresh` tới `alarm`) | đạt | đạt |
+| (c) insufficient + low `[30, 30, 20]` | giữ `insufficient data`, không notify | đạt | không đạt (sang ALARM) |
+| (d) insufficient + low `[20, 22, 18]` | ALARM | đạt | đạt |
+| (e) insufficient + high `[30, 35]` | OK | đạt | đạt |
+| (f) OK + cửa sổ lẫn lộn (high và low) | giữ OK, không `_refresh` | đạt | đạt |
+| (g) ALARM + cửa sổ lẫn lộn (high và low) | giữ ALARM, không `_refresh` | đạt | đạt |
+| (h) aggregation không `rate:`, từ insufficient/OK/ALARM, 4 cửa sổ, 2 mốc giờ | state, lời gọi `_refresh` và notify trùng `gnocchi.py` upstream; nhánh trending upstream vẫn còn | đạt | đạt |
+
+Tổng: v1 + v2.1 đạt 19/19 (11 ca cũ + 8 ca mới); v1 + v2 cũ 17/19 (hỏng (a), (c)); chỉ v1 9/19.
+
+Ca 12: v1 làm `TestGnocchiAggregationResourcesThresholdEvaluate.test_simple_alarm_trip` đổi kết quả (test khẳng định truy vấn cũ). v2/v2.1 làm cả 5 test của lớp này (`test_simple_insufficient`, `test_simple_alarm_trip`, `test_simple_alarm_clear`, `test_equivocal_from_known_state_ok`, `test_retry_transient_api_failure`) đổi kết quả **có chủ đích**: dữ liệu mẫu của upstream gán cùng một timestamp dạng epoch cho mọi điểm và chỉ chuẩn bị một lần `fetch`, nên gate từ chối; 20 test của hai evaluator còn lại không đổi. Mức bảo đảm: Gnocchi giả viết theo đọc mã 4.7.1, **không phải Gnocchi thật**.
 
 ### Tiêu chí PASS để TV2 đối chiếu độc lập
 
-1. sha256 của file patch v2 khớp giá trị ở trên; `git apply --check` trên cây A (đang có v1) đạt.
-2. Sau khi áp: `git -C /opt/stack/aodh diff --stat` đúng 1 file `aodh/evaluator/gnocchi.py`; sha256 file bằng `443751e5…`; evaluator `active`, không traceback sau 5 phút (`infra/devstack/patches/verify-gate-v2-ro.sh`, chỉ đọc).
-3. 12 ca xanh khi TV2 tự chạy `python -I infra/devstack/patches/tests/test_gate_v2.py <cây aodh đã áp v1+v2> <gnocchi.py upstream>`.
-4. Trên cụm, **chỉ đánh giá** (cả ba danh sách actions rỗng, `repeat_actions=false`): tải nền 30–45% để low ở `ok`; scale tay 2→3 rồi 3→2. Journal có `campus-gate reject` (dự kiến `gnocchi_400`) đúng ở các bucket VM tham gia/rời; ngoài các bucket đó số reject ≈ 0; alarm history không có chuyển ALARM sai (đặc biệt low) trong cả hai chiều; hai alarm không kẹt `insufficient data` quá N + 2 phút sau khi cohort ổn định.
+1. sha256 của file patch v2.1 khớp `ea3d1cee…` ở trên; `git apply --check` trên cây A (đang có v1) đạt.
+2. Sau khi áp: `git -C /opt/stack/aodh diff --stat` đúng 1 file `aodh/evaluator/gnocchi.py`; sha256 file bằng `3d2bed82…`; evaluator `active`, không traceback sau 5 phút (`infra/devstack/patches/verify-gate-v2-ro.sh`, chỉ đọc).
+3. 19 ca của `test_gate_v2.py` xanh (11 ca `evaluate_rule` + 8 ca hồi phục ở tầng `evaluate()`), và bộ test upstream đúng 20/25 với đúng 5 test nêu ở ca 12. Cách tự chạy, ngoài thư mục clone: clone Aodh, `git checkout e07aeb6d118b4b9099947028e6e809a6bdd8fe22`, `git apply` v1 rồi v2.1; `git show e07aeb6d:aodh/evaluator/gnocchi.py > /tmp/up_gnocchi.py`; venv có `requirements.txt` + `test-requirements.txt` của Aodh (bộ test upstream còn cần metadata gói `aodh`, ví dụ một thư mục `aodh-0.0.0.dist-info` tối thiểu trên `sys.path`); `python -I infra/devstack/patches/tests/test_gate_v2.py <cây aodh đã áp v1+v2.1> /tmp/up_gnocchi.py`. Đối chứng: trên cây chỉ áp v2 cũ, ca (a) và (c) phải hỏng.
+4. Trên cụm, **chỉ đánh giá** (cả ba danh sách actions rỗng, `repeat_actions=false`): tải nền 30–45% để low ở `ok`; scale tay 2→3 rồi 3→2. Journal có `campus-gate reject` (dự kiến `gnocchi_400`) đúng ở các bucket VM tham gia/rời; ngoài các bucket đó số reject ≈ 0; sau mỗi lần reject, alarm chỉ rời `insufficient data` khi có cửa sổ quyết định (journal có thể có `campus-gate hold=equivocal` ở giữa); alarm history không có chuyển ALARM sai (đặc biệt low) trong cả hai chiều; ghi lại thời gian mỗi alarm nằm ở `insufficient data` sau khi cohort ổn định (dự kiến ≥ N + 2 phút, dài hơn nếu CPU dao động quanh ngưỡng).
 5. Có lượt kiểm Gnocchi 4.7.1 thật cho `needed_overlap=100` (ít nhất một lần 400 khi VM tham gia, và 200 khi cohort ổn định), xác nhận mục "Rủi ro còn lại" 1.
 
 Chỉ khi 1–5 đạt, có evidence và TV2 xác nhận thì gate dữ liệu (mục 2) mới được coi là đạt; quyết định bật action vẫn theo `AGENTS.md` mục 6.
@@ -192,12 +222,12 @@ Chỉ khi 1–5 đạt, có evidence và TV2 xác nhận thì gate dữ liệu (
 ### Cách áp và lùi (TV1, đổi trạng thái dùng chung: chỉ sau khi người dùng và TV2 cho phép)
 
 ```
-sha256sum /tmp/aodh-adr12-gate-v2.patch                 # efbde2e5fef311741f4609ae00bac30388d213c96ebf1005459142c5399f67d9
+sha256sum /tmp/aodh-adr12-gate-v2.patch                 # ea3d1ceed6cd054a2fad3b5f7df10f712d56ba974668dd1293cccca97bd41bc2 (v2.1)
 sha256sum /opt/stack/aodh/aodh/evaluator/gnocchi.py      # 8bc8a115... (dang co v1)
 sudo -u stack git -C /opt/stack/aodh apply --check /tmp/aodh-adr12-gate-v2.patch
 sudo -u stack git -C /opt/stack/aodh apply /tmp/aodh-adr12-gate-v2.patch
 sudo systemctl restart devstack@aodh-evaluator
-bash verify-gate-v2-ro.sh 5                             # 1 file; sha 443751e5...; active; 0 Traceback
+bash verify-gate-v2-ro.sh 5                             # 1 file; sha 3d2bed82...; active; 0 Traceback
 ```
 Lùi về đúng v1 (dưới 1 phút):
 ```
@@ -210,8 +240,9 @@ Muốn về upstream sạch thì lùi tiếp v1 theo mục "Cách áp, kiểm v�
 ### Rủi ro còn lại và điều chưa kiểm
 
 1. **Gnocchi bug [1479429](https://bugs.launchpad.net/gnocchi/+bug/1479429)** (lý do upstream đặt `needed_overlap=0`): theo mã 4.7.1, thiếu điểm cho 400 cả truy vấn. Gate coi đó là từ chối (an toàn: không action) nhưng có thể **kẹt không scale** nếu một VM trong cohort thiếu điểm kéo dài. **Chưa kiểm trên Gnocchi 4.7.1 thật.**
-2. **VM đã xóa nhưng chưa có `ended_at`** vẫn nằm trong cohort → 400 liên tục → mất liveness tới khi Ceilometer/Gnocchi ghi `ended_at`. Độ trễ ghi `ended_at` trên cụm **chưa đo**.
-3. **VM chưa có metric `cpu`** (hoặc chưa có resource trong Gnocchi) không vào cohort nên không bị phát hiện; trung bình chỉ gồm VM đã có metric. Chưa đo khoảng thời gian này trên cụm.
+2. **VM đã xóa nhưng chưa có `ended_at`** vẫn nằm trong cohort → 400 liên tục → alarm giữ `insufficient data` (mất liveness) tới khi Ceilometer/Gnocchi ghi `ended_at` (TV2 cũng nêu trong review PR #81). Độ trễ ghi `ended_at` trên cụm **chưa đo**.
+3. **VM chưa có metric `cpu`** (hoặc chưa có resource trong Gnocchi) không vào cohort nên không bị phát hiện; trung bình chỉ gồm VM đã có metric (TV2 cũng nêu). Chưa đo khoảng thời gian này trên cụm.
+7. **v2.1 kéo dài `insufficient data`:** sau mỗi lần reject, alarm chỉ rời `insufficient data` khi có cửa sổ quyết định; CPU dao động quanh ngưỡng có thể giữ alarm ở `insufficient data` nhiều phút và làm trễ scale-out (không gây action sai). Độ dài thực tế trên cụm **chưa đo**.
 4. Cửa sổ của alarm `rate:*` tự tính từ giờ đánh giá; `additional_ingestion_lag` trong `aodh.conf` không còn tác dụng với hai alarm này (giá trị trên A chưa đọc). Phụ thuộc đồng hồ host A đúng (NTP), chưa kiểm.
 5. Rate tồn tại ở bucket đầu sau khi VM có điểm thứ hai (policy `ceilometer-high-rate` lưu sẵn `rate:mean`, `carbonara.py:217` dùng `numpy.diff`, nên reset counter ra số âm): suy từ mã, chưa đối chiếu dữ liệu reset thật.
 6. `gnocchiclient` trên A có `exceptions.BadRequest` và trả timestamp ISO có múi giờ: kiểm với gnocchiclient 7.2.0 trên laptop; phiên bản trên A **chưa kiểm**.
