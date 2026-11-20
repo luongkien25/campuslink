@@ -5,18 +5,20 @@ ubuntu_host_ami=ami-02a9cdd4e98bc3c78
 devstack_branch=stable/2026.1
 devstack_sha=da2f4d73f5ad74fc8ecfbe15bd7e20f6b0982dbb   # dau nhanh stable/2026.1 luc clone, 2026-10-24 UTC, TV1; cung SHA tren A va B
 # Sau lan cai thanh cong: SHA tung repo trong /opt/stack/*/.git
-nova_sha=REPLACE_SHA
-neutron_sha=REPLACE_SHA
-octavia_sha=REPLACE_SHA
-ovn_octavia_provider_sha=REPLACE_SHA
-heat_sha=REPLACE_SHA
-ceilometer_sha=REPLACE_SHA
+# SHA duoi day doc tren Host A 2026-11-17T13:14:31Z (TV1, #49), moi repo dirty=no (chi file da theo doi); xem evidence/G2/20261117-NFR-14-issue49-versions.txt
+# aodh_sha dien o PR #51 (ADR-12): e07aeb6d118b4b9099947028e6e809a6bdd8fe22, trung voi evidence #49 (doc 13:14:31Z, truoc khi ap ban va ADR-12 luc 13:35:09Z)
+nova_sha=a858936e70bbe04e06fd5d47d840592a3d2d1fde
+neutron_sha=9939bf3b3388cf15e4fc1f7bb367570d46acec39
+octavia_sha=936754ab4ea30570051b4fb7b9cdd2dcb8afbd36
+ovn_octavia_provider_sha=237de8b4b2b7bc054b60ca54aa5615ca8da8183d
+heat_sha=0314e484098416cd21e1be80521c3f955f3d27c0
+ceilometer_sha=ce4aeb7de4f0063bcc6ed40b1140d48c632d0ff0
 aodh_sha=e07aeb6d118b4b9099947028e6e809a6bdd8fe22   # HEAD cua /opt/stack/aodh tren A, git status --short rong (TV1 chay sau 07:56Z 15/11/2026); chua kiem nhanh/tag
 aodh_patch=infra/devstack/patches/aodh-adr12-rate-per-vm.patch   # ADR-12, DA AP tren A luc 2026-11-17T13:35:09Z (thu co kiem soat, actions alarm rong); gate du lieu CHUA DAT; giu ban va tren A (TV2 ghi nhan trong mo ta PR #64, 2026-11-18)
 aodh_patch_sha256=9afebdfcd1e9ceeab495c4353e393034d64500becce3b66cb6a20a41ddc96d20
 gnocchi_commit=4a41c1d05052bcabf19fbe2e5bfb5a036a321d32   # tag 4.7.1, khong co stable/2026.1 (O-06); TV2 kiem 14/11/2026: module tren A, CPU60s hai host, group aggregates va high/low Aodh voi DevStack2026.1/Python3.12; giu pin. Evidence G4/20261114-FR-INF-10-tv2-metric-alarm.txt
-cinder_sha=REPLACE_SHA
-swift_sha=REPLACE_SHA
+cinder_sha=84bf2f28ca1c4effb2151007e1246b190ae9b684
+swift_sha=4ff4eebbac331c0abbca07936f184d20e3f63376
 
 guest_base_image=ubuntu-noble-base
 guest_base_image_sha256=04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94   # file ubuntu-24.04-server-cloudimg-amd64.img, release-20261017 (25/10/2026); doi chieu voi SHA256SUMS qua HTTPS; da kiem GPG 02/11/2026 (SHA256SUMS.gpg Good signature, khoa UEC Image Automatic Signing Key D2EB4462 6FDDC30B 513D5BB7 1A5D6C4C 7DB87C81), TV1
