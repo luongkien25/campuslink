@@ -1,0 +1,38 @@
+FR-INF-20 / NFR-07 — failover app VM A, 18/11/2026
+
+TV1 phát tải mục tiêu 10 RPS, 100 luồng, warm-up 120 s, steady 1.020 s.
+TV2 dừng và bật lại app VM A (.195) bằng Nova. App B là .196.
+Cửa sổ CSV dùng timestamp bắt đầu request và chỉ tính các hàng steady.
+Lượt 30 RPS trước đó là đối chứng riêng, có 47/30.600 lỗi client.
+
+UTC                         Quan sát
+14:57:27.063046Z            Gửi lệnh dừng A
+14:57:31.261210Z            Lần đầu thấy Nova SHUTOFF
+14:57:36.529516Z            Lần đầu thấy member A ERROR, B ONLINE
+14:59:11Z                   Probe riêng qua HTTPS trả 302 đúng đích khi B là member duy nhất ONLINE
+15:02:28.479184Z            Gửi lệnh bật lại A
+15:02:40.644345Z            Lần đầu thấy Nova ACTIVE
+15:03:19.474286Z            Lần đầu thấy hai member ONLINE
+15:03:19.602974Z            HTTPS health pass
+
+Phát hiện A ERROR sau 9,47 s tính từ lệnh dừng. Từ lệnh bật lại đến
+hai member ONLINE mất 51,00 s, đến HTTPS health pass mất 51,12 s.
+B ONLINE ở cả 57 mẫu trong cửa sổ lỗi.
+
+Cửa sổ                   Request   Redirect 302   HTTP 5xx   Client 599
+Trước dừng                 2992           2396          0            1
+Từ lệnh dừng đến bật       3015           2409          0            2
+Sau lệnh bật               4193           3350          0            4
+Toàn steady               10200           8155          0            7
+
+Giữa lúc LB báo A ERROR và lệnh bật lại có 2.335 redirect 302 trong
+2.920 request. Cửa sổ từ lệnh bật đến hai member ONLINE có 510
+request và 0 lỗi. Mã 599 là timeout hoặc lỗi kết nối phía máy phát.
+Probe riêng của TV2 không nằm trong CSV. CSV không phân biệt backend.
+
+Hậu kiểm: hai member ONLINE, health pass, fixture redirect đúng đích,
+DB volume in-use và hai alarm disabled với actions rỗng.
+Một lượt 10 RPS cho thấy B tiếp tục phục vụ khi app VM A dừng. Xác minh
+A hồi phục bằng Nova, LB và health HTTPS qua VIP. Chưa đối chiếu request
+ID với log riêng app A sau hồi phục. Mốc API là mốc poll. Phép đo này
+không bao gồm lỗi EC2 host A, benchmark NFR-01 hay autoscaling tự động.
