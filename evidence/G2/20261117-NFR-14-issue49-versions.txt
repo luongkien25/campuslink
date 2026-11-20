@@ -1,0 +1,52 @@
+# NFR-14 / FR-INF-21 (#49): SHA cac repo OpenStack tren Host A, doc chi-doc
+# Nguoi chay: TV1. Host: campus-a (boot 2026-11-17 13:04:32Z theo uptime -s).
+# Phan 1: output nguyen van cua collect.sh (goi boi prepare-session.sh check), chay luc 2026-11-17T13:14:31Z.
+#   Lenh: sudo bash /tmp/session-20261116/prepare-session.sh check
+#   collect.sh chay bang root. Da bo phan alarm, guest, LB, health cua cung lan chay (khong thuoc #49).
+# Phan 2: devstack doc rieng bang user stack, vi thu muc /opt/stack/devstack mode 770 chu stack:
+#   user ubuntu khong vao duoc .git, root bi git chan "dubious ownership" nen collect.sh in MISSING.
+# dirty = co thay doi o file DA THEO DOI (staged hoac chua); khong tinh file chua theo doi.
+
+== Phan 1: collect.sh ==
+recorded_utc=2026-11-17T13:14:31Z
+host=campus-a
+devstack_sha=MISSING
+devstack_sha_dirty=MISSING
+nova_sha=a858936e70bbe04e06fd5d47d840592a3d2d1fde
+nova_sha_dirty=no
+neutron_sha=9939bf3b3388cf15e4fc1f7bb367570d46acec39
+neutron_sha_dirty=no
+octavia_sha=936754ab4ea30570051b4fb7b9cdd2dcb8afbd36
+octavia_sha_dirty=no
+ovn_octavia_provider_sha=237de8b4b2b7bc054b60ca54aa5615ca8da8183d
+ovn_octavia_provider_sha_dirty=no
+heat_sha=0314e484098416cd21e1be80521c3f955f3d27c0
+heat_sha_dirty=no
+ceilometer_sha=ce4aeb7de4f0063bcc6ed40b1140d48c632d0ff0
+ceilometer_sha_dirty=no
+aodh_sha=e07aeb6d118b4b9099947028e6e809a6bdd8fe22
+aodh_sha_dirty=no
+cinder_sha=84bf2f28ca1c4effb2151007e1246b190ae9b684
+cinder_sha_dirty=no
+swift_sha=4ff4eebbac331c0abbca07936f184d20e3f63376
+swift_sha_dirty=no
+keystone_sha=418792d9ea7bc2c8985de9ac94e6fa0c01ae1615
+keystone_sha_dirty=no
+glance_sha=e8462daccbfb74df440fc48ae0a67ce64f96422d
+glance_sha_dirty=no
+placement_sha=2fcbb6adc02f0619c4a47fdb2f1b5cdac15903d9
+placement_sha_dirty=no
+gnocchi_commit=4a41c1d05052bcabf19fbe2e5bfb5a036a321d32
+gnocchi_commit_dirty=no
+WARN: SHA/status chua day du; khong coi #49 da xong.
+
+== Phan 2: devstack, doc rieng bang user stack (cung phien 2026-11-17, sau Phan 1; gio chua ghi) ==
+$ sudo -u stack env GIT_OPTIONAL_LOCKS=0 git -C /opt/stack/devstack rev-parse --verify 'HEAD^{commit}'
+da2f4d73f5ad74fc8ecfbe15bd7e20f6b0982dbb
+$ sudo -u stack env GIT_OPTIONAL_LOCKS=0 git -C /opt/stack/devstack status --porcelain --untracked-files=no | wc -l
+0
+
+== Ghi chu ==
+- aodh_sha=e07aeb6d... tai thoi diem doc: chua ap ban va ADR-12 (aodh_sha_dirty=no).
+- devstack_sha khop gia tri da khoa tu G1 trong docs/versions.lock (24/10/2026).
+- Chi thieu cho #49: anh AWS Budgets/Credits (evidence/G0), se them sau; chua dong #49.

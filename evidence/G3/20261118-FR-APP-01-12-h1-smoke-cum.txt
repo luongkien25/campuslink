@@ -1,0 +1,87 @@
+# Smoke H1 tren cum (FR-APP-01..05, 07, 08, 10, 11, 12; NFR-12; FR-INF-09 Redis PING) - TV3, 2026-11-18
+# Script: app/smoke/h1-smoke.sh tai main 438245d (sha256 bat dau c486f00727dc0fce, trung ban tren DB VM).
+# Chay tu DB VM campus-db (10.20.0.10), di qua VM nhay theo docs/runbooks/db-backup.md muc 3.
+# Ca A va B dang bat (B tra loi cong 22 tu A). Truoc khi chay: 2 member 10.20.0.195 / 10.20.0.196 ACTIVE ONLINE,
+# HTTPS /rest/health 10/10 = 200 (verify TLS). campus-app-sg cho 10.20.0.0/24 vao 8080.
+# Key: admin tv3-admin (#53), 2 key --author-only tv3-donvi-a/b (#58), doc tu file 0600, curl -H @file. Khong in key.
+#
+# Lenh (tren DB VM, thu muc ~/h1smoke 0700, xoa sau khi chay):
+#   A=http://10.20.0.195:8080 B=http://10.20.0.196:8080 SHORT_BASE=https://s.44-198-215-187.sslip.io \
+#   KEY_ADMIN_FILE=k/admin KEY_UA_FILE=k/ua KEY_UB_FILE=k/ub \
+#   DB_STOP_CMD="sudo systemctl stop postgresql@16-main" DB_START_CMD="sudo systemctl start postgresql@16-main" \
+#   REDIS_PING_CMD="sudo bash -c 'REDISCLI_AUTH=\$(cat /root/campus-secrets/redis_password) redis-cli -h 10.20.0.10 --no-auth-warning ping'" \
+#   bash smoke/h1-smoke.sh
+# Mat khau Redis di qua bien moi truong REDISCLI_AUTH, khong len argv.
+# Bat dau 2026-11-18T02:11:20Z, ket thuc 02:11:37Z. PostgreSQL dung khoang 10 s trong phep FR-APP-11.
+
+run_id=20261118T021128Z A=http://10.20.0.195:8080 B=http://10.20.0.196:8080 slug=tv3-smoke-20261118t021128z
+== health
+PASS  FR-APP-11  health A  (=200 pass)
+PASS  FR-APP-11  health B  (=200 pass)
+PASS  FR-INF-09  Redis PING co xac thuc  (=PONG)
+== API key
+PASS  FR-APP-07  POST khong key  (=401)
+PASS  FR-APP-07  POST key sai  (=401)
+== tao, trung slug, 404
+PASS  FR-APP-01  POST tao link  (=200)
+PASS  FR-APP-01  shortUrl dung domain  (=https://s.44-198-215-187.sslip.io/tv3-smoke-20261118t021128z)
+PASS  FR-APP-12  tao trung slug  (=400 non-unique-slug)
+PASS  FR-APP-12  slug khong ton tai  (=404)
+== redirect, sua, nhat quan 2 replica
+PASS  FR-APP-02  GET qua A  (=302 https://example.org/?campus=20261118T021128Z)
+PASS  FR-APP-02  GET qua B (cache truoc khi sua)  (=302 https://example.org/?campus=20261118T021128Z)
+PASS  FR-APP-03  PATCH qua A  (=200)
+PASS  NFR-12  GET qua B sau PATCH o A  (=302 https://example.org/?campus=updated-20261118T021128Z)
+PASS  NFR-12  GET qua A sau PATCH  (=302 https://example.org/?campus=updated-20261118T021128Z)
+== visit (task nen ghi bat dong bo)
+PASS  FR-APP-04  so visit = so GET  (=24)
+INFO  FR-APP-04  visit du sau .128776286s ke tu GET cuoi
+== tag
+PASS  FR-APP-05  tags/stats co campus-smoke, co link va visit  (=true true)
+== author-only
+PASS  FR-APP-08  key don vi A tao link  (=200)
+PASS  FR-APP-08  key A doc link cua A  (=200)
+PASS  FR-APP-08  key B doc link cua A  (=404)
+PASS  FR-APP-08  danh sach cua key B khong co link A  (=0)
+PASS  FR-APP-08  key B sua link cua A  (=404)
+== CORS
+PASS  FR-APP-10  preflight allow-origin  (=https://admin.44-198-215-187.sslip.io)
+PASS  FR-APP-10  preflight cho x-api-key  (=yes)
+PASS  FR-APP-10  origin la khong duoc allow  (=none)
+== DB loi
+PASS  FR-APP-11  health khi DB dung  (=503 fail)
+PASS  FR-APP-11  health sau khi bat lai DB  (=200)
+PASS  FR-APP-02  redirect sau khi DB len lai  (=302 https://example.org/?campus=updated-20261118T021128Z)
+== ket qua: 0 FAIL
+rc=0
+
+# Ket qua: 27 PASS, 0 FAIL, rc=0.
+# Chua co trong file nay: FR-APP-06 (quet QR bang dien thoai) va FR-APP-09 (Web Client), lam tay rieng.
+#
+# Don (02:12-02:14Z):
+# - DB VM: xoa ~/h1smoke (script + 3 file key); postgresql@16-main active.
+# - port unset ssh-from-jump-tv3 khoi campus-db-port; xoa SG ssh-from-jump-tv3, VM campus-jump, FIP 172.24.4.174, SG campus-jump-sg.
+# - Kiem: campus-db-port security_group_ids = ['15d5d84d-f71a-4595-a5b2-ac75f818c040'] (chi campus-db-sg);
+#   FIP con lai: 172.24.4.117 (VIP); khong con SG jump/ssh-from.
+# Du lieu thu de lai trong DB: link tv3-smoke-20261118t021128z (tag campus-smoke) va 1 link cua key don vi A.
+
+# ===== FR-APP-09 Web Client va FR-APP-06 QR (lam tay, 2026-11-18, TV3) =====
+# FR-APP-09:
+# - Mo https://admin.44-198-215-187.sslip.io/, them server URL https://s.44-198-215-187.sslip.io + key don vi A (dan tu clipboard).
+#   Danh sach link chi co 1 link cua key A (tv3-smoke-20261118t021128z-donvi-a -> https://example.org/a); chan trang "Server: v5.1.8 - Client: v4.8.1".
+#   Anh: evidence/G3/20261118-FR-APP-09-web-client-key-donvi-a.png
+#   (TV3 xoa link nay trong Web Client sau khi chup; da kiem lai: admin GET link -> 404 short-url-not-found.)
+# - Route con khong 404 khi F5 (kiem tu A, verify TLS):
+#     /                              -> 200 <title>Shlink — The URL shortener</title>
+#     /server/x/list-short-urls/1    -> 200 <title>Shlink — The URL shortener</title>
+#     /settings/general              -> 200 <title>Shlink — The URL shortener</title>
+# FR-APP-06:
+# - Tao link moi trong Web Client bang key A: tv3-qr-1118 -> https://example.org/qr-test, dateCreated 2026-11-18T02:25:56+00:00.
+# - Mo QR cua link trong Web Client, quet bang camera iPhone qua 5G (ngoai mang AWS).
+#   Anh dien thoai: trang example.org mo tu app Camera ("◀ Camera"), 09:26 gio VN: evidence/G3/20261118-FR-APP-06-quet-qr-iphone.png
+# - Doi chieu server (GET /rest/v3/short-urls/tv3-qr-1118/visits bang key A):
+#     visit 2026-11-18T02:26:17+00:00 bot=false referer= ua=Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0 Mobile/15E148 Safari/604.1
+#   -> 21 s sau khi tao link, user-agent iPhone, khop gio tren anh.
+# - GET https://s.44-198-215-187.sslip.io/tv3-qr-1118 (curl tu A, khong theo redirect) -> 302 https://example.org/qr-test (them 1 visit curl).
+# Gioi han: khong co anh chup chinh ma QR; bang chung la visit iPhone tu Camera ngay sau khi tao link.
+# Sau khi lam: xoa server campus khoi Web Client (key luu trong trinh duyet). Link tv3-qr-1118 de lai lam mau.
