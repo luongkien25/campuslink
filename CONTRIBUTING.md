@@ -99,7 +99,7 @@ Hai EC2 dùng chung và tốn tiền theo giờ, nên:
 - Nhánh: `tv1/...`, `tv2/...`, `tv3/...`, `tv4/...`, mỗi nhánh một việc nhỏ. Commit: `[FR-INF-09] mô tả`.
 - PR theo mẫu, review chéo: TV4 → TV1, TV1 → TV2, TV2 → TV3, TV3 → TV4. Người review **chạy lại hoặc xem chạy**, không chỉ đọc diff.
 - `CODEOWNERS` tự gắn reviewer theo thư mục (đã điền username thật cả 4 người).
-- Bảo vệ nhánh `main`: bắt buộc PR + 1 approve, không push thẳng.
+- Nhánh `main` **không được GitHub bảo vệ**: repo private gói Free không cho bật branch protection (API trả "Upgrade to GitHub Pro or make this repository public"). Đây là quy ước nhóm, không có gì cưỡng chế: không push thẳng, mỗi PR có một người review đã chạy lại hoặc xem chạy, và **người merge tự kiểm** trước khi bấm: review đã có, checks xanh, `baseRefName` là `main` (PR xếp chồng thì merge PR gốc trước, đổi base rồi mới merge PR sau).
 
 ## 7. Ghi lại kiến thức (quan trọng nhất)
 
