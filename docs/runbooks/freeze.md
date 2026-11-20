@@ -1,6 +1,8 @@
 # Runbook freeze 19–22/11/2026 (TV1 chốt)
 
-Nguồn: SRS 6.3 (Freeze, 19/11), ADR-07, `infra/aws/README.md` (SG `campus-ingress-admin`), `start-stop.md` mục 6. Soạn 14/11/2026, **chưa chạy lần nào** ❓. Lệnh có nhãn **[THAY ĐỔI]** chỉ TV1 chạy.
+Nguồn: SRS 6.3 (Freeze, 19/11), ADR-07, `infra/aws/README.md` (SG `campus-ingress-admin`), `start-stop.md` mục 6. Soạn 14/11/2026. **Lần chạy thực tế đầu tiên: tối 19/11/2026** (thêm hai rule SSH `/32` của TV1 và TV2, xóa rule 22 `0.0.0.0/0`, SSH mới của TV1 và TV2 với `ControlMaster=no`, quét ngoài do TV4 chạy từ mạng khác); giờ chính xác và **trạng thái SG sau lần chạy đó** ghi ở issue #4 (nhật ký cloud), không ghi lại ở đây để khỏi lệch. Lệnh có nhãn **[THAY ĐỔI]** chỉ TV1 chạy.
+
+**Hai khoảng ngày khác nhau trong file này:** **19–22/11** là freeze của SRS 6.3 (diễn tập, video, kiểm 8 tiêu chí, thu SSH về `/32`), nộp 23/11; **19–29/11** (mục 5) là khoảng **giữ hạn chế vận hành** kéo dài tới trước buổi bảo vệ 30/11.
 
 ## 0. Trước 19/11 (không cần cloud)
 
@@ -53,7 +55,7 @@ PASS: chỉ `443 True`, còn lại `False`. Từ mạng có trong /32: thêm `22
 
 `evidence/G5/<yyyymmdd>-FR-INF-05-ADR-07-thu-ssh-32.txt`: giờ UTC, ai chạy, output `describe` (**che IP**: thay bằng `x.x.x.x/32 (tv1-nha)`), kết quả quét mục 3, giới hạn (quét từ mạng nào). Ảnh Console SG phải che account ID.
 
-## 5. Trong freeze (19–29/11)
+## 5. Giữ hạn chế vận hành (19–29/11, tới trước bảo vệ 30/11)
 
 - Không nâng phiên bản, không `stack.sh`, không đổi `local.conf`, không tạo lại Heat stack `campus-app` (tạo lại thì FIP của VIP đổi và `s.` trả 502: xem `after-start.md` 2.6b).
 - Chỉ sửa lỗi chặn demo; mỗi lần sửa ghi issue #4 (giờ UTC, việc, ai).
