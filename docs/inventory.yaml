@@ -5,9 +5,9 @@
 
 meta:
   doc_version: "1.2-Shlink"
-  updated_utc: "2026-10-23"     # chi ghi ngay; Lab 3 xong 3.1-3.5
+  updated_utc: "2026-11-20"     # chi ghi ngay; 20/11/2026 chi dong bo cloud_state, credit va ghi chu GPG, cac ID khac chua doi chieu lai
   owner: "TV1 - Luong Duc Kien"
-  cloud_state: "OFF (A stopped 23/10/2026, B chua tao)"   # ON/OFF cuoi moi phien
+  cloud_state: "xem issue #4 (Nhat ky cloud)"   # trang thai ON/OFF doi theo tung phien, khong ghi o day nua
   who_turns_off: "REPLACE_NAME"
 
 aws:
@@ -16,7 +16,7 @@ aws:
   account_type: "tai khoan thuong, Paid plan, dang nhap root"   # 22/10/2026
   caller_arn_redacted: "arn:aws:iam::<ACCOUNT_ID>:root"
   quota_on_demand_standard_vcpu: "16 (dang dung 0)"   # can >= 12 kha dung; 22/10/2026
-  credit_balance_usd_checked: "129.57 (kiem 24/10/2026; 22/10/2026 la 131.38; han khoang 1 nam)"
+  credit_balance_usd_checked: "93.96 (uoc tinh 18/11/2026, evidence/G0/20261118-FR-INF-21-aws-credits.png; tong cap 140; so da chot hoa don 119.19); 129.57 la so 24/10/2026"
   budget_alerts_usd: [30, 50, 65]
   nested_virtualization_supported:
     m7i.2xlarge: "yes"          # describe-instance-types 22/10/2026
@@ -117,7 +117,7 @@ openstack:
     campus.builder: { id: "ee0a0c60-54c7-4488-896d-5081c1b098cf", vcpus: 2, ram_mib: 4096, disk_gib: 20 }
   images:
     campus-app-tv2-g4-20261111: { id: "2c43a06d-1db8-4c01-bd31-98803325d932", min_disk_gib: 10, min_ram_mib: 0, virtual_size_bytes: 10737418240, size_bytes: 3236757504, source_commit: "e703fe6990a617ac347084b1a9a90c8c7112c666", manifest: "evidence/G4/20261111-image-manifest.json" }   # TV2: clone A/B campus.app PASS, reboot/Docker restart/metadata guard, 11/11/2026; khong phai stack ASG chinh
-    ubuntu-noble-base: { id: "b915f809-b352-4d03-a14a-ec9c294e85d8", source_url: "https://cloud-images.ubuntu.com/releases/noble/release-20261017/ubuntu-24.04-server-cloudimg-amd64.img", sha256: "04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94", date: "2026-10-17" }    # release-20261017, qcow2 3.5 GiB, nap Glance 25/10/2026 (public, owner campuslink); chua kiem chu ky GPG
+    ubuntu-noble-base: { id: "b915f809-b352-4d03-a14a-ec9c294e85d8", source_url: "https://cloud-images.ubuntu.com/releases/noble/release-20261017/ubuntu-24.04-server-cloudimg-amd64.img", sha256: "04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94", date: "2026-10-17" }    # release-20261017, qcow2 3.5 GiB, nap Glance 25/10/2026 (public, owner campuslink); da kiem chu ky GPG 02/11/2026 (docs/versions.lock)
   storage:
     cinder_vg: stack-volumes-lvmdriver-1
     cinder_target: "lioadm"    # xac nhan 25/10/2026 trong /etc/cinder/cinder.conf: target_helper=lioadm, target_protocol=iscsi, target_port=3260, backend lvmdriver-1
