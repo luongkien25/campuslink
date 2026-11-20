@@ -103,7 +103,7 @@ Trong tất cả các lượt dưới đây, `alarm_actions`, `ok_actions` và `
 
 ### Kết quả phiên 17/11/2026 (đã áp bản vá trên A)
 
-Nguồn: bảng nhật ký UTC ở #61 (TV1 điền) và các comment của TV2 ở #61 (13:48Z–15:08Z). TV1 chưa đối chiếu lại với probe tmux 17/11 vì chưa chép về laptop. Suốt phiên cả ba danh sách actions rỗng và `repeat_actions=false`.
+Nguồn: bảng nhật ký UTC ở #61 (TV1 điền) và các comment của TV2 ở #61 (13:48Z–15:08Z). Probe tmux 17/11 đã chép về laptop lúc 15:18Z (sha256 `54e37c74aeb571d7ea2ddf6f1917f3d8254b67be02bcff9a32118cc7a1304a99`), nhưng TV1 chưa dùng nó để đối chiếu lại các mục dưới đây; bản trên A đã mất do `/tmp` bị dọn khi boot. Suốt phiên cả ba danh sách actions rỗng và `repeat_actions=false`.
 
 | Mục | Kết quả |
 | --- | --- |
