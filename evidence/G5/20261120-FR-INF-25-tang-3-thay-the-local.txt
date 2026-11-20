@@ -1,0 +1,85 @@
+# FR-INF-25 tang 3 - BAN THAY THE KHONG DUNG S3 (NFR-20, FR-INF-15) - TV3, 2026-11-20 (#79 T3-3)
+# KHONG co S3/Object Lock: tang 3 theo SRS can bucket S3 bat Object Lock, doi rang buoc ngan sach (AGENTS.md muc 3) nen phai nhom duyet
+# ADR-11 / O-22; O-22 CHUA duyet. Ban thay the: ban sao ngoai cum la file dump tren may ca nhan (FR-INF-15 "1 ban ve may nhom"),
+# khoi phuc vao Compose local MOI TINH (project rieng campuslink-dr, volume moi), roi chay smoke H1.
+# Gioi han so voi tang 3 that: ban sao tren laptop khong bat bien (khong Object Lock), khong o AWS region/tai khoan khac, va
+# phu thuoc may ca nhan con song. Chong duoc mat ca host A (Swift nam tren A), khong chong xoa nham tren laptop.
+
+== 1. Keo dump moi nhat tu Swift ve may (cum dang bat, chi doc)
+lenh: bash app/db/backup/pull-latest.sh ~/campuslink-backups   (di qua A bang credential campus-tv3, object save)
+bat dau 2026-11-20T13:53:39Z, mat 11,8 s
+shlink-20261120T134638Z.dump: OK          <- sha256sum -c voi file .sha256 lay cung tu Swift
+OK ~/campuslink-backups/shlink-20261120T134638Z.dump (1233029 byte)
+(dump do timer tren DB VM tao luc 13:46:38Z, 10 phut sau khi DB VM boot 13:35:48Z)
+
+== 2. Khoi phuc vao Compose moi tinh va do RTO (may TV3, x86_64; script do tam, lenh chinh ben duoi)
+#   export SHLINK_HOST_PORT=18180 SHLINK_B_HOST_PORT=18181; dc() { docker compose -p campuslink-dr --profile hai-replica "$@"; }  (app/compose/compose.yaml)
+#   sha256sum -c ; dc up -d --wait postgres redis ; dc exec -T postgres pg_restore -U shlink -d shlink --no-owner --no-acl --exit-on-error < dump
+#   dc up -d --wait shlink ; curl /tv4fix1 ; dc up -d --wait shlink-b
+T0 2026-11-20T14:20:45.798Z bat dau (dump da o may: /home/dqh2115/campuslink-backups/shlink-20261120T134638Z.dump)
+shlink-20261120T134638Z.dump: OK
++12 ms sha256 khop
++5921 ms postgres + redis healthy (volume moi)
++6714 ms pg_restore xong
+short_urls=7141 visits=164496 migration=ShlinkMigrations\Version20260607082210
++18119 ms shlink A healthy
++18237 ms GET /tv4fix1 -> 302 https://example.org/campuslink-fixture-1   <== DICH VU CHAY LAI (RTO tinh den day)
++30028 ms shlink B healthy (de chay smoke 2 replica)
+
+== 3. Smoke H1 tren ban khoi phuc (2 replica A :18180, B :18181)
+# Key: tao MOI bang CLI trong chinh ban khoi phuc (shlink api-key:generate: 1 admin, 2 --author-only), ghi thang vao file 0600 trong thu muc tam,
+# xoa sau khi chay. Khong dung key cua cum, khong in key.
+# DB_STOP_CMD/DB_START_CMD: docker compose -p campuslink-dr stop/start postgres; REDIS_PING_CMD: redis-cli ping co xac thuc trong container.
+run_id=20261120T142127Z A=http://127.0.0.1:18180 B=http://127.0.0.1:18181 slug=tv3-smoke-20261120t142127z
+== health
+PASS  FR-APP-11  health A  (=200 pass)
+PASS  FR-APP-11  health B  (=200 pass)
+PASS  FR-INF-09  Redis PING co xac thuc  (=PONG)
+== API key
+PASS  FR-APP-07  POST khong key  (=401)
+PASS  FR-APP-07  POST key sai  (=401)
+== tao, trung slug, 404
+PASS  FR-APP-01  POST tao link  (=200)
+PASS  FR-APP-01  shortUrl dung domain  (=http://localhost:18180/tv3-smoke-20261120t142127z)
+PASS  FR-APP-12  tao trung slug  (=400 non-unique-slug)
+PASS  FR-APP-12  slug khong ton tai  (=404)
+== redirect, sua, nhat quan 2 replica
+PASS  FR-APP-02  GET qua A  (=302 https://example.org/?campus=20261120T142127Z)
+PASS  FR-APP-02  GET qua B (cache truoc khi sua)  (=302 https://example.org/?campus=20261120T142127Z)
+PASS  FR-APP-03  PATCH qua A  (=200)
+PASS  NFR-12  GET qua B sau PATCH o A  (=302 https://example.org/?campus=updated-20261120T142127Z)
+PASS  NFR-12  GET qua A sau PATCH  (=302 https://example.org/?campus=updated-20261120T142127Z)
+== visit (task nen ghi bat dong bo)
+PASS  FR-APP-04  so visit = so GET  (=24)
+INFO  FR-APP-04  visit du sau .042444438s ke tu GET cuoi
+== tag
+PASS  FR-APP-05  tags/stats co campus-smoke, co link va visit  (=true true)
+== author-only
+PASS  FR-APP-08  key don vi A tao link  (=200)
+PASS  FR-APP-08  key A doc link cua A  (=200)
+PASS  FR-APP-08  key B doc link cua A  (=404)
+PASS  FR-APP-08  danh sach cua key B khong co link A  (=0)
+PASS  FR-APP-08  key B sua link cua A  (=404)
+== CORS
+PASS  FR-APP-10  preflight allow-origin  (=https://admin.44-198-215-187.sslip.io)
+PASS  FR-APP-10  preflight cho x-api-key  (=yes)
+PASS  FR-APP-10  origin la khong duoc allow  (=none)
+== DB loi
+PASS  FR-APP-11  health khi DB dung  (=503 fail)
+PASS  FR-APP-11  health sau khi bat lai DB  (=200)
+PASS  FR-APP-02  redirect sau khi DB len lai  (=302 https://example.org/?campus=updated-20261120T142127Z)
+== ket qua: 0 FAIL
+
+== 4. Don
+docker compose -p campuslink-dr --profile hai-replica down -v   -> xoa container, volume campuslink-dr_pgdata, campuslink-dr_redisdata, network
+xoa thu muc key tam. Dump giu lai tren may (~/campuslink-backups, ngoai repo; *.dump bi .gitignore chan).
+
+== 5. Ket qua
+RPO: dump theo timer hourly (O-19) -> RPO <= 1 gio 02 phut khi cum chay. Ban nay: du lieu den 13:46:38Z.
+RTO tang 3 thay the, tinh tu luc co file dump tren may den luc redirect fixture dung (GET /tv4fix1 -> 302): 18,2 s
+  (sha256 0,01 s; postgres+redis moi 5,9 s; pg_restore 0,8 s cho 7141 link, 164496 visit; Shlink healthy 11,4 s).
+RTO tinh ca buoc keo tu Swift: 11,8 + 18,2 = 30,0 s.
+Smoke H1 tren ban khoi phuc: 27 PASS, 0 FAIL (ca phep dung DB FR-APP-11 va 2 replica NFR-12).
+CHUA tinh trong RTO: cai Docker, keo image (shlink@sha256:68a722f7..., postgres:16, redis:7.0 da co san trong cache cua may);
+may moi chua co image se cham hon (chua do). Du lieu that cua cum (khong phai du lieu nho nhu lan do tang 1, 2).
+Ngoai SRS: khong co S3/Object Lock vi O-22 chua duyet; day la ban thay the, khong phai tang 3 dung nhu SRS.
