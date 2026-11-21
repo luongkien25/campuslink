@@ -249,7 +249,7 @@ Muốn về upstream sạch thì lùi tiếp v1 theo mục "Cách áp, kiểm v�
 
 ## Gate v2.2 (21/11/2026): sửa lỗi đọc timestamp, lộ ra khi bật đánh giá trên cụm thật
 
-Trạng thái (cập nhật 21/11, 09:43Z): **ĐÃ ÁP trên A** lúc 09:38:04Z (delta v2.1 → v2.2, evaluator khởi động lại cùng giờ). Hậu kiểm 5 phút lúc 09:43:11Z đạt tiêu chí 2: `gnocchi.py` sha256 `529d40bb…`, đúng 1 file đổi, evaluator `active` (`ActiveEnterTimestamp` không đổi), 0 Traceback. TV2 đã đối chiếu offline độc lập (tiêu chí 1 phần offline và 3, comment PR #81 lúc 09:35Z). **Chưa có bằng chứng gate chạy trên cụm:** evaluation đang tắt (TV2 tắt lúc 08:53:20Z), hai alarm `enabled=false`, ba danh sách actions rỗng, nên không có scale nào xảy ra; tiêu chí 4–5 còn mở. Trước đó A giữ v2.1 (áp khoảng 08:27Z), **không dùng được** vì gate từ chối mọi cửa sổ.
+Trạng thái (cập nhật 21/11, 09:43Z): **ĐÃ ÁP trên A** lúc 09:38:04Z (delta v2.1 → v2.2, evaluator khởi động lại cùng giờ). Hậu kiểm 5 phút lúc 09:43:11Z đạt tiêu chí 2: `gnocchi.py` sha256 `529d40bb…`, đúng 1 file đổi, evaluator `active` (`ActiveEnterTimestamp` không đổi), 0 Traceback. TV2 đã đối chiếu offline độc lập (tiêu chí 1 phần offline và 3, comment PR #81 lúc 09:35Z). **Gate đã chạy trên cụm thật ở một lượt chỉ-đánh-giá (bật 09:46:28Z, actions rỗng, không có scale tự động):** kết quả ở mục "Kết quả trên cụm thật" bên dưới; tiêu chí 4–5 đạt cho lượt này, chờ TV2 đối chiếu độc lập. (Trước lượt đó evaluation tắt từ 08:53:20Z.) Trước đó A giữ v2.1 (áp khoảng 08:27Z), **không dùng được** vì gate từ chối mọi cửa sổ.
 
 ### Sự cố trên cụm (21/11/2026, UTC)
 
@@ -298,7 +298,7 @@ Ca 12 (25 test upstream `aodh/tests/unit/evaluator/test_gnocchi.py`): v1 + v2.1 
 2. Sau khi áp trên A: `git -C /opt/stack/aodh diff --stat` đúng 1 file; sha256 `gnocchi.py` = `529d40bb…`; evaluator `active`, 0 Traceback sau 5 phút (`verify-gate-v2-ro.sh`, chỉ đọc).
 3. 22 ca `test_gate_v2.py` xanh và bộ test upstream đúng 20/25 với đúng 5 test ở ca 12. Cách chạy như mục v2.1 (cây Aodh đã áp v1 rồi `aodh-adr12-gate-v2.patch` đầy đủ; `python -I test_gate_v2.py <cây aodh> <up_gnocchi.py>`). Đối chứng: trên cây v1 + v2.1 ca 13 và 15 phải hỏng, ca 14 vẫn đạt.
 4. Trên cụm, **chỉ đánh giá** (ba danh sách actions rỗng, `repeat_actions=false`): TV2 bật `evaluation_enabled=true` rồi mới đo. Journal **không còn** `reject=bad_timestamp`; nếu có reject thì chỉ `gnocchi_400` hoặc `missing_bucket` ở các bucket VM tham gia hoặc rời cohort; alarm rời `insufficient data` khi đủ N bucket (high 2, low 3) sau khi cohort ổn định. Phần còn lại của tiêu chí 4 ở mục v2.1 giữ nguyên (tải nền 30–45% để low về `ok`, scale tay 2→3 rồi 3→2, alarm history không có ALARM sai).
-5. Kiểm Gnocchi 4.7.1 thật cho `needed_overlap=100`: nửa "200 khi cohort ổn định" đã thấy ở sự cố 21/11 (hai truy vấn trả 200); còn thiếu "400 khi VM tham gia".
+5. Kiểm Gnocchi 4.7.1 thật cho `needed_overlap=100`: nửa "200 khi cohort ổn định" đã thấy ở sự cố 21/11 (hai truy vấn trả 200); nửa "400 khi VM tham gia" đã thấy ở lượt chỉ-đánh-giá 09:55–09:58Z (mục "Kết quả trên cụm thật").
 
 ### Cách áp và lùi (TV1; đổi trạng thái dùng chung, chỉ sau khi TV2 đối chiếu và người dùng cho phép từng lệnh)
 
@@ -318,6 +318,34 @@ Chạy từng lệnh, dừng ngay nếu một lệnh báo lỗi (`apply` khi fil
 - Về v1: `apply -R` patch đầy đủ `/tmp/aodh-adr12-gate-v2.patch` trên A đang v2.2, restart, `verify-gate-v2-ro.sh 5` (sha `8bc8a115…`).
 
 Sau khi áp, `evaluation_enabled` vẫn `false`; bật lại là bước riêng của TV2 (stack alarm `campus-app-cpu-alarms`, `actions_enabled=false`, `stack preview` trước), kèm kế hoạch tải nền và giờ UTC bắt đầu.
+
+### Kết quả trên cụm thật (21/11/2026, UTC): lượt chỉ đánh giá
+
+Điều kiện: TV2 bật `evaluation_enabled=true` lúc 09:46:28Z (Heat `UPDATE_COMPLETE`), `actions_enabled=false`; hậu kiểm 09:46:30Z hai alarm `enabled=true`, `repeat_actions=false`, ba danh sách actions rỗng. Evaluator chạy v2.2 từ 09:38:04Z, chu kỳ ở giây :05 mỗi phút. Tải nền: `ramp-redirect.sh` (`ab` keep-alive, `c=8`, qua VIP nội bộ từ A), bắt đầu 09:47:05Z. Hai lần scale do TV2 gửi signal tay. Dữ liệu: journal `devstack@aodh-evaluator` (`docs/_scripts/session-20261121/results/aodh-eval-20261121-0946Z-v22.log`, ngoài repo) và alarm history do TV2 giữ. `cpu_high` = `37680d7a…`, `cpu_low` = `90f9060e…`.
+
+| Giờ UTC | Sự kiện | Kết quả |
+| --- | --- | --- |
+| 09:47:05–06 | chu kỳ đầu, dữ liệu rảnh | `cpu_high` → `ok` (khoảng 0,6%); `cpu_low` → `alarm`; không reject |
+| 09:52:06 | ba bucket đã có tải | `cpu_low` → `ok`, 26,23e9 (khoảng 43,7% mỗi VM); `cpu_high` giữ `ok` |
+| 09:54:30.34 | TV2 gửi signal scale-out 2→3 (Heat `SIGNAL_COMPLETE` 09:55:30; VM mới qua readiness 09:55:27; đủ 3 member `ONLINE` 09:55:36.5) | |
+| 09:55:05–06 | VM mới vào cohort | `reject=gnocchi_400` "No overlap" (high n=2, low n=3); cả hai alarm → `insufficient data` |
+| 09:56:05–06 | | vẫn "No overlap" |
+| 09:57:06 | | "Less than 100% of datapoints overlap": 50,0% (high), 33,3% (low) |
+| 09:58:06 | | `cpu_high` → `ok`, 17,47e9 (khoảng 29,1%); low vẫn reject (66,6%) |
+| 09:59:06 | | `cpu_low` → `ok`, 17,29e9 (khoảng 28,8%) |
+| 10:03:17.68 | TV2 gửi signal scale-in 3→2 (Heat `SIGNAL_COMPLETE` 10:03:35; còn 2 member `ONLINE` từ 10:03:59.25; Heat xóa app B cũ) | |
+| 10:04:06 | cửa sổ gate là 10:00–10:02 (suy từ phép tính cửa sổ), tức trước khi scale-in có hiệu lực | `cpu_low` → `alarm`, khoảng 13,55e9 (khoảng 22,6%), ba bucket dưới 25% |
+| 10:04:06–10:06:12 | VM đã xóa rời cohort | 0 reject, 0 `hold=equivocal`, 0 Traceback |
+
+Kết luận của lượt này:
+- Gate v2.2 chạy được trên Gnocchi 4.7.1 thật. Không còn `bad_timestamp`; mọi reject đều là `gnocchi_400` trong khoảng VM mới tham gia.
+- Reject bắt đầu ở chu kỳ đầu sau khi VM mới được tạo, trước cả `SIGNAL_COMPLETE` (09:55:30Z). Suy luận: resource đã vào Gnocchi từ lúc tạo instance, có metric `cpu` nhưng chưa có điểm. Chưa kiểm.
+- Thời gian nằm ở `insufficient data` sau khi VM vào nhóm: `cpu_high` 3 phút 1 giây (09:55:05 → 09:58:06), `cpu_low` khoảng 4 phút (09:55:06 → 09:59:06), tức N + 1 phút; ngắn hơn dự kiến N + 2 phút. Độ phủ tăng đúng một bucket mỗi phút (50% → 100% cho high; 33,3% → 66,6% → 100% cho low), khớp `needed_overlap=100`.
+- Khi VM rời cohort không có reject. Theo phép tính cửa sổ, bucket 10:04 (bucket đầu tiên thiếu điểm của VM đã xóa) vào cửa sổ ở chu kỳ 10:06:05Z; chu kỳ đó sạch, nên VM đã bị loại khỏi cohort (`ended_at` đã ghi) trong vòng khoảng 2,5 phút kể từ khi Heat xóa (10:03:35Z). Chỉ một lần đo; độ trễ `ended_at` có thể dao động, rủi ro số 2 chưa coi là loại bỏ.
+- Không có chuyển ALARM sai. `cpu_low` → `alarm` lúc 10:04:06Z dựa trên ba bucket thật dưới 25%, không phải trên cửa sổ thiếu VM.
+- Không Traceback, không `hold=equivocal` trong cả lượt. Actions rỗng; mọi lần scale đều do TV2 gửi signal tay, không có scale tự động.
+
+Giới hạn: một lượt; actions rỗng nên chưa kiểm đường action Aodh → Heat; tải nền chỉ đạt khoảng 43,7%, dưới ngưỡng 60% nên `cpu_high` không có dịp sang `alarm` trên cụm thật (đường đó mới được kiểm ở tầng offline, ca 13 và 15); lý do CPU mỗi VM giảm xuống dưới 25% vào khoảng 10:00–10:02Z chưa tìm hiểu. Tiêu chí 4–5 của v2.2 đạt cho lượt này theo số liệu journal; cần TV2 đối chiếu độc lập với alarm history.
 
 ### Rủi ro còn lại và điều chưa kiểm của v2.2
 
