@@ -43,7 +43,7 @@ Từ **laptop** (PowerShell hoặc Git Bash), không dùng `-k`:
 | # | Lệnh | PASS khi |
 |---|---|---|
 | 1.9 | `curl.exe -sS -o NUL -w "%{http_code}\n" https://admin.44-198-215-187.sslip.io/` | `200` |
-| 1.10 | `curl.exe -sS -o NUL -w "%{http_code}\n" https://s.44-198-215-187.sslip.io/rest/health` | `200` khi đã có app (trước đó là `503`, đúng thiết kế) |
+| 1.10 | `curl.exe -sS -o NUL -w "%{http_code}\n" https://s.44-198-215-187.sslip.io/rest/health` | `200` khi đã có app (trước đó là `503`, đúng thiết kế); `502`/`504`: TV1 xem 2.6b |
 | 1.11 | `curl.exe -sS -o NUL -w "%{http_code} %{redirect_url}\n" https://s.44-198-215-187.sslip.io/<slug-mau>` | `302` và đúng đích |
 
 Windows báo lỗi thu hồi chứng chỉ (`CRYPT_E_NO_REVOCATION_CHECK`): thêm `--ssl-revoke-best-effort`, **không** thêm `-k`.
@@ -114,6 +114,16 @@ systemctl is-enabled nginx; systemctl is-active nginx; sudo nginx -t 2>&1 | tail
 ```
 
 PASS: `enabled`, `active`, `syntax is ok`; `:443` là `nginx`, `:80` là `apache2`. Nginx `inactive`: `sudo systemctl enable --now nginx`. **Không bao giờ** để Nginx nghe 80 (chiếm cổng của Keystone/Placement).
+
+### 2.6b `s.` trỏ đúng FIP của VIP (khi 1.10 ra 502 hoặc 504)
+
+FIP của VIP do Heat stack `campus-app` tạo (`infra/heat/root.yaml`, `vip_fip`), còn Nginx ghi cứng IP (`proxy_pass http://172.24.4.117:8080`, nối 14/11). TV2 xóa và tạo lại stack thì FIP đổi, `s.` trả 502 dù app khỏe.
+
+```bash
+sudo grep -n 'proxy_pass' /etc/nginx/conf.d/campus.conf; a "openstack loadbalancer list -f value -c name -c vip_address -c provisioning_status"; a "openstack floating ip list -f value -c 'Floating IP Address' -c 'Fixed IP Address'"
+```
+
+PASS: IP trong `proxy_pass` của khối `s.` là một `Floating IP Address` có `Fixed IP Address` trùng `vip_address` của LB `campus-app-lb-*` (`vip_port_id` chỉ có ở `loadbalancer show`, không có ở `list`). Khác nhau: báo TV1 sửa `proxy_pass` (sao lưu trước, `nginx -t`, `reload`) và cập nhật `inventory.yaml` (`load_balancer.vip_fip`). Không sửa trong freeze nếu không cần.
 
 ### 2.7 B
 
