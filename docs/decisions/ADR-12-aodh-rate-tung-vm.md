@@ -135,7 +135,7 @@ Chỉ khi cả hai phần đạt, TV1 xác nhận bằng evidence và TV2 đối
 
 ## Gate v2.1 (20/11/2026)
 
-Trạng thái lúc viết (20/11): đề xuất, chưa áp trên A. **Cập nhật 21/11/2026: bản này đã được áp trên A (khoảng 08:27Z) và bị thay bằng v2.2; trên cụm thật gate v2.1 từ chối mọi cửa sổ vì lỗi đọc timestamp, xem mục "Gate v2.2" bên dưới.** TV2 review PR #81 (bản v2, sha256 `efbde2e5…`) và tìm ra lỗ hổng ở nhánh hồi phục từ `insufficient data` (mục "Nhánh trending khi alarm đang insufficient data"); v2.1 sửa lỗ hổng đó, gộp vào cùng file patch (v2 chưa áp trên A, PR #81 chưa merge). Mới kiểm offline (mục "Kết quả kiểm offline"); chưa có bằng chứng evaluator chạy gate trên cụm. Vẫn là Heat + Aodh + Gnocchi; chỉ sửa lớp `GnocchiAggregationResourcesThresholdEvaluator` trong `aodh/evaluator/gnocchi.py`. **Không đổi** ngưỡng, granularity, `evaluation_periods`, cooldown, template Heat hay `threshold.py`.
+Trạng thái lúc viết (20/11): đề xuất, chưa áp trên A. **Cập nhật 21/11/2026: bản này đã được áp trên A (khoảng 08:27Z); trên cụm thật gate v2.1 từ chối mọi cửa sổ vì lỗi đọc timestamp. v2.2 (mục "Gate v2.2" bên dưới) đã thay v2.1 trên A lúc 09:38:04Z.** TV2 review PR #81 (bản v2, sha256 `efbde2e5…`) và tìm ra lỗ hổng ở nhánh hồi phục từ `insufficient data` (mục "Nhánh trending khi alarm đang insufficient data"); v2.1 sửa lỗ hổng đó, gộp vào cùng file patch (v2 chưa áp trên A, PR #81 chưa merge). Mới kiểm offline (mục "Kết quả kiểm offline"); chưa có bằng chứng evaluator chạy gate trên cụm. Vẫn là Heat + Aodh + Gnocchi; chỉ sửa lớp `GnocchiAggregationResourcesThresholdEvaluator` trong `aodh/evaluator/gnocchi.py`. **Không đổi** ngưỡng, granularity, `evaluation_periods`, cooldown, template Heat hay `threshold.py`.
 
 - Bản vá: `infra/devstack/patches/aodh-adr12-gate-v2.patch` (nội dung v2.1), sha256 `ea3d1ceed6cd054a2fad3b5f7df10f712d56ba974668dd1293cccca97bd41bc2`; bản vá **tăng dần**, áp **sau** `aodh-adr12-rate-per-vm.patch` (v1); 1 file, 92 dòng thêm, 0 dòng xóa.
 - sha256 của `aodh/evaluator/gnocchi.py` (tính offline): upstream `e07aeb6d` = `d63b84f4c61cd8f05a4f76488bc179720edf461592e94bb0c825cba91dd01ca0`; upstream + v1 = `8bc8a1153ce36c4732236834e173bb86cdf52d0fbc43170ce47eb331ad1dbb38`; upstream + v1 + v2.1 = `3d2bed8247161e54cfdaad29efcc6f5e040cc6011c251e32c000dda2798a56fb` (bản v2 cũ cho `443751e5…`, không dùng nữa).
@@ -249,7 +249,7 @@ Muốn về upstream sạch thì lùi tiếp v1 theo mục "Cách áp, kiểm v�
 
 ## Gate v2.2 (21/11/2026): sửa lỗi đọc timestamp, lộ ra khi bật đánh giá trên cụm thật
 
-Trạng thái: **đề xuất, CHƯA áp trên A.** Mới kiểm offline (22 ca, mục dưới); chưa có bằng chứng v2.2 chạy trên cụm. A đang giữ v2.1 (áp khoảng 08:27Z 21/11) và v2.1 **không dùng được**: gate từ chối mọi cửa sổ. Hai alarm đang tắt (`enabled=false`), ba danh sách actions rỗng, nên không có scale nào xảy ra.
+Trạng thái (cập nhật 21/11, 09:43Z): **ĐÃ ÁP trên A** lúc 09:38:04Z (delta v2.1 → v2.2, evaluator khởi động lại cùng giờ). Hậu kiểm 5 phút lúc 09:43:11Z đạt tiêu chí 2: `gnocchi.py` sha256 `529d40bb…`, đúng 1 file đổi, evaluator `active` (`ActiveEnterTimestamp` không đổi), 0 Traceback. TV2 đã đối chiếu offline độc lập (tiêu chí 1 phần offline và 3, comment PR #81 lúc 09:35Z). **Chưa có bằng chứng gate chạy trên cụm:** evaluation đang tắt (TV2 tắt lúc 08:53:20Z), hai alarm `enabled=false`, ba danh sách actions rỗng, nên không có scale nào xảy ra; tiêu chí 4–5 còn mở. Trước đó A giữ v2.1 (áp khoảng 08:27Z), **không dùng được** vì gate từ chối mọi cửa sổ.
 
 ### Sự cố trên cụm (21/11/2026, UTC)
 
@@ -272,7 +272,7 @@ Trạng thái: **đề xuất, CHƯA áp trên A.** Mới kiểm offline (22 ca,
 | `aodh-adr12-gate-v2.patch` (nội dung v2.2) | máy chỉ có v1 hoặc cây sạch | `ea9aa702fc960b2370a7e2b502281b1e7714ed81786d1ca5e2e4915c22a1ac04` | 1 file, 96 dòng thêm so với v1 (v2.1 là 92) |
 | `aodh-adr12-gate-v2.1-to-v2.2.patch` (delta) | **A hiện tại** (đang v2.1) | `46a0f8defe45faad8ec06f3766611252327d2e8ad60e20bbeb0ed6d3d199a962` | 6 dòng thêm, 2 dòng xóa |
 
-- sha256 của `aodh/evaluator/gnocchi.py`: upstream `d63b84f4…`; + v1 `8bc8a115…`; + v1 + v2.1 `3d2bed8247161e54cfdaad29efcc6f5e040cc6011c251e32c000dda2798a56fb` (đang trên A, bị thay); + v1 + v2.2 `529d40bbec3052efce221f559f201634eb161df9d5aff1f982aa034d75533086`. Hai đường (v1 + patch đầy đủ; v1 + v2.1 + delta) cho cùng `529d40bb…`.
+- sha256 của `aodh/evaluator/gnocchi.py`: upstream `d63b84f4…`; + v1 `8bc8a115…`; + v1 + v2.1 `3d2bed8247161e54cfdaad29efcc6f5e040cc6011c251e32c000dda2798a56fb` (chạy trên A tới 09:38Z, đã thay bằng v2.2); + v1 + v2.2 `529d40bbec3052efce221f559f201634eb161df9d5aff1f982aa034d75533086`. Hai đường (v1 + patch đầy đủ; v1 + v2.1 + delta) cho cùng `529d40bb…`.
 - `verify-gate-v2-ro.sh` nhận ra v2.2 và báo riêng khi file còn là v2.1.
 
 ### Kết quả kiểm offline (21/11/2026, laptop Windows, không chạm cụm)
@@ -302,7 +302,7 @@ Ca 12 (25 test upstream `aodh/tests/unit/evaluator/test_gnocchi.py`): v1 + v2.1 
 
 ### Cách áp và lùi (TV1; đổi trạng thái dùng chung, chỉ sau khi TV2 đối chiếu và người dùng cho phép từng lệnh)
 
-Trên A (đang v2.1; scp hai tệp patch lên `/tmp/`):
+Trên A (đang v2.1; scp hai tệp patch lên `/tmp/`). Đã thực hiện đúng như dưới đây lúc 09:38:04Z ngày 21/11 (kiểm trước đạt, áp, restart; verify 09:38:09Z và 09:43:11Z đạt):
 
 ```
 sha256sum /tmp/aodh-adr12-gate-v2.1-to-v2.2.patch      # 46a0f8defe45faad8ec06f3766611252327d2e8ad60e20bbeb0ed6d3d199a962
