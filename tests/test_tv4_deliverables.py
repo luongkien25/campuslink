@@ -29,12 +29,12 @@ class TestTV4Deliverables(unittest.TestCase):
         root_csv = REPO_ROOT / "cost.csv"
         with root_csv.open(encoding="utf-8", newline="") as fh:
             rows = list(csv.DictReader(fh))
-        self.assertGreaterEqual(len(rows), 35, "cost.csv phai co du cac phien G0 va Issue #4")
+        self.assertGreaterEqual(len(rows), 55, "cost.csv phai co du cac phien G0 va Issue #4 den 21/11")
         credits = [r["credit_remaining_usd"] for r in rows if r["credit_remaining_usd"] != "-"]
         self.assertEqual(
             credits,
-            ["131.38", "129.57", "125.58", "123.79", "115.00", "112.38"],
-            "Chuoi credit con lai phai khop bang Theo doi credit trong g0-checklist.md",
+            ["131.38", "129.57", "125.58", "123.79", "115.00", "112.38", "93.96"],
+            "Chuoi credit con lai phai khop bang Theo doi credit trong g0-checklist.md (den 18/11)",
         )
 
     def test_acceptance_md_has_8_categories_and_valid_links(self) -> None:

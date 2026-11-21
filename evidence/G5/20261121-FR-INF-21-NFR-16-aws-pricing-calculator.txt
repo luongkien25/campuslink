@@ -1,0 +1,123 @@
+# Evidence FR-INF-21 & NFR-16 (G5, #80 T4-3): Ban tinh AWS Pricing Calculator (us-east-1) va du bao chi phi den 30/11/2026
+# Chu tri: TV4 - Cao Song Toan (@toancst)
+# Ngay lay gia va lap bang: 2026-11-21 (doi chieu bang gia AWS On-Demand Linux & EBS gp3 tai region us-east-1, g0-checklist.md, SRS NFR-16 va O-05)
+# Khong co Account ID, IP ca nhan hay secret trong file nay.
+
+================================================================================
+1. DON GIA AWS ON-DEMAND TAI REGION US-EAST-1 (NGAY LAY GIA: 2026-11-21)
+================================================================================
+- Amazon EC2 On-Demand Linux (Shared Tenancy, us-east-1):
+  + m7i.2xlarge (8 vCPU, 32 GiB RAM - Host A campus-a):
+    * Gia AWS Calculator / Console (g0-checklist.md): 0,4032 USD/gio (294,34 USD / 730 gio)
+    * Gia tham chieu SRS (O-05 / cong thuc NFR-16):   0,4100 USD/gio (299,30 USD / 730 gio)
+  + m7i.xlarge (4 vCPU, 16 GiB RAM - Host B campus-b):
+    * Gia AWS Calculator / Console (g0-checklist.md): 0,2016 USD/gio (147,17 USD / 730 gio)
+    * Gia tham chieu SRS (O-05 / cong thuc NFR-16):   0,2050 USD/gio (149,65 USD / 730 gio)
+  + Tong 2 host EC2 (A + B chay dong thoi):
+    * Theo AWS Calculator (0,4032 + 0,2016):          0,6048 USD/gio (441,50 USD / 730 gio)
+    * Theo cong thuc SRS NFR-16 (0,4100 + 0,2050):    0,6150 USD/gio (448,95 USD / 730 gio)
+
+- Amazon EBS gp3 (3000 IOPS, 125 MB/s mac dinh, us-east-1):
+  + Dung luong: 60 GiB (root A) + 30 GiB (Cinder A) + 60 GiB (root B) = 150 GiB
+  + Don gia: 0,08 USD/GiB-thang -> 150 x 0,08 = 12,00 USD/thang (~0,40 USD/ngay, ton ca khi EC2 Stopped)
+
+- Amazon VPC Public IPv4 Address (1 Elastic IP 44.198.215.187 gan co dinh cho Host A):
+  + Don gia (tu 02/2024 AWS tinh 0,005 USD/gio cho moi Public IPv4, ke ca in-use hay idle):
+    0,005 USD/gio x 730 gio = 3,65 USD/thang (~0,12 USD/ngay)
+
+- Amazon EBS Snapshots (Standard tier, us-east-1):
+  + Don gia: 0,05 USD/GiB-thang tren phan block thay doi (incremental)
+  + DLM policy (policy-03e03380fa1963144, giu 3 ban) + 1 snapshot bang chung FR-INF-17 (snap-03f8a6038bec5b942):
+    Uoc tinh ~58 GiB-thang block luu tru -> ~2,91 USD/thang
+  + Tong chi phi co dinh hang thang (EBS 12,00 + EIP 3,65 + Snapshot 2,91) = 18,56 USD/thang (khop hang so 18,56 trong cong thuc SRS NFR-16).
+
+================================================================================
+2. BANG XUAT DU TOAN KIEN TRUC CAMPUSLINK (OPENSTACK TREN 2 EC2) - 2 KICH BAN
+================================================================================
+
+2.1. Kich ban A: Chay lien tuc 24/7 (730 gio/thang - SRS NFR-16)
+--------------------------------------------------------------------------------
+Hang muc                                 Theo cong thuc SRS NFR-16   Theo don gia Calculator (0,6048/h)
+---------------------------------------  --------------------------  ----------------------------------
+1. Compute: Host A m7i.2xlarge (730 h)            299,30 USD                        294,34 USD
+2. Compute: Host B m7i.xlarge  (730 h)            149,65 USD                        147,17 USD
+3. Storage: EBS gp3 150 GiB                        12,00 USD                         12,00 USD
+4. Network: 1 Public IPv4 (EIP 730 h)               3,65 USD                          3,65 USD
+5. Backup:  EBS Snapshot (~58 GiB-thang)            2,91 USD                          2,91 USD
+---------------------------------------  --------------------------  ----------------------------------
+Tam tinh (chua du phong)                          467,51 USD                        460,07 USD
+Du phong bien dong & data transfer (20%)           93,50 USD                         92,01 USD
+---------------------------------------  --------------------------  ----------------------------------
+TONG CONG 730 GIO/THANG                           561,01 USD                        552,08 USD
+--------------------------------------------------------------------------------
+(Cong thuc SRS NFR-16: (0,615 x 730 + 18,56) x 1,2 = 467,51 x 1,2 = 561,012 USD -> 561,01 USD, da dong bo o PR #83.)
+
+2.2. Kich ban B: Lab mon hoc bat theo phien (40-60 gio) & Thuc te den 21/11 + Du bao den 30/11
+--------------------------------------------------------------------------------
+- Du toan ban dau theo cong thuc SRS NFR-16 ((0,615 x H + 18,56) x 1,2):
+  + Voi H = 40 gio moi EC2: (24,60 + 18,56) x 1,2 = 51,79 USD (<= 70 USD)
+  + Voi H = 50 gio moi EC2: (30,75 + 18,56) x 1,2 = 59,17 USD (<= 70 USD)
+  + Voi H = 60 gio moi EC2: (36,90 + 18,56) x 1,2 = 66,55 USD (<= 70 USD)
+
+- Thong ke thuc te tu cost.csv (cap nhat den chieu 21/11/2026 theo Nhat ky cloud #4 va last -x):
+  + Tong so dong phien trong cost.csv: 60 dong (tu 22/10/2026 den 21/11/2026).
+  + Cac phien da ghi so phut cu the (58 dong; tru 2 dong 24/10 va 11/11 chua ghi gio Start):
+    * Host A (m7i.2xlarge): 2.199,6 phut (~36,66 gio) x 0,410 USD/gio = 15,04 USD (lam tron tung dong)
+    * Host B (m7i.xlarge):  1.598,6 phut (~26,64 gio) x 0,205 USD/gio =  5,47 USD (lam tron tung dong)
+    * Tong tien may EC2 da ghi phut trong cost.csv:                     20,51 USD
+
+- Doi chieu voi so lieu thuc te tren AWS Billing -> Credits va AWS Budgets:
+  + Tong AWS Credit duoc cap (evidence/G0/20261118-FR-INF-21-aws-credits.png): 140,00 USD
+    * AWS Free Tier:                                  100,00 USD (han 09/10/2027)
+    * Explore AWS: Set up a cost budget using Budgets: 20,00 USD (han 09/10/2027)
+    * Explore AWS: Launch an instance using EC2:       20,00 USD (han 09/10/2027)
+  + Chuoi so du credit uoc tinh con lai (g0-checklist.md):
+    * 22/10/2026: 131,38 USD (da dung 8,62 USD truoc khi bat dau lab)
+    * 24/10/2026: 129,57 USD (-1,81 USD)
+    * 26/10/2026: 125,58 USD (-3,99 USD)
+    * 27/10/2026: 123,79 USD (-1,79 USD)
+    * 07/11/2026: 115,00 USD (~-8,79 USD)
+    * 09/11/2026: 112,38 USD (-2,62 USD; hoa don T10 chot: da dung 20,81 USD, con 119,19 USD)
+    * 18/11/2026:  93,96 USD (-18,42 USD; tong uoc tinh da dung 46,04 USD, trong do tu 22/10 den 18/11 la 37,42 USD; rieng T11 den 18/11 la 46,04 - 20,81 = 25,23 USD).
+  + AWS Budgets ngay 19/11/2026 (evidence/G0/20261119-FR-INF-21-aws-budgets.png):
+    * 3 budget canh bao: 30,00 USD / 50,00 USD / 65,00 USD (trang thai Health status: Healthy).
+    * Chi phi thang 11 da dung (Amount used): 27,34 USD.
+    * AWS du bao cuoi thang 11 (Forecasted):  53,65 USD (<= 70,00 USD muc tieu C-08 / NFR-16).
+
+- Du bao chi phi tu 21/11 den het ngay bao ve 30/11/2026:
+  + Chi phi nen khi may tat (EBS 150 GiB + 1 EIP + Snapshot DLM): ~0,62 USD/ngay x 11 ngay (20/11-30/11) ≈ 6,82 USD.
+  + Cac phien bat cum tu 19/11 den 30/11:
+    * Phien 19/11 (~1,1 gio), 20/11 (~1,6 gio), chieu 21/11 (~2,0 gio), toi 21/11 quay video (~2,5 gio) va buoi bao ve 30/11 (~2,5 gio) -> tong ~9,7 gio A+B x 0,615 USD/gio ≈ 5,97 USD.
+  + Du bao chi phi thang 11 den het 30/11/2026:
+    * Thang 11: 27,34 USD (den 19/11) + ~6,82 USD (nen) + ~5,15 USD (may chay 20-30/11) ≈ 39,31 USD (thap hon muc Forecasted 53,65 USD cua AWS Budgets vi giai doan 22-29/11 cum tat trong freeze).
+    * Luy ke toan du an (22/10 - 30/11/2026): 12,19 USD (T10 tu 22/10) + ~39,31 USD (T11) ≈ 51,50 USD (<= 70,00 USD muc tieu; credit con lai sau bao ve uoc tinh ~80,0-82,0 USD).
+
+================================================================================
+3. SO SANH VOI KIEN TRUC AWS MANAGED TUONG DUONG (NFR-16 BAN 1.4, US-EAST-1)
+================================================================================
+Gia lay theo bang gia AWS Pricing Calculator (us-east-1, On-Demand, thang 730 gio, ngay 2026-11-21):
+
+Thanh phan                       CampusLink (OpenStack tren 2 EC2)    AWS Managed tuong duong (us-east-1)              AWS Managed 730h/thang   AWS Managed Lab (~50h)
+-------------------------------  -----------------------------------  -----------------------------------------------  -----------------------  ----------------------
+1. Ingress + Load Balancer       Nginx tren A + Octavia OVN LB        Application Load Balancer (2 AZ, $0.0225/h       19,35 USD                1,53 - 19,35 USD
+                                 (nam chung trong 2 EC2)              + ~0.5 LCU x $0.008/LCU-h)
+2. Compute App (2-3 replica)     2-3 Nova VM campus.app (1 vCPU,      2 x EC2 t3.small ($0.0208/h x 2) + 1 x t3.small  32,65 USD                4,64 USD (gom EBS 30G)
+                                 2 GiB) tren KVM 2 host               scale-out 15% thoi gian + 30 GiB gp3 ($2.40)
+3. Database PostgreSQL 16        Nova VM campus-db (1 vCPU, 2 GiB)    Amazon RDS for PostgreSQL db.t4g.small           25,66 USD (Single-AZ)    3,90 USD (Single-AZ,
+                                 + Cinder LVM 10 GiB                  ($0.032/h Single-AZ / $0.064/h Multi-AZ)         51,32 USD (Multi-AZ)     Stop + 20 GiB gp3)
+                                                                      + 20 GiB General Purpose SSD gp3 ($2.30)
+4. Cache & Queue Redis 7         Redis 7.0 tren campus-db             Amazon ElastiCache Redis cache.t4g.small         23,36 USD                23,36 USD (khong Stop
+                                                                      ($0.032/h x 730h)                                                         duoc; hoac 1,60 USD IaC)
+5. Object Storage & Backup       Swift (4 container private)          Amazon S3 Standard (<5 GiB, Versioning +         0,50 USD                 0,15 USD
+                                 + EBS Snapshot DLM                   Object Lock) + RDS Snapshot
+6. Cross-AZ Private Egress NAT   campus-nat (iptables MASQUERADE      AWS NAT Gateway ($0.045/h x 730h                 33,85 USD                2,50 - 33,85 USD
+                                 tren Host A, 0 USD phi dich vu)      + ~22 GB data processing x $0.045/GB)
+-------------------------------  -----------------------------------  -----------------------------------------------  -----------------------  ----------------------
+TONG (chua du phong 20%)         467,51 USD/thang (730h)              --                                               135,37 USD (Single-AZ)   14,32 - 85,79 USD
+                                 ~51,50 USD (luy ke lab 22/10-30/11)                                                   161,03 USD (Multi-AZ)
+TONG (gom du phong 20%)          561,01 USD/thang (730h)              --                                               162,44 USD (Single-AZ)   17,18 - 102,95 USD
+                                 51,79 - 66,55 USD (ke hoach lab)                                                      193,24 USD (Multi-AZ)
+
+KET LUAN SO SANH:
+1. O kich ban van hanh 24/7 (730 gio/thang): Kien truc OpenStack tren 2 EC2 nested KVM (561,01 USD/thang) dat hon ~2,9-3,5 lan so voi AWS Managed co nho (162,44-193,24 USD/thang) vi phai duy tri 12 vCPU / 48 GiB RAM cho toan bo OpenStack control plane (Keystone, Nova, Neutron/OVN, Octavia, Cinder, Swift, Heat, Ceilometer/Gnocchi/Aodh).
+2. O kich ban Lab mon hoc bat theo phien (~40-60 gio): Kien truc gom toan bo ha tang vao 2 EC2 cho phep Stop/Start nguyen trang ma khong phai tra phi duy tri ALB, NAT Gateway hay ElastiCache 24/7, giu chi phi thuc te ca hoc ky (~51,50 USD; du bao Budgets T11 la 53,65 USD) nam gon trong ngan sach <= 70 USD va duoc chi tra 100% bang AWS Credit (140,00 USD).
