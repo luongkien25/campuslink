@@ -3,10 +3,11 @@
 # khong in credential, khong doc aodh.conf. Chay boi TV1 (ubuntu, can sudo de
 # doc journal cua devstack@aodh-evaluator):
 #   bash verify-gate-v2-ro.sh [so_phut]      # mac dinh 30 phut gan nhat
-# Ket qua mong doi sau khi ap v1 + v2:
+# Ket qua mong doi sau khi ap v1 + v2.2:
 #   - HEAD = e07aeb6d118b4b9099947028e6e809a6bdd8fe22
 #   - git diff --stat: dung 1 file aodh/evaluator/gnocchi.py
-#   - sha256 gnocchi.py = SHA_V1_V2 (v2.1; neu = SHA_V1 thi gate v2.1 CHUA ap / da lui)
+#   - sha256 gnocchi.py = SHA_V1_V22 (v2.2; = SHA_V1_V21 thi con v2.1, loi bad_timestamp;
+#     = SHA_V1 thi gate CHUA ap / da lui)
 #   - devstack@aodh-evaluator active, 0 dong Traceback trong cua so
 set -u
 
@@ -14,7 +15,8 @@ AODH=/opt/stack/aodh
 MIN=${1:-30}
 SHA_UPSTREAM=d63b84f4c61cd8f05a4f76488bc179720edf461592e94bb0c825cba91dd01ca0
 SHA_V1=8bc8a1153ce36c4732236834e173bb86cdf52d0fbc43170ce47eb331ad1dbb38
-SHA_V1_V2=3d2bed8247161e54cfdaad29efcc6f5e040cc6011c251e32c000dda2798a56fb   # v2.1 (v2 cu 443751e5 khong dung nua)
+SHA_V1_V22=529d40bbec3052efce221f559f201634eb161df9d5aff1f982aa034d75533086   # v2.2 (doc timestamp datetime + chuoi ISO)
+SHA_V1_V21=3d2bed8247161e54cfdaad29efcc6f5e040cc6011c251e32c000dda2798a56fb   # v2.1: tren cum that reject=bad_timestamp o moi chu ky (21/11), thay bang v2.2 (v2 cu 443751e5 khong dung nua)
 UNIT=devstack@aodh-evaluator
 
 echo "== thoi diem (UTC): $(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -29,8 +31,9 @@ echo "== sha256 gnocchi.py dang nam tren dia"
 got=$(sha256sum "$AODH/aodh/evaluator/gnocchi.py" | cut -d' ' -f1)
 echo "$got"
 case "$got" in
-  "$SHA_V1_V2") echo "KET LUAN: upstream + v1 + gate v2.1" ;;
-  443751e5126a08e0abf237238f2148c8d3f088bc6fddecd0fdeb3e4fc76a77e7) echo "KET LUAN: gate v2 CU (co lo hong trending) - lui va ap v2.1" ;;
+  "$SHA_V1_V22") echo "KET LUAN: upstream + v1 + gate v2.2" ;;
+  "$SHA_V1_V21") echo "KET LUAN: gate v2.1 (LOI bad_timestamp tren cum that) - ap aodh-adr12-gate-v2.1-to-v2.2.patch" ;;
+  443751e5126a08e0abf237238f2148c8d3f088bc6fddecd0fdeb3e4fc76a77e7) echo "KET LUAN: gate v2 CU (co lo hong trending) - lui va ap v2.2" ;;
   "$SHA_V1") echo "KET LUAN: upstream + v1 (gate v2 CHUA ap hoac da lui)" ;;
   "$SHA_UPSTREAM") echo "KET LUAN: upstream sach (khong co ban va nao)" ;;
   *) echo "KET LUAN: KHONG KHOP ban nao da biet - dung lai, bao TV1/TV2" ;;

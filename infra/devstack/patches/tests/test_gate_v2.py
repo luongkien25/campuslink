@@ -52,8 +52,17 @@ def pct(p):
 class FakeGnocchi(object):
     """Gnocchi gia: vms = {ten: {'ended_at': None|dt, 'pts': {dt: rate}}}."""
 
-    def __init__(self, vms):
+    def __init__(self, vms, ts_kind='iso', bad=None):
+        # ts_kind = kieu timestamp client tra ve. gnocchiclient that doi MOI
+        # timestamp thanh datetime co mui gio UTC (v1/aggregates.py,
+        # _convert_dates, iso8601.parse_date); ADR-12 muc gate v2.2:
+        #   iso (chuoi +00:00), iso_z (chuoi Z), dt_utc (datetime UTC),
+        #   dt_plus7 (datetime mui gio +07:00, cung thoi diem), dt_naive,
+        #   client (chuoi ISO di qua chinh ham _convert_dates cua gnocchiclient).
+        # bad = {chi_so_diem: gia_tri}: thay timestamp cua diem do (sai dinh dang)
         self.vms = vms
+        self.ts_kind = ts_kind
+        self.bad = bad or {}
         self.calls = []
 
     @property
@@ -94,19 +103,44 @@ class FakeGnocchi(object):
                        else min(vals))
             else:
                 raise AssertionError(agg)
-            iso = (EPOCH + datetime.timedelta(seconds=t)).isoformat()
-            out.append([iso + '+00:00', float(g), val])
-        return {'measures': {'aggregated': out}}
+            out.append([self._ts(t), float(g), val])
+        for i, v in self.bad.items():
+            out[i][0] = v
+        result = {'measures': {'aggregated': out}}
+        if self.ts_kind == 'client':
+            # ham chuyen doi THAT cua gnocchiclient: timestamp -> datetime UTC
+            from gnocchiclient.v1 import aggregates
+            convert = getattr(aggregates.AggregatesManager, '_convert_dates',
+                              None)
+            assert convert, 'gnocchiclient khong co _convert_dates (doi ban?)'
+            convert(result['measures'])
+        return result
+
+    def _ts(self, t):
+        naive = EPOCH + datetime.timedelta(seconds=t)
+        utc = naive.replace(tzinfo=datetime.timezone.utc)
+        if self.ts_kind in ('iso', 'client'):
+            return naive.isoformat() + '+00:00'
+        if self.ts_kind == 'iso_z':
+            return naive.isoformat() + 'Z'
+        if self.ts_kind == 'dt_utc':
+            return utc
+        if self.ts_kind == 'dt_plus7':
+            return utc.astimezone(
+                datetime.timezone(datetime.timedelta(hours=7)))
+        if self.ts_kind == 'dt_naive':
+            return naive
+        raise AssertionError(self.ts_kind)
 
 
 class FakeConf(object):
     additional_ingestion_lag = 0
 
 
-def make_ev(cls, vms):
+def make_ev(cls, vms, ts_kind='iso', bad=None):
     ev = cls.__new__(cls)
     ev.conf = FakeConf()
-    ev._gnocchi_client = FakeGnocchi(vms)
+    ev._gnocchi_client = FakeGnocchi(vms, ts_kind, bad)
     return ev
 
 
@@ -291,8 +325,8 @@ class FakeAlarm(object):
         self.severity = 'low'
 
 
-def make_full_ev(cls, vms):
-    ev = make_ev(cls, vms)
+def make_full_ev(cls, vms, ts_kind='iso'):
+    ev = make_ev(cls, vms, ts_kind)
     ev.conf.record_history = False
     ev.conf.enable_evaluation_results_metrics = False
     ev.storage_conn = mock.Mock()
@@ -310,10 +344,10 @@ def window(vals, last='09:59'):
     return out
 
 
-def run_full(cls, rule, state, vals, now=NOW):
+def run_full(cls, rule, state, vals, now=NOW, ts_kind='iso'):
     """Chay evaluate() (tang tren evaluate_rule): tra (state, refresh_calls)."""
     ev = make_full_ev(cls, {'a': {'pts': window(vals)},
-                            'b': {'pts': window(vals)}})
+                            'b': {'pts': window(vals)}}, ts_kind)
     alarm = FakeAlarm(rule, state)
     with mock.patch.object(ev, '_refresh', wraps=ev._refresh) as spy:
         with mock.patch.object(timeutils, 'utcnow', return_value=now):
@@ -390,6 +424,93 @@ class TestGateV21Evaluate(unittest.TestCase):
         # nhanh trending cua upstream van con voi aggregation khong rate:
         st, calls, ev = run_full(EV, rule, UNKNOWN, [55, 65])
         self.assertEqual(('alarm', ['alarm']), (st, calls))
+
+
+class TestGateV22Timestamp(unittest.TestCase):
+    # Gate v2.2. Tren cum that (21/11/2026 08:44:59Z) client tra timestamp la
+    # datetime co mui gio, gate v2.1 chi doc duoc chuoi ISO nen reject=
+    # bad_timestamp o moi chu ky. Cung mot bucket phai cho cung ket qua du
+    # timestamp la chuoi ISO hay datetime; timestamp sai dinh dang van bi tu choi.
+
+    KINDS = ('iso', 'iso_z', 'dt_utc', 'dt_plus7', 'dt_naive', 'client')
+
+    def _scenarios(self):
+        # (ten, rule, vms): dung lai du lieu cua ca 1, 3, 5, 8, 10
+        gap = (ts('09:58'),)
+        reset = steady(70)
+        reset[ts('09:59')] = pct(-50)
+        return [
+            ('high_alarm', HIGH, {'a': {'pts': steady(70)},
+                                  'b': {'pts': steady(65)}}),
+            ('low_alarm', LOW, {'a': {'pts': steady(10)},
+                                'b': {'pts': steady(12)}}),
+            ('low_ok', LOW, {'a': {'pts': steady(30)},
+                             'b': {'pts': steady(20)}}),
+            ('thieu_bucket_giua', HIGH, {'a': {'pts': steady(70, skip=gap)},
+                                         'b': {'pts': steady(70, skip=gap)}}),
+            ('counter_reset_am', HIGH, {'a': {'pts': steady(70)},
+                                        'b': {'pts': reset}}),
+        ]
+
+    def test_cung_bucket_cung_ket_qua_moi_kieu_timestamp(self):
+        state = {'high_alarm': 'alarm', 'low_alarm': 'alarm', 'low_ok': 'ok',
+                 'thieu_bucket_giua': 'insufficient',
+                 'counter_reset_am': 'insufficient'}
+        reason = {'thieu_bucket_giua': 'campus-gate reject=missing_bucket',
+                  'counter_reset_am': 'campus-gate reject=negative'}
+        for name, rule, vms in self._scenarios():
+            ref_ev = make_ev(EV, vms)
+            ref = run(ref_ev, rule, NOW)
+            self.assertEqual(state[name], ref[0], name)
+            if name in reason:
+                self.assertEqual(reason[name], ref[1], name)
+            for kind in self.KINDS:
+                with self.subTest(tinh_huong=name, kieu_timestamp=kind):
+                    ev = make_ev(EV, vms, ts_kind=kind)
+                    self.assertEqual(ref, run(ev, rule, NOW), (name, kind))
+                    self.assertEqual(ref_ev.raw, ev.raw, (name, kind))
+        # client tra mui gio +07:00 (16:58, 16:59) van la bucket 09:58, 09:59 UTC
+        ev = make_ev(EV, {'a': {'pts': steady(70)}, 'b': {'pts': steady(65)}},
+                     ts_kind='dt_plus7')
+        run(ev, HIGH, NOW)
+        self.assertIsNotNone(ev.raw, 'gate tu choi cua so hop le (dt_plus7)')
+        self.assertEqual(['2026-11-20T09:58:00', '2026-11-20T09:59:00'],
+                         [s[0] for s in ev.raw])
+
+    def test_timestamp_sai_dinh_dang_bi_tu_choi(self):
+        bad_values = ['khong-phai-timestamp', '', None, 1763632680,
+                      1763632680.0, '2026-13-45T99:00:00+00:00',
+                      datetime.date(2026, 11, 20),
+                      b'2026-11-20T09:58:00+00:00']
+        cases = [(HIGH, {'a': {'pts': steady(70)}, 'b': {'pts': steady(65)}},
+                  (0, -1)),
+                 (LOW, {'a': {'pts': steady(10)}, 'b': {'pts': steady(12)}},
+                  (0, 1, -1))]
+        for rule, vms, idxs in cases:
+            for kind in ('iso', 'dt_utc'):
+                for bad in bad_values:
+                    for idx in idxs:
+                        ev = make_ev(EV, vms, ts_kind=kind, bad={idx: bad})
+                        self.assertEqual(
+                            ('insufficient', 'campus-gate reject=bad_timestamp'),
+                            run(ev, rule, NOW), (rule['comparison_operator'],
+                                                 kind, bad, idx))
+
+    def test_hoi_phuc_o_tang_evaluate_voi_moi_kieu_timestamp(self):
+        for kind in self.KINDS:
+            with self.subTest(kieu_timestamp=kind):
+                r = run_full(EV, HIGH, UNKNOWN, [55, 65], ts_kind=kind)
+                self.assertEqual((UNKNOWN, []), r[:2], kind)
+                r = run_full(EV, HIGH, UNKNOWN, [65, 70], ts_kind=kind)
+                self.assertEqual(('alarm', ['alarm']), r[:2], kind)
+                r = run_full(EV, LOW, UNKNOWN, [30, 30, 20], ts_kind=kind)
+                self.assertEqual((UNKNOWN, []), r[:2], kind)
+                r = run_full(EV, LOW, UNKNOWN, [20, 22, 18], ts_kind=kind)
+                self.assertEqual(('alarm', ['alarm']), r[:2], kind)
+                # low dang alarm (nhu cum 21/11), tai nen 30-45%: ba bucket tren
+                # nguong thi ve ok (quyet dinh), khong cho hold
+                r = run_full(EV, LOW, 'alarm', [30, 35, 40], ts_kind=kind)
+                self.assertEqual(('ok', ['ok']), r[:2], kind)
 
 
 if __name__ == '__main__':

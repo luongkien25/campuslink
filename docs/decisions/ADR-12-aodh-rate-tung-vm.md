@@ -135,7 +135,7 @@ Chỉ khi cả hai phần đạt, TV1 xác nhận bằng evidence và TV2 đối
 
 ## Gate v2.1 (20/11/2026)
 
-Trạng thái: **đề xuất, CHƯA áp trên A.** TV2 review PR #81 (bản v2, sha256 `efbde2e5…`) và tìm ra lỗ hổng ở nhánh hồi phục từ `insufficient data` (mục "Nhánh trending khi alarm đang insufficient data"); v2.1 sửa lỗ hổng đó, gộp vào cùng file patch (v2 chưa áp trên A, PR #81 chưa merge). Mới kiểm offline (mục "Kết quả kiểm offline"); chưa có bằng chứng evaluator chạy gate trên cụm. Vẫn là Heat + Aodh + Gnocchi; chỉ sửa lớp `GnocchiAggregationResourcesThresholdEvaluator` trong `aodh/evaluator/gnocchi.py`. **Không đổi** ngưỡng, granularity, `evaluation_periods`, cooldown, template Heat hay `threshold.py`.
+Trạng thái lúc viết (20/11): đề xuất, chưa áp trên A. **Cập nhật 21/11/2026: bản này đã được áp trên A (khoảng 08:27Z) và bị thay bằng v2.2; trên cụm thật gate v2.1 từ chối mọi cửa sổ vì lỗi đọc timestamp, xem mục "Gate v2.2" bên dưới.** TV2 review PR #81 (bản v2, sha256 `efbde2e5…`) và tìm ra lỗ hổng ở nhánh hồi phục từ `insufficient data` (mục "Nhánh trending khi alarm đang insufficient data"); v2.1 sửa lỗ hổng đó, gộp vào cùng file patch (v2 chưa áp trên A, PR #81 chưa merge). Mới kiểm offline (mục "Kết quả kiểm offline"); chưa có bằng chứng evaluator chạy gate trên cụm. Vẫn là Heat + Aodh + Gnocchi; chỉ sửa lớp `GnocchiAggregationResourcesThresholdEvaluator` trong `aodh/evaluator/gnocchi.py`. **Không đổi** ngưỡng, granularity, `evaluation_periods`, cooldown, template Heat hay `threshold.py`.
 
 - Bản vá: `infra/devstack/patches/aodh-adr12-gate-v2.patch` (nội dung v2.1), sha256 `ea3d1ceed6cd054a2fad3b5f7df10f712d56ba974668dd1293cccca97bd41bc2`; bản vá **tăng dần**, áp **sau** `aodh-adr12-rate-per-vm.patch` (v1); 1 file, 92 dòng thêm, 0 dòng xóa.
 - sha256 của `aodh/evaluator/gnocchi.py` (tính offline): upstream `e07aeb6d` = `d63b84f4c61cd8f05a4f76488bc179720edf461592e94bb0c825cba91dd01ca0`; upstream + v1 = `8bc8a1153ce36c4732236834e173bb86cdf52d0fbc43170ce47eb331ad1dbb38`; upstream + v1 + v2.1 = `3d2bed8247161e54cfdaad29efcc6f5e040cc6011c251e32c000dda2798a56fb` (bản v2 cũ cho `443751e5…`, không dùng nữa).
@@ -246,6 +246,85 @@ Muốn về upstream sạch thì lùi tiếp v1 theo mục "Cách áp, kiểm v�
 4. Cửa sổ của alarm `rate:*` tự tính từ giờ đánh giá; `additional_ingestion_lag` trong `aodh.conf` không còn tác dụng với hai alarm này (giá trị trên A chưa đọc). Phụ thuộc đồng hồ host A đúng (NTP), chưa kiểm.
 5. Rate tồn tại ở bucket đầu sau khi VM có điểm thứ hai (policy `ceilometer-high-rate` lưu sẵn `rate:mean`, `carbonara.py:217` dùng `numpy.diff`, nên reset counter ra số âm): suy từ mã, chưa đối chiếu dữ liệu reset thật.
 6. `gnocchiclient` trên A có `exceptions.BadRequest` và trả timestamp ISO có múi giờ: kiểm với gnocchiclient 7.2.0 trên laptop; phiên bản trên A **chưa kiểm**.
+
+## Gate v2.2 (21/11/2026): sửa lỗi đọc timestamp, lộ ra khi bật đánh giá trên cụm thật
+
+Trạng thái: **đề xuất, CHƯA áp trên A.** Mới kiểm offline (22 ca, mục dưới); chưa có bằng chứng v2.2 chạy trên cụm. A đang giữ v2.1 (áp khoảng 08:27Z 21/11) và v2.1 **không dùng được**: gate từ chối mọi cửa sổ. Hai alarm đang tắt (`enabled=false`), ba danh sách actions rỗng, nên không có scale nào xảy ra.
+
+### Sự cố trên cụm (21/11/2026, UTC)
+
+- 08:44:53Z TV2 bật `evaluation_enabled=true` (Heat `UPDATE_COMPLETE`), `actions_enabled=false`, ba danh sách actions rỗng, `repeat_actions=false`. Chu kỳ đánh giá đầu (08:44:59Z) đưa cả hai alarm sang `insufficient data` (trước đó `cpu_high` = ok, `cpu_low` = alarm, đóng băng từ lúc tắt).
+- Journal `devstack@aodh-evaluator` 08:44:59Z–08:48:59Z (5 chu kỳ, mỗi chu kỳ hai alarm): `campus-gate reject=bad_timestamp` ở **mọi** chu kỳ, cả `gt n=2` (high) và `lt n=3` (low). 0 Traceback, 0 `hold=equivocal`, không có `gnocchi_400`. Nghĩa là hai truy vấn Gnocchi 4.7.1 thật (`mean` và `min`, `needed_overlap=100`, cohort ổn định) trả 200, và điểm đầu của mỗi kết quả đúng là bucket đầu của cửa sổ gate tính (08:42:00 cho high, 08:41:00 cho low ở chu kỳ 08:44:59Z). Dữ liệu thô: `docs/_scripts/session-20261121/results/aodh-eval-20261121-0844Z.log` (ngoài repo).
+- Giá trị timestamp bị từ chối ghi trong journal có dạng `2026-11-21 08:42:00+00:00` (dấu cách, không có chữ T): đó là `str(datetime)`. TV2 xác nhận client trả `datetime` có múi giờ. Gate v2.1 gọi `timeutils.parse_isotime(ts)`, hàm này chỉ nhận chuỗi, nên ném `ValueError` và gate ghi `bad_timestamp`.
+- 08:53:20Z TV2 tắt evaluation; hậu kiểm hai alarm tắt, actions rỗng. Kiểm VM trước khi tắt evaluation (trước 08:53Z): ba VM `ACTIVE` (`campus-db`, app A, một app của nhóm ASG), không có VM lạ. Trạng thái alarm chưa đọc lại sau khi tắt; lần đọc gần nhất (TV2, 08:46:02Z) cả hai là `insufficient data`.
+- **Nguyên nhân gốc:** trong `gnocchiclient` (7.2.0, cài thử offline), `aggregates.fetch` luôn gọi `_convert_dates` (`gnocchiclient/v1/aggregates.py`), đổi mọi timestamp trong kết quả thành `datetime` có múi giờ UTC bằng `iso8601.parse_date`; kết quả có dạng `{'measures': {'aggregated': [(datetime, granularity, value), ...]}}`. Vậy `datetime` là hành vi bình thường của client, không riêng A. Nhận định ở "rủi ro còn lại" số 6 của v2.1 (client trả chuỗi ISO) **sai**, và 19 ca của v2.1 không bắt được vì Gnocchi giả chỉ trả chuỗi ISO. Dạng giá trị trong journal (`2026-11-21 08:42:00+00:00`) khớp đúng `str()` của `datetime` UTC do hàm này tạo ra. Phiên bản `gnocchiclient` trên A chưa đọc.
+
+### Thay đổi (v2.2)
+
+- Đoạn đọc timestamp trong `_campus_gate`: nhận `datetime` (có hoặc không múi giờ; không múi giờ coi là UTC, giống `parse_isotime` với chuỗi không múi giờ) hoặc chuỗi ISO, rồi chuẩn hóa về UTC bằng `timeutils.normalize_time`. Kiểu khác (None, số, `date`, bytes, chuỗi sai định dạng) vẫn `reject=bad_timestamp`.
+- Dòng log `bad_timestamp` ghi `repr(ts)` thay `str(ts)`, để thấy cả kiểu (`datetime.datetime(...)` hay chuỗi có dấu nháy).
+- **Không đổi:** ngưỡng, granularity, `evaluation_periods`, cooldown, template Heat, `threshold.py`, và mọi cơ chế khác của v2.1 (bucket đã đóng, `needed_overlap=100`, min âm, hold khi hồi phục từ `insufficient data`).
+
+### Checksum (tính offline trên cây upstream `e07aeb6d` + v1 sha256 `9afebdfc…`)
+
+| Tệp (`infra/devstack/patches/`) | Dùng cho | sha256 | Thay đổi |
+| --- | --- | --- | --- |
+| `aodh-adr12-gate-v2.patch` (nội dung v2.2) | máy chỉ có v1 hoặc cây sạch | `ea9aa702fc960b2370a7e2b502281b1e7714ed81786d1ca5e2e4915c22a1ac04` | 1 file, 96 dòng thêm so với v1 (v2.1 là 92) |
+| `aodh-adr12-gate-v2.1-to-v2.2.patch` (delta) | **A hiện tại** (đang v2.1) | `46a0f8defe45faad8ec06f3766611252327d2e8ad60e20bbeb0ed6d3d199a962` | 6 dòng thêm, 2 dòng xóa |
+
+- sha256 của `aodh/evaluator/gnocchi.py`: upstream `d63b84f4…`; + v1 `8bc8a115…`; + v1 + v2.1 `3d2bed8247161e54cfdaad29efcc6f5e040cc6011c251e32c000dda2798a56fb` (đang trên A, bị thay); + v1 + v2.2 `529d40bbec3052efce221f559f201634eb161df9d5aff1f982aa034d75533086`. Hai đường (v1 + patch đầy đủ; v1 + v2.1 + delta) cho cùng `529d40bb…`.
+- `verify-gate-v2-ro.sh` nhận ra v2.2 và báo riêng khi file còn là v2.1.
+
+### Kết quả kiểm offline (21/11/2026, laptop Windows, không chạm cụm)
+
+Môi trường: Aodh `e07aeb6d118b4b9099947028e6e809a6bdd8fe22` (clone mirror GitHub `openstack/aodh`, `git rev-parse HEAD` khớp), Python 3.13.13, venv mới từ `requirements.txt` và `test-requirements.txt` của Aodh (`gnocchiclient` 7.2.0, `oslo.utils` 10.3.0, `iso8601` 2.1.0); A chạy Python 3.12 với bản thư viện khác, **chưa kiểm** trên đúng môi trường của A. Lưu ý khi clone trên Windows: `core.autocrlf=true` đổi file làm việc sang CRLF và làm sha256 `gnocchi.py` lệch `d63b84f4…`; đặt `core.autocrlf=false` trước khi checkout (hoặc so sha bằng `git show e07aeb6d:aodh/evaluator/gnocchi.py | sha256sum`).
+
+- Cây upstream sạch → v1 → patch đầy đủ v2.2: `git apply --check` rồi áp đạt, file `529d40bb…`; áp ngược về đúng `8bc8a115…`. Trên cây v1 + v2.1: delta `--check` và áp đạt → `529d40bb…`; áp ngược → `3d2bed82…`.
+- `test_gate_v2.py`: Gnocchi giả nay trả được 6 kiểu timestamp (chuỗi `+00:00`, chuỗi `Z`, `datetime` UTC, `datetime` múi giờ +07:00, `datetime` không múi giờ, và kiểu `client`: chuỗi ISO đi qua chính hàm `_convert_dates` của `gnocchiclient` đã cài, tức đầu ra như client thật) và chèn được timestamp sai ở vị trí bất kỳ. Thêm 3 ca:
+
+| Ca | Mong đợi | v1 + v2.1 | v1 + v2.2 |
+| --- | --- | --- | --- |
+| 13. Cùng bucket, 6 kiểu timestamp × 5 tình huống (high alarm, low alarm, low ok, thiếu bucket giữa, counter reset âm) | state, lý do reject và danh sách điểm trả về giống hệt nhau; client trả +07:00 (16:58, 16:59) vẫn là bucket 09:58, 09:59 UTC | không đạt (`datetime` → `bad_timestamp`, tái hiện lỗi cụm) | đạt |
+| 14. Timestamp sai (chuỗi rác, rỗng, None, số epoch int và float, ngày giờ không hợp lệ, `date`, bytes) ở đầu, giữa, cuối cửa sổ; high n=2 và low n=3; cả hai kiểu chuỗi và `datetime` (80 tổ hợp) | `reject=bad_timestamp` | đạt | đạt |
+| 15. Tầng `evaluate()` với 6 kiểu timestamp: từ `insufficient data` cửa sổ lẫn lộn thì giữ, cửa sổ quyết định thì ALARM; `low` đang `alarm` gặp ba bucket 30–40% thì về `ok` | như ca (a)–(d); low alarm → ok có `_refresh` | không đạt | đạt |
+
+Tổng: v1 + v2.2 đạt **22/22** (19 ca cũ + 3 ca mới); v1 + v2.1 đạt 19 ca cũ, hỏng ca 13 và 15.
+
+Ca 12 (25 test upstream `aodh/tests/unit/evaluator/test_gnocchi.py`): v1 + v2.1 và v1 + v2.2 đều 20/25, cùng đúng 5 test đã nêu ở ca 12 của v2.1 (`test_simple_insufficient`, `test_simple_alarm_trip`, `test_simple_alarm_clear`, `test_equivocal_from_known_state_ok`, `test_retry_transient_api_failure`). Mức bảo đảm vẫn là Gnocchi giả (nay có `datetime`) viết theo đọc mã 4.7.1, **không phải client và Gnocchi thật trên A**.
+
+### Tiêu chí PASS để TV2 đối chiếu độc lập
+
+1. sha256 hai tệp patch khớp bảng trên; `git apply --check` đạt: patch đầy đủ trên cây v1 sạch, delta trên cây A (đang v2.1).
+2. Sau khi áp trên A: `git -C /opt/stack/aodh diff --stat` đúng 1 file; sha256 `gnocchi.py` = `529d40bb…`; evaluator `active`, 0 Traceback sau 5 phút (`verify-gate-v2-ro.sh`, chỉ đọc).
+3. 22 ca `test_gate_v2.py` xanh và bộ test upstream đúng 20/25 với đúng 5 test ở ca 12. Cách chạy như mục v2.1 (cây Aodh đã áp v1 rồi `aodh-adr12-gate-v2.patch` đầy đủ; `python -I test_gate_v2.py <cây aodh> <up_gnocchi.py>`). Đối chứng: trên cây v1 + v2.1 ca 13 và 15 phải hỏng, ca 14 vẫn đạt.
+4. Trên cụm, **chỉ đánh giá** (ba danh sách actions rỗng, `repeat_actions=false`): TV2 bật `evaluation_enabled=true` rồi mới đo. Journal **không còn** `reject=bad_timestamp`; nếu có reject thì chỉ `gnocchi_400` hoặc `missing_bucket` ở các bucket VM tham gia hoặc rời cohort; alarm rời `insufficient data` khi đủ N bucket (high 2, low 3) sau khi cohort ổn định. Phần còn lại của tiêu chí 4 ở mục v2.1 giữ nguyên (tải nền 30–45% để low về `ok`, scale tay 2→3 rồi 3→2, alarm history không có ALARM sai).
+5. Kiểm Gnocchi 4.7.1 thật cho `needed_overlap=100`: nửa "200 khi cohort ổn định" đã thấy ở sự cố 21/11 (hai truy vấn trả 200); còn thiếu "400 khi VM tham gia".
+
+### Cách áp và lùi (TV1; đổi trạng thái dùng chung, chỉ sau khi TV2 đối chiếu và người dùng cho phép từng lệnh)
+
+Trên A (đang v2.1; scp hai tệp patch lên `/tmp/`):
+
+```
+sha256sum /tmp/aodh-adr12-gate-v2.1-to-v2.2.patch      # 46a0f8defe45faad8ec06f3766611252327d2e8ad60e20bbeb0ed6d3d199a962
+sha256sum /opt/stack/aodh/aodh/evaluator/gnocchi.py     # 3d2bed82... (dang co v2.1); khac thi DUNG
+sudo -u stack git -C /opt/stack/aodh apply --check /tmp/aodh-adr12-gate-v2.1-to-v2.2.patch
+sudo -u stack git -C /opt/stack/aodh apply /tmp/aodh-adr12-gate-v2.1-to-v2.2.patch
+sudo systemctl restart devstack@aodh-evaluator
+bash verify-gate-v2-ro.sh 5                             # 1 file; sha 529d40bb...; active; 0 Traceback
+```
+
+Chạy từng lệnh, dừng ngay nếu một lệnh báo lỗi (`apply` khi file đã là v2.2 sẽ báo lỗi, không phải hỏng). Lùi (dưới 1 phút mỗi bước):
+- Về v2.1: `apply -R` delta, restart evaluator, `verify-gate-v2-ro.sh 5` (sha `3d2bed82…`).
+- Về v1: `apply -R` patch đầy đủ `/tmp/aodh-adr12-gate-v2.patch` trên A đang v2.2, restart, `verify-gate-v2-ro.sh 5` (sha `8bc8a115…`).
+
+Sau khi áp, `evaluation_enabled` vẫn `false`; bật lại là bước riêng của TV2 (stack alarm `campus-app-cpu-alarms`, `actions_enabled=false`, `stack preview` trước), kèm kế hoạch tải nền và giờ UTC bắt đầu.
+
+### Rủi ro còn lại và điều chưa kiểm của v2.2
+
+1. Các nhánh phía sau vòng đọc timestamp (`stale`, `missing_bucket`, `nonfinite`, `negative`, và kiểu của granularity và giá trị trong kết quả thật) **chưa từng chạy trên dữ liệu Gnocchi thật**: v2.1 dừng ngay ở timestamp. v2.2 có thể lộ một lỗi kiểu khác cùng loại; kiểm thử Gnocchi giả không thay được chạy thật.
+2. Phiên bản `gnocchiclient` trên A chưa đọc (đọc nhanh: `ls /opt/stack/data/venv/lib/python3.12/site-packages | grep -i gnocchiclient`). Hành vi trả `datetime` có ở 7.2.0 thử offline và khớp journal trên A; nếu A dùng bản khác thì kiểu timestamp có thể khác, nhưng v2.2 nhận cả chuỗi lẫn `datetime`. Kiểu `client` của ca 13 chỉ phủ phần chuyển đổi timestamp; kiểu của granularity và giá trị trong kết quả thật vẫn là giả định (xem mục 1).
+3. Các rủi ro còn lại 1–7 của mục v2.1 (VM đã xóa chưa có `ended_at`, `insufficient data` kéo dài, NTP, và các điều khác) vẫn đúng.
+4. Hai alarm đang ở `insufficient data` sau sự cố; khi bật lại, `cpu_low` cần đủ 3 bucket quyết định mới ra khỏi trạng thái này.
 
 ## Nếu không duyệt kịp, hoặc không đạt
 

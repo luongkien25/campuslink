@@ -1,5 +1,5 @@
 diff --git a/aodh/evaluator/gnocchi.py b/aodh/evaluator/gnocchi.py
-index 6497f498..be5d3a3e 100644
+index 6497f498..a6b43d29 100644
 --- a/aodh/evaluator/gnocchi.py
 +++ b/aodh/evaluator/gnocchi.py
 @@ -12,12 +12,16 @@
@@ -19,7 +19,7 @@ index 6497f498..be5d3a3e 100644
  from aodh.evaluator import threshold
  from aodh import keystone_client
  
-@@ -142,7 +146,95 @@ class GnocchiAggregationMetricsThresholdEvaluator(GnocchiBase):
+@@ -142,7 +146,99 @@ class GnocchiAggregationMetricsThresholdEvaluator(GnocchiBase):
  
  
  class GnocchiAggregationResourcesThresholdEvaluator(GnocchiBase):
@@ -75,9 +75,13 @@ index 6497f498..be5d3a3e 100644
 +            pts[agg] = {}
 +            for ts, g, v in stats:
 +                try:
-+                    t = timeutils.normalize_time(timeutils.parse_isotime(ts))
++                    # v2.2: client tren A tra datetime (co mui gio), khong phai
++                    # chuoi ISO; nhan ca hai, kieu khac thi tu choi
++                    t = (ts if isinstance(ts, datetime.datetime)
++                         else timeutils.parse_isotime(ts))
++                    t = timeutils.normalize_time(t)
 +                except (ValueError, TypeError):
-+                    self._campus_reject(rule, 'bad_timestamp', str(ts))
++                    self._campus_reject(rule, 'bad_timestamp', repr(ts))
 +                if g == gran:
 +                    pts[agg][(t - epoch).total_seconds()] = v
 +        mean = pts[method[len('rate:'):]]
