@@ -1,0 +1,942 @@
+Evidence FR-INF-11 + NFR-05 (G4, #77): do tran RPS cua tai CHI-REDIRECT bang ApacheBench (ab) tu host A qua VIP noi bo, 5 muc concurrency 8-64, kem CPU tung VM tu Gnocchi (rate:mean, 60 s). Ket luan: KHONG DAT dieu kien GO cua #77 (CPU nhom app >= 65% khi DB VM <= 90%).
+Ngay: 2026-11-20, ramp 13:45:01Z-14:15:01Z (20:45-21:15 gio VN). A boot 13:34:52Z, B boot 13:34:59Z (uptime -s). Gnocchi doc lan 1 luc 14:24:21Z (cua so 13:45:01-14:18:01Z), lan 2 luc 14:36:37Z (cua so 14:19:00-14:35:00Z).
+Nguoi lam: TV1 tu chay lenh tren ubuntu@campus-a va dan output cho Claude Code doi chieu. Script: docs/_scripts/session-20261120/ramp-redirect.sh (sha256 bat dau 2a9ef7dd, ngoai repo) va gnocchi-cpu-ro.sh (sha256 bat dau 1856c2b3, ngoai repo). Cac muc A-E la nguyen van file /tmp cua A; muc TOM TAT la TINH TAY (xem GIOI HAN).
+Trang thai luc do (doc doc lap truoc khi phat tai, bang credential member): hai alarm campus-app-cpu-alarms-cpu_low va cpu_high deu enabled=false, ba danh sach actions rong, repeat_actions=false. Gate v2.1 CHUA ap tren A. Khong doi alarm, stack, cau hinh nao. 3 VM ACTIVE (app A va DB o campus-a, app B o campus-b), LB va 2 member ONLINE.
+Tai: GET http://172.24.4.117:8080/tv4fix1 (VIP noi bo 8080, slug fixture, tra 302) tu host A, ab keep-alive, 240 s moi muc, nghi 120 s; moi GET ghi 1 visit vao Shlink that cho slug do.
+
+TOM TAT (TINH TAY tu muc B/C/D; gia dinh 1 vCPU moi VM theo SRS C-06; % = gia tri ns / 60e9 x 100; lay 3 bucket giua moi muc)
+ Muc  RPS    p95 ms  loi   CPU nhom app (TB A,B)   CPU campus-db
+  8   32,46    303     0    43,5 - 44,6 %           96,1 - 96,6 %
+ 16   32,13    665     0    42,2 - 42,7 %           97,1 - 97,2 %
+ 24   32,79    913     0    41,7 - 42,5 %           97,2 - 97,5 %
+ 32   32,56   1395     0    40,8 - 41,3 %           97,5 - 97,8 %
+ 64   32,80   2498     0    40,2 - 40,8 %           97,8 - 98,0 %
+ Rieng tung VM (khoang): app A 46,5-51,5 %, app B 34,0-37,7 %. Probe khac 302: 0/429 tren ca 5 muc.
+ Rieng DB VM luc THUC SU RANH (14:22Z-14:34Z, lan 2): 0,6-0,75 % (0,34-0,45e9 ns/60 s). Sau khi tai dung (ab xong 14:13:01Z) co "duoi" xu ly khoang 8 phut: campus-db 92,4 % (14:14Z) ... 86 % (14:19Z), 75 % (14:20Z), 35 % (14:21Z), 0,6 % (14:22Z); app A con 25-29 % den 14:20Z, app B ranh tu 14:20Z.
+ Dieu kien GO (CPU nhom app >= 65% khi DB VM <= 90%): KHONG DAT ca hai ve (nhom app 40-45 %, DB VM 96-98 % tu muc 8). RPS dung o ~32,5 tu muc 8 tro len (dinh luat Little: 64/32,8 ~ 1,95 s ~ p50 muc 64).
+
+GIOI HAN / GHI CHU:
+ (1) Gia tri Gnocchi rate:mean la nanogiay CPU moi bucket 60 s; % la TINH TAY chia 60e9 x 1 vCPU, KHONG phai so do cong cu in ra. Bucket bi nhoe 1-2 phut quanh ranh gioi tai (Ceilometer lay mau theo chu ky), nen chi dung 3 bucket giua moi muc.
+ (2) Moi muc chi chay MOT lan; khong lap lai. Tai sinh ra tu CHINH host A (cung may chua DB VM va app A), qua VIP noi bo 8080, KHONG qua Nginx/Internet; khong phai profile 80/15/5 va khong co khoi luong ghi/tao link.
+ (3) TV3 kiem chi doc DB VM (qua VM nhay tam, da don) luc 13:50-13:53Z (xem #76, PR #84), trung khoang nghi truoc muc 16 va dau muc 16. Khong thay anh huong ro len so lieu muc 16 (RPS 32,13 so voi 32,46-32,80 o cac muc khac), nhung khong the loai tru.
+ (4) Binh luan 14:33Z cua TV1 o #76 va #4 noi "~92% luc ranh, nghi tien trinh nen" la SAI; da sua lai o #76 va #4 sau khi co lan do 2 (DB ranh that = 0,6-0,75 %, ~92% la duoi sau tai). Nguyen nhan "duoi" ~8 phut va chi app A + DB con ban: CHUA BIET.
+ (5) Diem nghen la DB VM 1 vCPU: ~30 ms CPU DB moi request o 32,5 RPS (0,98 CPU-giay/giay / 32,5; TINH TAY). TV3 thay ~50 ket noi PostgreSQL moi moi giay o ~25 visit/s (moi request mo ket noi moi, TLS 1.3 + scram-sha-256) o #76: UNG VIEN nguyen nhan, CHUA chung minh nhan qua.
+ (6) Ket luan chi ap dung cho tai CHI-REDIRECT. Chua do tu scale that: gate v2.1 chua ap, alarm tat, actions rong, khong co scale event nao trong phien nay.
+ (7) File Gnocchi 14:23:20Z giong het file 14:24:21Z (chi khac gio in); chi dua mot ban (14:24:21Z) vao day.
+
+======== A. Output ramp-redirect.sh (nguyen van file /tmp/tv1-ramp-20261120T134459Z.txt tren A) ========
+== 0. kiem dieu kien
+bat_dau_utc=2026-11-20T13:44:59Z host=campus-a
+ket_noi_san_co_den_172.24.4.117=0
+kiem_truoc: GET http://172.24.4.117:8080/tv4fix1 -> 302 (mong doi 302)
+uptime:  13:44:59 up 10 min,  2 users,  load average: 0.94, 1.11, 0.88
+VM (chi doc, de biet B va app co ACTIVE khong):
+ca-tcyx-sos25jpcttjg-ja2jq3he43f7-server-w5libtxbopqg ACTIVE
+campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26 ACTIVE
+campus-db ACTIVE
+cau_hinh: steps='8 16 24 32 64' dur=240s gap=120s max_fail=1% max_p95=3000ms max_bad_probe=2
+ramp_start_utc=2026-11-20T13:45:01Z
+
+== muc concurrency=8
+bat_dau=2026-11-20T13:45:01Z ket_thuc=2026-11-20T13:49:01Z hoan_tat=7791 failed=0 rps=32.46 p50_ms=245 p95_ms=303 p99_ms=542
+probe_khac302=0/106
+log_ab=/tmp/tv1-ab-c8-134501.txt log_probe=/tmp/tv1-probe-c8-134501.txt
+failed_pct=0.00
+nghi 120s
+
+== muc concurrency=16
+bat_dau=2026-11-20T13:51:01Z ket_thuc=2026-11-20T13:55:01Z hoan_tat=7711 failed=0 rps=32.13 p50_ms=547 p95_ms=665 p99_ms=876
+probe_khac302=0/95
+log_ab=/tmp/tv1-ab-c16-135101.txt log_probe=/tmp/tv1-probe-c16-135101.txt
+failed_pct=0.00
+nghi 120s
+
+== muc concurrency=24
+bat_dau=2026-11-20T13:57:01Z ket_thuc=2026-11-20T14:01:01Z hoan_tat=7870 failed=0 rps=32.79 p50_ms=712 p95_ms=913 p99_ms=1054
+probe_khac302=0/87
+log_ab=/tmp/tv1-ab-c24-135701.txt log_probe=/tmp/tv1-probe-c24-135701.txt
+failed_pct=0.00
+nghi 120s
+
+== muc concurrency=32
+bat_dau=2026-11-20T14:03:01Z ket_thuc=2026-11-20T14:07:01Z hoan_tat=7814 failed=0 rps=32.56 p50_ms=773 p95_ms=1395 p99_ms=1601
+probe_khac302=0/80
+log_ab=/tmp/tv1-ab-c32-140301.txt log_probe=/tmp/tv1-probe-c32-140301.txt
+failed_pct=0.00
+nghi 120s
+
+== muc concurrency=64
+bat_dau=2026-11-20T14:09:01Z ket_thuc=2026-11-20T14:13:01Z hoan_tat=7872 failed=0 rps=32.80 p50_ms=1758 p95_ms=2498 p99_ms=2660
+probe_khac302=0/61
+log_ab=/tmp/tv1-ab-c64-140901.txt log_probe=/tmp/tv1-probe-c64-140901.txt
+failed_pct=0.00
+nghi 120s
+
+== ket thuc
+ramp_start_utc=2026-11-20T13:45:01Z ramp_end_utc=2026-11-20T14:15:01Z
+uptime:  14:15:01 up 40 min,  3 users,  load average: 1.41, 1.65, 1.80
+buoc tiep (doi it nhat 5 phut): GN_START=2026-11-20T13:45:01+00:00 GN_STOP=2026-11-20T14:18:01+00:00 bash gnocchi-cpu-ro.sh
+bao cao luu o: /tmp/tv1-ramp-20261120T134459Z.txt
+
+======== B. ab (ApacheBench) tung muc: nguyen van /tmp/tv1-ab-c*.txt ========
+--- tv1-ab-c8-134501.txt
+This is ApacheBench, Version 2.3 <$Revision: 1903618 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 172.24.4.117 (be patient)
+Completed 5000 requests
+Finished 7791 requests
+
+
+Server Software:        
+Server Hostname:        172.24.4.117
+Server Port:            8080
+
+Document Path:          /tv4fix1
+Document Length:        0 bytes
+
+Concurrency Level:      8
+Time taken for tests:   240.055 seconds
+Complete requests:      7791
+Failed requests:        0
+Non-2xx responses:      7791
+Keep-Alive requests:    7791
+Total transferred:      1604946 bytes
+HTML transferred:       0 bytes
+Requests per second:    32.46 [#/sec] (mean)
+Time per request:       246.495 [ms] (mean)
+Time per request:       30.812 [ms] (mean, across all concurrent requests)
+Transfer rate:          6.53 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.0      0       2
+Processing:    46  246  48.6    245     691
+Waiting:       46  246  48.6    245     691
+Total:         47  246  48.6    245     691
+
+Percentage of the requests served within a certain time (ms)
+  50%    245
+  66%    255
+  75%    261
+  80%    265
+  90%    282
+  95%    303
+  98%    336
+  99%    542
+ 100%    691 (longest request)
+--- tv1-ab-c16-135101.txt
+This is ApacheBench, Version 2.3 <$Revision: 1903618 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 172.24.4.117 (be patient)
+Completed 5000 requests
+Finished 7711 requests
+
+
+Server Software:        
+Server Hostname:        172.24.4.117
+Server Port:            8080
+
+Document Path:          /tv4fix1
+Document Length:        0 bytes
+
+Concurrency Level:      16
+Time taken for tests:   240.020 seconds
+Complete requests:      7711
+Failed requests:        0
+Non-2xx responses:      7711
+Keep-Alive requests:    7711
+Total transferred:      1588466 bytes
+HTML transferred:       0 bytes
+Requests per second:    32.13 [#/sec] (mean)
+Time per request:       498.031 [ms] (mean)
+Time per request:       31.127 [ms] (mean, across all concurrent requests)
+Transfer rate:          6.46 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.1      0       2
+Processing:    48  497 128.9    547     996
+Waiting:       48  497 128.9    547     996
+Total:         50  497 128.9    547     996
+
+Percentage of the requests served within a certain time (ms)
+  50%    547
+  66%    566
+  75%    581
+  80%    593
+  90%    623
+  95%    665
+  98%    849
+  99%    876
+ 100%    996 (longest request)
+--- tv1-ab-c24-135701.txt
+This is ApacheBench, Version 2.3 <$Revision: 1903618 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 172.24.4.117 (be patient)
+Completed 5000 requests
+Finished 7870 requests
+
+
+Server Software:        
+Server Hostname:        172.24.4.117
+Server Port:            8080
+
+Document Path:          /tv4fix1
+Document Length:        0 bytes
+
+Concurrency Level:      24
+Time taken for tests:   240.019 seconds
+Complete requests:      7870
+Failed requests:        0
+Non-2xx responses:      7870
+Keep-Alive requests:    7870
+Total transferred:      1621220 bytes
+HTML transferred:       0 bytes
+Requests per second:    32.79 [#/sec] (mean)
+Time per request:       731.951 [ms] (mean)
+Time per request:       30.498 [ms] (mean, across all concurrent requests)
+Transfer rate:          6.60 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.1      0       3
+Processing:    44  731  96.3    712    1141
+Waiting:       44  731  96.3    712    1141
+Total:         45  731  96.3    712    1141
+
+Percentage of the requests served within a certain time (ms)
+  50%    712
+  66%    768
+  75%    786
+  80%    797
+  90%    832
+  95%    913
+  98%   1013
+  99%   1054
+ 100%   1141 (longest request)
+--- tv1-ab-c32-140301.txt
+This is ApacheBench, Version 2.3 <$Revision: 1903618 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 172.24.4.117 (be patient)
+Completed 5000 requests
+Finished 7814 requests
+
+
+Server Software:        
+Server Hostname:        172.24.4.117
+Server Port:            8080
+
+Document Path:          /tv4fix1
+Document Length:        0 bytes
+
+Concurrency Level:      32
+Time taken for tests:   240.024 seconds
+Complete requests:      7814
+Failed requests:        0
+Non-2xx responses:      7814
+Keep-Alive requests:    7814
+Total transferred:      1609684 bytes
+HTML transferred:       0 bytes
+Requests per second:    32.56 [#/sec] (mean)
+Time per request:       982.949 [ms] (mean)
+Time per request:       30.717 [ms] (mean, across all concurrent requests)
+Transfer rate:          6.55 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.1      0       3
+Processing:    48  980 302.5    773    1681
+Waiting:       48  980 302.5    773    1681
+Total:         50  980 302.5    773    1681
+
+Percentage of the requests served within a certain time (ms)
+  50%    773
+  66%   1260
+  75%   1287
+  80%   1301
+  90%   1346
+  95%   1395
+  98%   1567
+  99%   1601
+ 100%   1681 (longest request)
+--- tv1-ab-c64-140901.txt
+This is ApacheBench, Version 2.3 <$Revision: 1903618 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 172.24.4.117 (be patient)
+Completed 5000 requests
+Finished 7872 requests
+
+
+Server Software:        
+Server Hostname:        172.24.4.117
+Server Port:            8080
+
+Document Path:          /tv4fix1
+Document Length:        0 bytes
+
+Concurrency Level:      64
+Time taken for tests:   240.002 seconds
+Complete requests:      7872
+Failed requests:        0
+Non-2xx responses:      7872
+Keep-Alive requests:    7872
+Total transferred:      1621632 bytes
+HTML transferred:       0 bytes
+Requests per second:    32.80 [#/sec] (mean)
+Time per request:       1951.233 [ms] (mean)
+Time per request:       30.488 [ms] (mean, across all concurrent requests)
+Transfer rate:          6.60 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.2      0       3
+Processing:    50 1942 358.9   1758    2762
+Waiting:       50 1942 358.9   1758    2762
+Total:         54 1942 358.8   1758    2762
+
+Percentage of the requests served within a certain time (ms)
+  50%   1758
+  66%   2241
+  75%   2290
+  80%   2315
+  90%   2373
+  95%   2498
+  98%   2604
+  99%   2660
+ 100%   2762 (longest request)
+
+======== C. probe curl moi 2 giay (moi dap ung khac 302 la loi): nguyen van /tmp/tv1-probe-c*.txt ========
+--- tv1-probe-c8-134501.txt
+302 0.032938
+302 0.285982
+302 0.238225
+302 0.291376
+302 0.268955
+302 0.235112
+302 0.281607
+302 0.236070
+302 0.294262
+302 0.242939
+302 0.261406
+302 0.230568
+302 0.273568
+302 0.279761
+302 0.255701
+302 0.304139
+302 0.422460
+302 0.284877
+302 0.241068
+302 0.248327
+302 0.267307
+302 0.218659
+302 0.201588
+302 0.275391
+302 0.253401
+302 0.271746
+302 0.228567
+302 0.254155
+302 0.267063
+302 0.326641
+302 0.295385
+302 0.204400
+302 0.237626
+302 0.277402
+302 0.268733
+302 0.281895
+302 0.273776
+302 0.645761
+302 0.228068
+302 0.277699
+302 0.281045
+302 0.278070
+302 0.220561
+302 0.619222
+302 0.277289
+302 0.257541
+302 0.313960
+302 0.275726
+302 0.304592
+302 0.249345
+302 0.294245
+302 0.281271
+302 0.213844
+302 0.250141
+302 0.260603
+302 0.288399
+302 0.282813
+302 0.311553
+302 0.285901
+302 0.204368
+302 0.293024
+302 0.266384
+302 0.277156
+302 0.224424
+302 0.277605
+302 0.212852
+302 0.224603
+302 0.250967
+302 0.271462
+302 0.299954
+302 0.277352
+302 0.228836
+302 0.327228
+302 0.187203
+302 0.273840
+302 0.291065
+302 0.485003
+302 0.302925
+302 0.275740
+302 0.289611
+302 0.260746
+302 0.264898
+302 0.279681
+302 0.228409
+302 0.323790
+302 0.279718
+302 0.244322
+302 0.257239
+302 0.273806
+302 0.271491
+302 0.267348
+302 0.287439
+302 0.251403
+302 0.222957
+302 0.273919
+302 0.267534
+302 0.193387
+302 0.220512
+302 0.288520
+302 0.269348
+302 0.289804
+302 0.272319
+302 0.268125
+302 0.300043
+302 0.277933
+302 0.279214
+--- tv1-probe-c16-135101.txt
+302 0.102371
+302 0.386594
+302 0.389771
+302 0.600203
+302 0.704886
+302 0.587329
+302 0.415988
+302 0.652466
+302 0.411330
+302 0.614757
+302 0.387428
+302 0.879458
+302 0.601649
+302 0.359859
+302 0.386287
+302 0.592165
+302 0.572592
+302 0.595160
+302 0.787867
+302 0.562404
+302 0.410488
+302 0.411850
+302 0.557805
+302 0.372602
+302 0.580000
+302 0.642326
+302 0.696396
+302 0.374021
+302 0.534769
+302 0.383074
+302 0.586972
+302 0.396368
+302 0.388354
+302 0.385789
+302 0.415942
+302 0.378930
+302 0.772107
+302 0.444316
+302 0.609432
+302 0.607944
+302 0.947781
+302 0.566467
+302 0.609186
+302 0.623906
+302 0.594813
+302 1.002381
+302 0.633897
+302 0.434505
+302 0.590364
+302 0.377479
+302 0.553503
+302 0.557169
+302 0.392624
+302 0.372925
+302 0.435872
+302 0.403483
+302 0.551006
+302 0.650052
+302 0.594914
+302 0.400606
+302 0.590772
+302 0.372654
+302 0.593959
+302 0.369031
+302 0.605171
+302 0.372595
+302 0.355475
+302 0.614933
+302 0.354862
+302 0.636985
+302 0.678801
+302 0.347882
+302 0.844125
+302 0.644179
+302 0.583717
+302 0.553058
+302 0.555206
+302 0.872975
+302 0.379560
+302 0.563171
+302 0.392837
+302 0.623472
+302 0.338568
+302 0.624016
+302 0.605529
+302 0.351511
+302 0.565955
+302 0.365817
+302 0.601442
+302 0.547147
+302 0.615130
+302 0.605195
+302 0.598246
+302 0.598830
+302 0.638065
+--- tv1-probe-c24-135701.txt
+302 0.054604
+302 0.626423
+302 0.852862
+302 0.604165
+302 0.811871
+302 0.716192
+302 0.688303
+302 0.783244
+302 0.678814
+302 1.099668
+302 0.834156
+302 0.864041
+302 0.696559
+302 0.678782
+302 0.779149
+302 0.692237
+302 0.836628
+302 0.807065
+302 0.708093
+302 0.702306
+302 0.667461
+302 0.662255
+302 1.089342
+302 0.810878
+302 0.812369
+302 0.695857
+302 0.818499
+302 0.810743
+302 0.690302
+302 0.788458
+302 0.815241
+302 0.729195
+302 0.689205
+302 0.674579
+302 0.985207
+302 0.766844
+302 0.650713
+302 0.715341
+302 0.821890
+302 0.656521
+302 0.797915
+302 0.774309
+302 0.796834
+302 0.794153
+302 0.671940
+302 0.808927
+302 0.660858
+302 0.662376
+302 0.666116
+302 0.778227
+302 0.689345
+302 0.816649
+302 0.906053
+302 0.686082
+302 0.835131
+302 0.628137
+302 0.866209
+302 1.138142
+302 0.768478
+302 0.783245
+302 0.769954
+302 0.652548
+302 0.834090
+302 0.748309
+302 1.075988
+302 0.715144
+302 0.708315
+302 0.913903
+302 0.736246
+302 1.024155
+302 0.809428
+302 0.687077
+302 0.837982
+302 0.682689
+302 0.807276
+302 0.882526
+302 0.863590
+302 0.783305
+302 0.705151
+302 0.754171
+302 0.673979
+302 0.710750
+302 0.668666
+302 0.845722
+302 0.964137
+302 0.747249
+302 0.694167
+--- tv1-probe-c32-140301.txt
+302 0.062259
+302 0.747447
+302 1.358028
+302 0.715900
+302 0.692594
+302 0.717540
+302 1.540823
+302 1.586085
+302 0.984523
+302 0.706238
+302 1.378613
+302 0.797420
+302 1.170855
+302 0.760234
+302 0.706015
+302 0.756853
+302 1.322572
+302 0.713909
+302 1.329133
+302 0.751969
+302 0.736205
+302 0.686455
+302 0.733739
+302 1.337677
+302 0.727818
+302 0.784351
+302 0.906039
+302 1.314933
+302 1.300179
+302 0.763435
+302 1.252525
+302 0.741593
+302 0.736097
+302 0.724510
+302 0.755227
+302 0.730710
+302 1.309962
+302 1.353647
+302 0.714087
+302 0.705365
+302 1.275744
+302 1.352628
+302 0.761019
+302 0.717220
+302 1.398147
+302 0.695856
+302 1.332097
+302 1.242891
+302 1.310204
+302 1.059161
+302 0.714323
+302 0.744619
+302 1.310149
+302 1.338918
+302 1.333293
+302 0.729904
+302 1.339404
+302 1.353576
+302 0.761538
+302 0.731967
+302 1.390675
+302 1.332325
+302 0.824488
+302 1.335531
+302 1.344285
+302 0.732023
+302 0.726374
+302 1.298405
+302 1.317199
+302 0.702969
+302 1.364555
+302 0.743976
+302 0.731078
+302 0.794844
+302 1.327463
+302 1.614178
+302 0.751613
+302 1.346023
+302 1.315586
+302 1.313275
+--- tv1-probe-c64-140901.txt
+302 0.142921
+302 1.665699
+302 2.474621
+302 1.620844
+302 2.277946
+302 1.571022
+302 2.449827
+302 2.261071
+302 2.205463
+302 1.613782
+302 1.709067
+302 2.311503
+302 1.640673
+302 1.627955
+302 1.680674
+302 1.929056
+302 2.541651
+302 2.356908
+302 1.608319
+302 1.746860
+302 2.218952
+302 2.308299
+302 1.782790
+302 2.293984
+302 2.271735
+302 2.252171
+302 1.692984
+302 2.432349
+302 1.674368
+302 1.992192
+302 2.306243
+302 2.385543
+302 1.972242
+302 1.707236
+302 1.734285
+302 1.659818
+302 2.168905
+302 1.630546
+302 2.344802
+302 1.673625
+302 2.508115
+302 2.344182
+302 1.644897
+302 2.323166
+302 2.290300
+302 1.632408
+302 1.921483
+302 2.312058
+302 2.306149
+302 1.656932
+302 1.660752
+302 2.337842
+302 1.580796
+302 1.613500
+302 1.639212
+302 1.576929
+302 1.589089
+302 2.295864
+302 1.664376
+302 2.351930
+302 2.307845
+
+======== D. Gnocchi lan 1, 14:24:21Z, cua so 13:45:01-14:18:01Z: nguyen van /tmp/tv1-gn-20261120T142421Z.txt ========
+== 0. thoi gian
+now_utc=2026-11-20T14:24:21Z
+cua so: 2026-11-20T13:45:01+00:00 -> 2026-11-20T14:18:01+00:00
+
+== 1.7 volume (PASS: campus-db-data in-use)
+campus-db-data in-use
+
+== VM (ID, ten, trang thai)
+a43d4b4b-6fd5-4244-833b-94c59e856a70 ca-tcyx-sos25jpcttjg-ja2jq3he43f7-server-w5libtxbopqg ACTIVE
+523d67b4-9234-4b09-b3dc-c814e6b868fc campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26 ACTIVE
+6d17a9e8-4975-4c46-afd6-be1017e2a251 campus-db ACTIVE
+
+== CPU tung VM: rate:mean, do chi tiet 60 giay (timestamp, granularity, gia tri)
+-- ca-tcyx-sos25jpcttjg-ja2jq3he43f7-server-w5libtxbopqg (a43d4b4b-6fd5-4244-833b-94c59e856a70)
+2026-11-20T13:45:00+00:00 60.0 2970000000.0
+2026-11-20T13:46:00+00:00 60.0 22610000000.0
+2026-11-20T13:47:00+00:00 60.0 22310000000.0
+2026-11-20T13:48:00+00:00 60.0 22070000000.0
+2026-11-20T13:49:00+00:00 60.0 21130000000.0
+2026-11-20T13:50:00+00:00 60.0 11400000000.0
+2026-11-20T13:51:00+00:00 60.0 12230000000.0
+2026-11-20T13:52:00+00:00 60.0 21500000000.0
+2026-11-20T13:53:00+00:00 60.0 20920000000.0
+2026-11-20T13:54:00+00:00 60.0 21490000000.0
+2026-11-20T13:55:00+00:00 60.0 20450000000.0
+2026-11-20T13:56:00+00:00 60.0 10760000000.0
+2026-11-20T13:57:00+00:00 60.0 12330000000.0
+2026-11-20T13:58:00+00:00 60.0 21580000000.0
+2026-11-20T13:59:00+00:00 60.0 21470000000.0
+2026-11-20T14:00:00+00:00 60.0 21120000000.0
+2026-11-20T14:01:00+00:00 60.0 20160000000.0
+2026-11-20T14:02:00+00:00 60.0 10200000000.0
+2026-11-20T14:03:00+00:00 60.0 11480000000.0
+2026-11-20T14:04:00+00:00 60.0 20410000000.0
+2026-11-20T14:05:00+00:00 60.0 20630000000.0
+2026-11-20T14:06:00+00:00 60.0 21120000000.0
+2026-11-20T14:07:00+00:00 60.0 19800000000.0
+2026-11-20T14:08:00+00:00 60.0 9660000000.0
+2026-11-20T14:09:00+00:00 60.0 11060000000.0
+2026-11-20T14:10:00+00:00 60.0 20880000000.0
+2026-11-20T14:11:00+00:00 60.0 20470000000.0
+2026-11-20T14:12:00+00:00 60.0 20370000000.0
+2026-11-20T14:13:00+00:00 60.0 19760000000.0
+2026-11-20T14:14:00+00:00 60.0 9370000000.0
+2026-11-20T14:15:00+00:00 60.0 9230000000.0
+2026-11-20T14:16:00+00:00 60.0 10270000000.0
+2026-11-20T14:17:00+00:00 60.0 10570000000.0
+2026-11-20T14:18:00+00:00 60.0 12420000000.0
+-- campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26 (523d67b4-9234-4b09-b3dc-c814e6b868fc)
+2026-11-20T13:45:00+00:00 60.0 12350000000.0
+2026-11-20T13:46:00+00:00 60.0 30900000000.0
+2026-11-20T13:47:00+00:00 60.0 30170000000.0
+2026-11-20T13:48:00+00:00 60.0 30180000000.0
+2026-11-20T13:49:00+00:00 60.0 24910000000.0
+2026-11-20T13:50:00+00:00 60.0 16600000000.0
+2026-11-20T13:51:00+00:00 60.0 21670000000.0
+2026-11-20T13:52:00+00:00 60.0 29360000000.0
+2026-11-20T13:53:00+00:00 60.0 29730000000.0
+2026-11-20T13:54:00+00:00 60.0 29750000000.0
+2026-11-20T13:55:00+00:00 60.0 24040000000.0
+2026-11-20T13:56:00+00:00 60.0 15680000000.0
+2026-11-20T13:57:00+00:00 60.0 20800000000.0
+2026-11-20T13:58:00+00:00 60.0 29410000000.0
+2026-11-20T13:59:00+00:00 60.0 29100000000.0
+2026-11-20T14:00:00+00:00 60.0 28910000000.0
+2026-11-20T14:01:00+00:00 60.0 23350000000.0
+2026-11-20T14:02:00+00:00 60.0 14320000000.0
+2026-11-20T14:03:00+00:00 60.0 19270000000.0
+2026-11-20T14:04:00+00:00 60.0 28520000000.0
+2026-11-20T14:05:00+00:00 60.0 28510000000.0
+2026-11-20T14:06:00+00:00 60.0 28430000000.0
+2026-11-20T14:07:00+00:00 60.0 22650000000.0
+2026-11-20T14:08:00+00:00 60.0 13480000000.0
+2026-11-20T14:09:00+00:00 60.0 19410000000.0
+2026-11-20T14:10:00+00:00 60.0 28120000000.0
+2026-11-20T14:11:00+00:00 60.0 28170000000.0
+2026-11-20T14:12:00+00:00 60.0 27870000000.0
+2026-11-20T14:13:00+00:00 60.0 22610000000.0
+2026-11-20T14:14:00+00:00 60.0 12770000000.0
+2026-11-20T14:15:00+00:00 60.0 12910000000.0
+2026-11-20T14:16:00+00:00 60.0 13840000000.0
+2026-11-20T14:17:00+00:00 60.0 14020000000.0
+2026-11-20T14:18:00+00:00 60.0 14520000000.0
+-- campus-db (6d17a9e8-4975-4c46-afd6-be1017e2a251)
+2026-11-20T13:45:00+00:00 60.0 23480000000.0
+2026-11-20T13:46:00+00:00 60.0 57660000000.0
+2026-11-20T13:47:00+00:00 60.0 57790000000.0
+2026-11-20T13:48:00+00:00 60.0 57950000000.0
+2026-11-20T13:49:00+00:00 60.0 56480000000.0
+2026-11-20T13:50:00+00:00 60.0 53670000000.0
+2026-11-20T13:51:00+00:00 60.0 55340000000.0
+2026-11-20T13:52:00+00:00 60.0 58270000000.0
+2026-11-20T13:53:00+00:00 60.0 58350000000.0
+2026-11-20T13:54:00+00:00 60.0 58280000000.0
+2026-11-20T13:55:00+00:00 60.0 56660000000.0
+2026-11-20T13:56:00+00:00 60.0 53920000000.0
+2026-11-20T13:57:00+00:00 60.0 55710000000.0
+2026-11-20T13:58:00+00:00 60.0 58300000000.0
+2026-11-20T13:59:00+00:00 60.0 58480000000.0
+2026-11-20T14:00:00+00:00 60.0 58460000000.0
+2026-11-20T14:01:00+00:00 60.0 57090000000.0
+2026-11-20T14:02:00+00:00 60.0 54760000000.0
+2026-11-20T14:03:00+00:00 60.0 56380000000.0
+2026-11-20T14:04:00+00:00 60.0 58530000000.0
+2026-11-20T14:05:00+00:00 60.0 58600000000.0
+2026-11-20T14:06:00+00:00 60.0 58670000000.0
+2026-11-20T14:07:00+00:00 60.0 57320000000.0
+2026-11-20T14:08:00+00:00 60.0 55150000000.0
+2026-11-20T14:09:00+00:00 60.0 56570000000.0
+2026-11-20T14:10:00+00:00 60.0 58680000000.0
+2026-11-20T14:11:00+00:00 60.0 58750000000.0
+2026-11-20T14:12:00+00:00 60.0 58800000000.0
+2026-11-20T14:13:00+00:00 60.0 57590000000.0
+2026-11-20T14:14:00+00:00 60.0 55460000000.0
+2026-11-20T14:15:00+00:00 60.0 55540000000.0
+2026-11-20T14:16:00+00:00 60.0 55390000000.0
+2026-11-20T14:17:00+00:00 60.0 55240000000.0
+2026-11-20T14:18:00+00:00 60.0 54950000000.0
+
+bao cao luu o: /tmp/tv1-gn-20261120T142421Z.txt
+
+======== E. Gnocchi lan 2, 14:36:37Z, cua so 14:19:00-14:35:00Z (DB VM luc ranh): nguyen van /tmp/tv1-gn-20261120T143637Z.txt ========
+== 0. thoi gian
+now_utc=2026-11-20T14:36:37Z
+cua so: 2026-11-20T14:19:00+00:00 -> 2026-11-20T14:35:00+00:00
+
+== 1.7 volume (PASS: campus-db-data in-use)
+campus-db-data in-use
+
+== VM (ID, ten, trang thai)
+a43d4b4b-6fd5-4244-833b-94c59e856a70 ca-tcyx-sos25jpcttjg-ja2jq3he43f7-server-w5libtxbopqg ACTIVE
+523d67b4-9234-4b09-b3dc-c814e6b868fc campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26 ACTIVE
+6d17a9e8-4975-4c46-afd6-be1017e2a251 campus-db ACTIVE
+
+== CPU tung VM: rate:mean, do chi tiet 60 giay (timestamp, granularity, gia tri)
+-- ca-tcyx-sos25jpcttjg-ja2jq3he43f7-server-w5libtxbopqg (a43d4b4b-6fd5-4244-833b-94c59e856a70)
+2026-11-20T14:19:00+00:00 60.0 10610000000.0
+2026-11-20T14:20:00+00:00 60.0 430000000.0
+2026-11-20T14:21:00+00:00 60.0 380000000.0
+2026-11-20T14:22:00+00:00 60.0 390000000.0
+2026-11-20T14:23:00+00:00 60.0 360000000.0
+2026-11-20T14:24:00+00:00 60.0 370000000.0
+2026-11-20T14:25:00+00:00 60.0 360000000.0
+2026-11-20T14:26:00+00:00 60.0 380000000.0
+2026-11-20T14:27:00+00:00 60.0 360000000.0
+2026-11-20T14:28:00+00:00 60.0 370000000.0
+2026-11-20T14:29:00+00:00 60.0 340000000.0
+2026-11-20T14:30:00+00:00 60.0 390000000.0
+2026-11-20T14:31:00+00:00 60.0 380000000.0
+2026-11-20T14:32:00+00:00 60.0 400000000.0
+2026-11-20T14:33:00+00:00 60.0 390000000.0
+2026-11-20T14:34:00+00:00 60.0 380000000.0
+-- campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26 (523d67b4-9234-4b09-b3dc-c814e6b868fc)
+2026-11-20T14:19:00+00:00 60.0 15250000000.0
+2026-11-20T14:20:00+00:00 60.0 17350000000.0
+2026-11-20T14:21:00+00:00 60.0 8600000000.0
+2026-11-20T14:22:00+00:00 60.0 390000000.0
+2026-11-20T14:23:00+00:00 60.0 390000000.0
+2026-11-20T14:24:00+00:00 60.0 420000000.0
+2026-11-20T14:25:00+00:00 60.0 400000000.0
+2026-11-20T14:26:00+00:00 60.0 420000000.0
+2026-11-20T14:27:00+00:00 60.0 420000000.0
+2026-11-20T14:28:00+00:00 60.0 400000000.0
+2026-11-20T14:29:00+00:00 60.0 420000000.0
+2026-11-20T14:30:00+00:00 60.0 2120000000.0
+2026-11-20T14:31:00+00:00 60.0 430000000.0
+2026-11-20T14:32:00+00:00 60.0 430000000.0
+2026-11-20T14:33:00+00:00 60.0 430000000.0
+2026-11-20T14:34:00+00:00 60.0 1880000000.0
+-- campus-db (6d17a9e8-4975-4c46-afd6-be1017e2a251)
+2026-11-20T14:19:00+00:00 60.0 51890000000.0
+2026-11-20T14:20:00+00:00 60.0 44980000000.0
+2026-11-20T14:21:00+00:00 60.0 21020000000.0
+2026-11-20T14:22:00+00:00 60.0 360000000.0
+2026-11-20T14:23:00+00:00 60.0 380000000.0
+2026-11-20T14:24:00+00:00 60.0 380000000.0
+2026-11-20T14:25:00+00:00 60.0 390000000.0
+2026-11-20T14:26:00+00:00 60.0 380000000.0
+2026-11-20T14:27:00+00:00 60.0 410000000.0
+2026-11-20T14:28:00+00:00 60.0 400000000.0
+2026-11-20T14:29:00+00:00 60.0 400000000.0
+2026-11-20T14:30:00+00:00 60.0 420000000.0
+2026-11-20T14:31:00+00:00 60.0 420000000.0
+2026-11-20T14:32:00+00:00 60.0 450000000.0
+2026-11-20T14:33:00+00:00 60.0 410000000.0
+2026-11-20T14:34:00+00:00 60.0 410000000.0
+
+bao cao luu o: /tmp/tv1-gn-20261120T143637Z.txt

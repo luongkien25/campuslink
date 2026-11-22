@@ -1,0 +1,255 @@
+Evidence FR-INF-19 (G3, Lab 12.4): after-start Phan 1 va Phan 2 (A va B) sau lan bat 20/11 toi, 1.7 volume DB, 1.7b dump trong campus-backups, 2.7 host B, 2.8 guest + LB, kiem alarm (tat, actions rong), cot "Truoc" cua Phan 3 chay ngay truoc khi Stop. KET QUA: Phan 1 va Phan 2 PASS.
+Ngay: 2026-11-20. Bam Start A va B tren Console khoang 20:34 gio VN; A boot 13:34:52Z, B boot 13:34:59Z (uptime -s) tuc B len sau A 7 giay (runbook yeu cau A truoc, doi 2/2 checks passed, roi moi B; lan nay khong lam dung thu tu, khong thay loi gi). campus-keepalive 240 dat luc ~13:37Z (giu toi 17:37Z). Bam Stop A va B luc 21:50 gio VN theo TV1 (= 14:50Z, doi chieu date -u 14:50:01Z luc TV1 bao); gio chinh xac se lay tu last -x lan Start toi. last -x tren A cho thay lan Stop truoc: 19/11 13:52:46Z va 20/11 11:18:31Z.
+Nguoi lam: TV1 tu chay lenh (ubuntu@campus-a, ubuntu@campus-b va PowerShell tren laptop) va dan output cho Claude Code doi chieu. Script: docs/_scripts/session-20261119/after-start-ro.sh (sha256 bat dau 6b1688cc, chi doc, ngoai repo) va docs/_scripts/fr-inf-19-phan3/phan3-truoc-sau.sh (sha256 bat dau 3962feed, ngoai repo). Muc A va C la nguyen van file ghi tren A; muc B la output TV1 dan lai tu terminal (khong co file tren A).
+
+TOM TAT
+ 1.1-1.4  PASS (muc A): campus-a; br-ex 172.24.4.1/24; 0 unit loi; campus-nat, nginx, apache2 active.
+ 1.5, 1.6 PASS: co provider ovn; 3 VM ACTIVE.
+ 1.7      PASS (muc B): campus-db-data in-use.
+ 1.7b     PASS (muc B): dump moi nhat db/shlink-20261120T140131Z.dump Last Modified 14:01:32Z, cach date -u (14:36:17Z) khoang 35 phut (nguong 70 phut). Doc bang credential member cua tv3 (sudo -u tv3, OS_CLOUD=campus-tv3).
+ 1.9-1.11 PASS (muc B, tu laptop): admin. 200; s./rest/health 200; /tv4fix1 302 https://example.org/campuslink-fixture-1.
+ 2.1, 2.2, 2.4, 2.5, 2.5b, 2.6 PASS (muc A): Leap Normal, / con 18G, sdb1 tu /dev/loop0, VG co mat; NAT active (exited) + 2 MASQUERADE; nova-compute A va B up, 4 agent OVN True, cinder-volume up; provider ovn; 2 dong Swift conf; Nginx :443 va Apache :80.
+ 2.7      PASS (muc B): campus-b, Leap Normal, khong unit loi, ceilometer-acompute active, NRestarts=0.
+ 2.8      PASS mot phan (muc A): app A va DB o campus-a, app B o campus-b, tat ca ACTIVE; LB, listener, pool, monitor TCP, 2 member ONLINE. Chua chay rieng "metric measures show" va "alarm list" theo runbook 2.8; so lieu CPU co diem moi trong 5 phut thay trong evidence G4 20261120-FR-INF-11-ramp-redirect-ab-cpu-gnocchi.txt.
+ Alarm    (muc B): hai alarm enabled=false, ba danh sach actions rong, repeat_actions=false (doc bang credential member tv3 vi admin o project admin khong thay alarm cua project campuslink).
+ B ra Internet (muc B): curl tu B toi https://archive.ubuntu.com/ubuntu/ tra 200 (gio khong ghi, truoc 14:48Z).
+ Phan 3 "truoc" (muc C): 14:44:39Z, link mau 302, Swift dump + sha256, volume in-use, 3 VM, health 200; b_egress va sts_role la SKIP trong script (b_egress da dien tay o muc B).
+
+GIOI HAN / GHI CHU:
+ (1) Cot "Sau" cua Phan 3 va lenh "so" CHUA chay; chi co cot "Truoc". File "truoc" chay luc cum RANH (load average 0,03; khong co scale event) ngay truoc khi Stop. Lan chay ghi 1 visit vao Shlink that.
+ (2) sts_role SKIP (A khong co aws CLI); IAM role cua A khong duoc kiem trong file nay. Cac muc Phan 3 con lai can dien tay (sha256 file thu tren volume DB, port/attachment guest, digest Shlink, Redis PING) KHONG nam trong file nay.
+ (3) Khong quet cong ngoai (quyet dinh 20/11). Khong co anh Console "Stopped" (khong can theo quyet dinh 27/10). SG cong 22 KHONG duoc doi hay xac nhan trong phien nay: TV1 de lai sau; trang thai SG cuoi chua biet.
+ (4) Khong co output rieng cho "campus-keepalive 0" (lan go dau thieu chu c, "command not found"); campus-check bao "OK: khong con ai dung" (campus-check kiem ca keepalive con han). Gio campus-check khong ghi (uoc tinh 14:48-14:50Z).
+ (5) Lenh a() trong runbook dung admin (project admin); alarm va Swift doc bang credential member nen khong thay bang admin.
+ (6) Cac moc gio Stop trong file nay la gio TV1 bao; gio that tu last -x sau lan Start toi.
+
+======== A. after-start-ro.sh (nguyen van /tmp/tv1-as-20261120T133842Z.txt, chay 13:38:42Z, 4 phut sau boot) ========
+== 0. thoi gian va boot
+now_utc=2026-11-20T13:38:42Z
+uptime_since=2026-11-20 13:34:52
+reboot   system boot  7.0.0-1017-aws   Fri Nov 20 13:34:53 2026   still running
+shutdown system down  7.0.0-1017-aws   Fri Nov 20 11:18:31 2026 - Fri Nov 20 13:34:53 2026  (02:16)
+reboot   system boot  7.0.0-1017-aws   Fri Nov 20 10:57:46 2026 - Fri Nov 20 11:18:31 2026  (00:20)
+shutdown system down  7.0.0-1017-aws   Thu Nov 19 13:52:46 2026 - Fri Nov 20 10:57:46 2026  (21:05)
+
+== 1.1 host (PASS: campus-a)
+campus-a
+ 13:38:43 up 3 min,  1 user,  load average: 0.78, 1.85, 0.94
+== 1.2 br-ex (PASS: co 172.24.4.1/24)
+br-ex            UNKNOWN        172.24.4.1/24 fe80::5040:43ff:fe61:e047/64 
+== 1.3 unit loi (PASS: 0)
+so unit loi: 0
+== 1.4 dich vu (PASS: 3 dong active)
+active
+active
+active
+
+== 2.1 host A (PASS: Leap Normal; / con >= 10 GiB; sdb1 mount tu /dev/loopN; VG co mat)
+System time     : 0.000000048 seconds fast of NTP time
+Leap status     : Normal
+/dev/root        58G   40G   18G  70% /
+TARGET                            SOURCE     FSTYPE OPTIONS
+/opt/stack/data/swift/drives/sdb1 /dev/loop0 xfs    rw,noatime,nodiratime,inode64,logbufs=8,logbsize=32k,noquota
+  VG                        #PV #LV #SN Attr   VSize   VFree
+  stack-volumes-lvmdriver-1   1   2   0 wz--n- <30.00g 1.43g
+NAME                                                                                SERIAL
+loop0                                                                               
+loop1                                                                               
+loop2                                                                               
+loop3                                                                               
+loop4                                                                               
+sda                                                                                 6f6aceb9-3ad5-42a3-9d42-b632b7938bea
+nvme1n1                                                                             vol0875752f0e893ca17
+├─stack--volumes--lvmdriver--1-stack--volumes--lvmdriver--1--pool_tmeta             
+│ └─stack--volumes--lvmdriver--1-stack--volumes--lvmdriver--1--pool-tpool           
+│   ├─stack--volumes--lvmdriver--1-stack--volumes--lvmdriver--1--pool               
+│   └─stack--volumes--lvmdriver--1-volume--f43fbbd2--b85f--4bb1--b403--ba54a2f84189 
+└─stack--volumes--lvmdriver--1-stack--volumes--lvmdriver--1--pool_tdata             
+  └─stack--volumes--lvmdriver--1-stack--volumes--lvmdriver--1--pool-tpool           
+    ├─stack--volumes--lvmdriver--1-stack--volumes--lvmdriver--1--pool               
+    └─stack--volumes--lvmdriver--1-volume--f43fbbd2--b85f--4bb1--b403--ba54a2f84189 
+nvme0n1                                                                             vol0c5a8fc0973e3603e
+├─nvme0n1p1                                                                         
+├─nvme0n1p14                                                                        
+├─nvme0n1p15                                                                        
+└─nvme0n1p16                                                                        
+
+== 2.2 NAT (PASS: active (exited); 2 dong MASQUERADE)
+● campus-nat.service - CampusLink lab NAT rules
+     Loaded: loaded (/etc/systemd/system/campus-nat.service; enabled; preset: enabled)
+    Drop-In: /etc/systemd/system/campus-nat.service.d
+             └─br-ex.conf
+     Active: active (exited) since Fri 2026-11-20 13:35:00 UTC; 3min 42s ago
+   84  6304 MASQUERADE  0    --  *      enp39s0  10.11.11.0/24        0.0.0.0/0           
+   31  2168 MASQUERADE  0    --  *      enp39s0  172.24.4.0/24        0.0.0.0/0           
+
+== 2.4 OpenStack (PASS: nova-compute A va B up; 4 agent OVN Alive; cinder-volume up; doi ~5 phut sau khi B len)
+nova-scheduler campus-a up
+nova-conductor campus-a up
+nova-conductor campus-a up
+nova-compute campus-a up
+nova-compute campus-b up
+OVN Neutron agent campus-b True
+OVN Controller agent campus-b True
+OVN Neutron agent campus-a True
+OVN Controller Gateway agent campus-a True
+cinder-scheduler campus-a up
+cinder-volume campus-a@lvmdriver-1 up
+
+== 2.5 Octavia (PASS: /run/octavia co, chu stack; co provider ovn)
+drwxr-xr-x 2 stack stack 100 Nov 20 13:35 /run/octavia
++---------+-------------------------------------------------+
+| name    | description                                     |
++---------+-------------------------------------------------+
+| amphora | The Octavia Amphora driver.                     |
+| octavia | Deprecated alias of the Octavia Amphora driver. |
+| ovn     | Octavia OVN driver.                             |
++---------+-------------------------------------------------+
+
+== 2.5b Swift conf (PASS: service_type = object-store va include_service_catalog = True; s-proxy active)
+1449:service_type = object-store
+1450:include_service_catalog = True
+active
+
+== 2.6 Nginx va Apache (PASS: enabled, active, syntax ok; :443 nginx, :80 apache2)
+enabled
+active
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+LISTEN 0      511          0.0.0.0:443        0.0.0.0:*    users:(("nginx",pid=3905,fd=6),("nginx",pid=3904,fd=6),("nginx",pid=3903,fd=6),("nginx",pid=3902,fd=6),("nginx",pid=3900,fd=6),("nginx",pid=3899,fd=6),("nginx",pid=3898,fd=6),("nginx",pid=3897,fd=6),("nginx",pid=3896,fd=6))
+LISTEN 0      511                *:80               *:*    users:(("apache2",pid=3930,fd=4),("apache2",pid=3928,fd=4),("apache2",pid=3917,fd=4))                                                                                                                                          
+
+== 2.8 guest va LB (PASS: DB VM va app ACTIVE; member ONLINE) - ten cot LB chua kiem
++-------------------------------------------------------+--------+----------+
+| Name                                                  | Status | Host     |
++-------------------------------------------------------+--------+----------+
+| ca-tcyx-sos25jpcttjg-ja2jq3he43f7-server-w5libtxbopqg | ACTIVE | campus-b |
+| campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26     | ACTIVE | campus-a |
+| campus-db                                             | ACTIVE | campus-a |
++-------------------------------------------------------+--------+----------+
+-- LB deb301de-fb2a-430b-8bc7-2954a3afe14a
+{
+    "loadbalancer": {
+        "id": "deb301de-fb2a-430b-8bc7-2954a3afe14a",
+        "name": "campus-app-lb-wwsx4iakvt5m",
+        "operating_status": "ONLINE",
+        "provisioning_status": "ACTIVE",
+        "listeners": [
+            {
+                "id": "b431e26a-0590-48ba-8c5d-544bc01ee7f4",
+                "name": "campus-app-listener-eylrzsakcx5x",
+                "operating_status": "ONLINE",
+                "provisioning_status": "ACTIVE",
+                "pools": [
+                    {
+                        "id": "e7014f7e-6883-4198-861e-bf23b0247f9f",
+                        "name": "campus-app-pool-4yqbg6bhljq6",
+                        "provisioning_status": "ACTIVE",
+                        "operating_status": "ONLINE",
+                        "health_monitor": {
+                            "id": "558c8bab-9cbf-4730-94be-4d705c8d51d4",
+                            "name": "",
+                            "type": "TCP",
+                            "provisioning_status": "ACTIVE",
+                            "operating_status": "ONLINE"
+                        },
+                        "members": [
+                            {
+                                "id": "7f3cb4ba-bd65-4f59-b37b-caeccde23d00",
+                                "name": "",
+                                "operating_status": "ONLINE",
+                                "provisioning_status": "ACTIVE",
+                                "address": "10.20.0.195",
+                                "protocol_port": 8080
+                            },
+                            {
+                                "id": "4d64c077-95e3-422a-93ad-3b52b1d2b704",
+                                "name": "",
+                                "operating_status": "ONLINE",
+                                "provisioning_status": "ACTIVE",
+                                "address": "10.20.0.196",
+                                "protocol_port": 8080
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
+
+bao cao luu o: /tmp/tv1-as-20261120T133842Z.txt
+
+======== B. Output TV1 dan lai tu terminal (khong co file tren A) ========
+--- B.1 Muc 1.7, tren A, shell a() (gio khong ghi, sau 13:38:42Z)
+ubuntu@campus-a:~$ a "openstack volume list --all-projects -c Name -c Status"
++----------------+--------+
+| Name           | Status |
++----------------+--------+
+| campus-db-data | in-use |
++----------------+--------+
+
+--- B.2 Muc 2.7, tren ubuntu@campus-b (ssh campus-b tu laptop; gio khong ghi, sau 13:38:42Z)
+campus-b
+System time     : 0.000003258 seconds slow of NTP time
+Leap status     : Normal
+rc=0
+NRestarts=0
+ActiveState=active
+(rc=0 la ma thoat cua "systemctl list-units 'devstack@*' --state=failed --no-legend", khong in dong nao.)
+
+--- B.3 Muc 1.9-1.11, tu laptop PowerShell (gio khong ghi, sau 13:34:52Z)
+admin.44-198-215-187.sslip.io/            -> 200
+s.44-198-215-187.sslip.io/rest/health     -> 200
+s.44-198-215-187.sslip.io/tv4fix1         -> 302 https://example.org/campuslink-fixture-1
+
+--- B.4 Alarm, tren A, bang credential member (sudo -u tv3, OS_CLOUD=campus-tv3); gio khong ghi, truoc khi phat tai 13:45:01Z
+(alarm list o project admin tra rong; dung credential member cua project campuslink)
+| name                                         | enabled | state |
+| campus-app-cpu-alarms-cpu_low-b2jftvqpeutt   | False   | alarm |
+| campus-app-cpu-alarms-cpu_high-pkzh3rpjme4t  | False   | ok    |
+-- 90f9060e-af83-4bba-834c-52753144421c
+{ "name": "campus-app-cpu-alarms-cpu_low-b2jftvqpeutt", "enabled": false, "ok_actions": [], "alarm_actions": [], "insufficient_data_actions": [], "repeat_actions": false, "state": "alarm" }
+-- 37680d7a-7c46-4cf8-a789-035c7d990219
+{ "name": "campus-app-cpu-alarms-cpu_high-pkzh3rpjme4t", "enabled": false, "ok_actions": [], "alarm_actions": [], "insufficient_data_actions": [], "repeat_actions": false, "state": "ok" }
+(state "alarm" cua alarm low la trang thai cu cua alarm da tat, khong con duoc danh gia.)
+
+--- B.5 Muc 1.7b, tren A, bang credential member tv3 (OSM object list campus-backups --prefix db/shlink- --long ... | tail -3; date -u)
+db/shlink-20261120T134638Z.dump.sha256 2026-11-20T13:46:39.482800
+db/shlink-20261120T140131Z.dump 2026-11-20T14:01:32.953860
+db/shlink-20261120T140131Z.dump.sha256 2026-11-20T14:01:33.005980
+Fri Nov 20 14:36:17 UTC 2026
+
+--- B.6 B ra Internet, tu laptop (gio khong ghi, sau Phan 3 14:44:39Z va truoc 14:48Z): ssh campus-b "curl -s -o /dev/null -m 15 -w '%{http_code}' https://archive.ubuntu.com/ubuntu/"
+200
+
+--- B.7 campus-check, tu laptop (ssh campus-a campus-check), truoc khi Stop (gio khong ghi, uoc tinh 14:48-14:50Z)
+OK: khong con ai dung. Tat duoc: B truoc, A sau.
+
+======== C. Phan 3 "truoc" (nguyen van /home/ubuntu/tv1-p3-truoc-20261120T144439Z.txt, chay 14:44:39Z) ========
+== phan3 truoc  utc=2026-11-20T14:44:39Z  host=campus-a  uptime:  14:44:39 up  1:09,  2 users,  load average: 0.03, 0.10, 0.43  user_swift=tv3
+P3|thoi_diem|2026-11-20T14:44:39Z
+
+== 1. link mau: GET https://s.44-198-215-187.sslip.io/tv4fix1 (qua Nginx tren A, --resolve 127.0.0.1)
+P3|link_mau|302 https://example.org/campuslink-fixture-1
+
+== 2. Swift: dump .dump trong campus-backups (cung mot object truoc/sau)
+P3|swift_object|db/shlink-20261120T140131Z.dump
+P3|swift_sha256|3ed8baddd5c01297c60966ff2ab0957549e4be5ca0ff24969887d5cd7a4a7e59
+
+== 3. Cinder: campus-db-data (trang thai)
+P3|volume_db|campus-db-data in-use
+
+== 4. Guest: UUID, ten, trang thai
+P3|vm|a43d4b4b-6fd5-4244-833b-94c59e856a70 ca-tcyx-sos25jpcttjg-ja2jq3he43f7-server-w5libtxbopqg ACTIVE
+P3|vm|523d67b4-9234-4b09-b3dc-c814e6b868fc campus-app-app_a-xk3ak4aq66op-server-z26fxglbyv26 ACTIVE
+P3|vm|6d17a9e8-4975-4c46-afd6-be1017e2a251 campus-db ACTIVE
+
+== 5. App: /rest/health qua Nginx
+P3|health|200
+
+== 6. Mang: B ra Internet, IAM: role cua A (che Account ID)
+P3|b_egress|SKIP:khong_ssh_duoc_campus-b (chay tay tu laptop)
+P3|sts_role|SKIP:khong_co_aws_cli_tren_A
+
+== xong. File: /home/ubuntu/tv1-p3-truoc-20261120T144439Z.txt
+CHEP file nay ve laptop TRUOC khi Stop. Sau khi bat lai: bash phan3-truoc-sau.sh sau /home/ubuntu/tv1-p3-truoc-20261120T144439Z.txt
