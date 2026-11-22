@@ -1,6 +1,6 @@
 # H5 – Fixture, bản backup và thủ tục restore (TV3 → TV4)
 
-Ngày (UTC): 2026-11-16 · Gate: G4, G5 · Commit: `REPLACE_SAU_MERGE` · Yêu cầu: #50
+Ngày (UTC): 2026-11-16 · Gate: G4, G5 · Commit: `924eb87` (merge PR #52) · Yêu cầu: #50
 Không ghi secret. API key Shlink và credential backup **không** nằm trong file này (SRS O-02, ADR-10).
 
 ## 1. Đã sẵn sàng
