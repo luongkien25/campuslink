@@ -16,7 +16,7 @@ Etc/UTC
  -2 ff3273037dca49ed92cd7d4cdeb8c444 Thu 2026-11-19 12:48:45 UTC Thu 2026-11-19 13:52:07 UTC
  -1 9f8026b2af95449bbabdd68bc8d358d6 Fri 2026-11-20 10:58:41 UTC Fri 2026-11-20 11:17:56 UTC
   0 8895719f94084d04b7c4ba9c112f8d38 Fri 2026-11-20 13:35:48 UTC Fri 2026-11-20 13:50:09 UTC
-=== 1. top -b -n 1 (luc ranh)
+=== 1. top -b -n 1 (luc cum dang co tai hoac khoang nghi giua cac muc ab, KHONG phai luc ranh)
 top - 13:50:11 up 14 min,  1 user,  load average: 1.56, 1.48, 0.69
 Tasks: 109 total,   3 running, 106 sleeping,   0 stopped,   0 zombie
 %Cpu(s): 72.7 us, 18.2 sy,  0.0 ni,  9.1 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st 
@@ -126,7 +126,7 @@ visits theo ngay 2026-11-18: 35036
 visits theo ngay 2026-11-19: 2
 visits theo ngay 2026-11-20: 7908
 kich thuoc visits=42 MB, db shlink=54 MB
-=== 1b. CPU luc ranh (sau boot 906s): vmstat 2 5
+=== 1b. CPU luc dang co tai hoac khoang nghi giua cac muc (sau boot 906s, KHONG phai luc ranh): vmstat 2 5
 procs -----------memory---------- ---swap-- -----io---- -system-- -------cpu-------
  r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st gu
  4  0      0 1343804  20192 499884    0    0   488   129 1605   14 27  9 63  1  0  0
