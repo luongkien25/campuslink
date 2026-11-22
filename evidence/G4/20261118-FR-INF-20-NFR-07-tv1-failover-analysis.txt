@@ -1,0 +1,20 @@
+# Phan tich luot failover 10 RPS 18/11/2026 (TV1). CSV sha256 57ed94f316440ab2140475f537834ecc72d7b10b0fb7804203b20bd6e89e993d. Moc UTC: bao cao cua TV2 (lan dau quan sat qua API).
+# Lenh: python -I failover-analysis.py <CSV>
+rows=11400 steady=10200 T0(request steady som nhat)=14:52:27.864 last=15:09:27.763
+1 truoc (T0 -> lenh dung)         299.2s n=2992 302=2396 5xx=0 timeout=1 p50=  933 p95= 2726 max=  9060 ms
+2 lenh dung -> LB bao A ERROR       9.5s n=  95 302=  74 5xx=0 timeout=1 p50=  916 p95= 2665 max=  6979 ms
+3 A tat, LB da loai A             291.9s n=2920 302=2335 5xx=0 timeout=1 p50=  926 p95= 2613 max= 10397 ms
+4 lenh bat -> 2 member ONLINE      51.0s n= 510 302= 409 5xx=0 timeout=0 p50=  917 p95= 2008 max=  4690 ms
+5 sau (2 member ONLINE -> het)    368.3s n=3683 302=2941 5xx=0 timeout=4 p50=  904 p95= 2575 max= 10281 ms
+--- timeout (599) va thoi diem bat dau request
+  14:53:25.463 -241.6s so voi lenh dung, visits, 11310 ms
+  14:57:28.563 +1.5s so voi lenh dung, redirect, 11599 ms
+  14:59:23.163 +116.1s so voi lenh dung, redirect, 10594 ms
+  15:06:14.564 +527.5s so voi lenh dung, redirect, 10008 ms
+  15:06:24.363 +537.3s so voi lenh dung, redirect, 10030 ms
+  15:06:48.263 +561.2s so voi lenh dung, redirect, 11297 ms
+  15:07:15.563 +588.5s so voi lenh dung, visits, 10284 ms
+redirect >3000 ms moi 60 s: truoc lenh dung=17.2, tu lenh dung den 2 member ONLINE=11.1
+request bat dau trong [lenh dung, LB bao ERROR): 95
+khoang: dung->Nova SHUTOFF 4.2s; dung->LB ERROR 9.5s; bat->Nova ACTIVE 12.2s; bat->2 member ONLINE 51.0s
+A tat (lenh dung -> lenh bat, 301.4s): n=3015 timeout=2 (0.066%)
