@@ -69,3 +69,9 @@ Kiem xac nhan (TV1 quyet; can 1 lenh ghi tao short URL): do doi chung nhu TV2 de
  Du doan neu gia thuyet dung: slug moi DB/visit thap ro, RPS cao hon, gan nhu khong co duoi, CPU nhom app trong cua so tang.
 Huong sua (SAU freeze, can ADR vi SRS 1.3 dat REDIS_PUB_SUB_ENABLED=true cho campus-stats): tat pub/sub khi campus-stats khong chay
  (portal khong dung pub/sub, chi ping Redis), hoac giu ket noi/pgbouncer cho phan ket noi. Khong fork Shlink.
+
+== Bo sung 22/11 (sau luot cloud toi 21/11, KHONG sua phan tren)
+Luot 2 toi 21/11 (TV1/TV2, evidence/G4/20261121-FR-INF-11-tu-scale-aodh-heat-hai-chieu.txt, PR #91; #77) cung chieu voi du doan o muc Ket luan:
+ slug moi tv3dc-20261121 (0 visit luc bat dau) vs tv4fix1 (~124k visit), cung ab -k -c 64 -t 600 tu A qua VIP noi bo:
+ CPU DB moi visit ~25 ms vs ~148 ms (TINH TAY cua TV1 tu Gnocchi); 39,54 vs 23,49 RPS; duoi DB 1-2 phut vs ~26 phut;
+ CPU nhom app dinh 62,48 % vs 27,35 % (TV2). Van chi la mot cap luot do, chua doi chung lap lai -> giu cach noi "khop, chua chung minh".
