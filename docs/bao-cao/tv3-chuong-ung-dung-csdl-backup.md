@@ -57,7 +57,7 @@ Mốc lùi cứng ghi ở #40: nếu đến 18/11 23:59 image portal chưa phát
 
 - **PostgreSQL:** Shlink hỗ trợ chính thức. SQLite bị loại vì nhiều replica phải dùng chung một DB (ràng buộc ở AGENTS.md mục 3). Bản 16 có sẵn trong apt Ubuntu 24.04, không phải thêm repo ngoài.
 - **Redis:** tài liệu Shlink yêu cầu Redis khi chạy nhiều instance, để các replica dùng chung cache và khóa. Phép kiểm NFR-12 (sửa qua A, đọc ngay qua B) chạy trên cấu hình này.
-- **Tự dựng trên VM thay vì dịch vụ quản trị sẵn:** DevStack của nhóm không có Trove. Đây là phần tương đương **Amazon RDS** (PostgreSQL) và **ElastiCache** (Redis), nhóm tự vận hành: tự backup, tự vá, tự giám sát.
+- **Tự dựng trên VM thay vì dịch vụ quản trị sẵn:** DevStack của nhóm không cài Trove, vì bật thêm dịch vụ phải chạy lại `stack.sh` và xóa toàn bộ tài nguyên cụm (ADR-11, `docs/decisions/ADR-11-van-hanh-nang-cao.md`). Đây là phần tương đương **Amazon RDS** (PostgreSQL) và **ElastiCache** (Redis), nhóm tự vận hành: tự backup, tự vá, tự giám sát.
 - **Cinder cho dữ liệu DB:** volume tách khỏi vòng đời VM (tương đương **EBS**). Dựng lại VM thì gắn lại volume, dữ liệu còn; chụp snapshot được (tầng 1 DR).
 
 ### 2.3. Kết quả
@@ -72,6 +72,7 @@ Mốc lùi cứng ghi ở #40: nếu đến 18/11 23:59 image portal chưa phát
 
 - DB VM chỉ 1 vCPU. Trong lượt đo 18/11, CPU DB lên khoảng 94–96%, cùng lúc p95 phía server tăng.
 - Kiểm chỉ đọc ngày 20/11 (#76, PR #84) thấy **Shlink mở kết nối PostgreSQL mới cho từng request**, khoảng 50 kết nối mỗi giây ở 25 visit/s, mỗi kết nối có bắt tay TLS và xác thực SCRAM. Đây là **tương quan, chưa chứng minh nhân quả**. Phép thử xác nhận (giữ kết nối lâu dài, pgbouncer) để sau bản nộp.
+- Ứng viên thứ hai, đọc từ mã Shlink v5.1.8 (PR #89): mỗi visit chạy 4 lệnh `COUNT(*)` trên toàn bộ visit của slug để gửi sự kiện pub/sub, nên chi phí DB tăng theo số visit slug đã có. Lượt đo tối 21/11 (PR #91, #77) cùng chiều với dự đoán: slug mới `tv3dc-20261121` tốn khoảng **25 ms** CPU DB mỗi visit, đạt 39,54 RPS, đuôi 1–2 phút; slug `tv4fix1` (khoảng 124 nghìn visit) tốn khoảng **148 ms**, 23,49 RPS, đuôi khoảng 26 phút (CPU DB tính tay từ Gnocchi). Đây mới là một cặp lượt đo, vẫn là **tương quan, chưa đối chứng lặp lại**.
 - Bộ đếm `pg_stat_user_tables` bị xóa mỗi lần VM boot, vì VM tắt theo host nên PostgreSQL khởi động lại sau lần tắt không sạch. Không dùng được để xem lịch sử autovacuum.
 
 ## 3. Sao lưu (FR-INF-15)

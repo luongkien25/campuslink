@@ -1,5 +1,7 @@
 # Lời thoại video: phân đoạn 3 (storage) và 4 (CSDL) – TV3
 
+> **Trạng thái 22/11:** TV3 không có mặt ở buổi quay 21/11 (#74), video nộp dựng tổng ≤ 10 phút. File này chỉ là kịch bản tham khảo; dùng phân đoạn 3–4 hay không, và dùng phần nào, do TV1 chốt khi dựng video. Không trích file này vào báo cáo.
+
 > #79, T3-6. Mỗi phân đoạn khoảng 50 giây (#74). TV3 vắng buổi quay 21/11 19:30–22:30, nên viết để **TV1 thao tác trên host A**, người đọc là TV1, hoặc TV3 thu lời sau.
 > Mọi lệnh đã chạy thử trên A ngày 20/11 bằng credential member (`OS_CLOUD=campus-tv3`). TV1 dùng credential của mình, kết quả tương tự.
 > **Che khi quay:** không in IP (lệnh dưới đã thay IP bằng `<ip>` hoặc ẩn trong biến), không in token, không mở `openrc` hay `clouds.yaml`, che ô Owner/Account ID nếu mở Console.
