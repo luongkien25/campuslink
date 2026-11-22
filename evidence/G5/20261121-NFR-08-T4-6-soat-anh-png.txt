@@ -1,0 +1,71 @@
+# Evidence NFR-08 & SRS 6.2 (G5, #80 T4-6): Bien ban rà soat bao mat toan bo anh PNG trong docs/acceptance.md va evidence/
+# Chu tri: TV4 - Cao Song Toan (@toancst)
+# Ngay soat: 2026-11-21
+# Tieu chi PASS (#80 T4-6, AGENTS.md muc 7, CONTRIBUTING.md muc 8):
+#   - Khong con AWS Account ID (12 chu so, vd o goc phai tren Console, ARN, hay cot/o Owner ID).
+#   - Khong con email ca nhan, thong tin thanh toan, IP nha (My IP /32).
+#   - Khong con mat khau, private key, Shlink API key plaintext hay token Keystone.
+
+================================================================================
+1. DANH SACH 30 ANH PNG MA docs/acceptance.md TRO TOI (DA SOAT TRUC QUAN 100%)
+================================================================================
+
+STT  Duong dan file anh PNG                                                       Hang muc   Noi dung hien thi & Ket qua kiem tra (Account ID / Email / IP nha / Secret)
+---  ---------------------------------------------------------------------------  --------   ---------------------------------------------------------------------------
+01   evidence/G0/20261023-FR-INF-01-campus-a-running.png                          Hang 1     Instance summary i-0cc001a1d099747c3 (campus-a), IP 10.11.0.10, vpc-0730... -> SACH (PASS)
+02   evidence/G0/20261023-FR-INF-01-campus-b-running-no-public-ip.png             Hang 1     Instance summary i-0c23cd863cc66d7f4 (campus-b), IP 10.11.11.10, Public IP '-' -> SACH (PASS)
+03   evidence/G0/20261023-FR-INF-01-campus-b-az-id-networking.png                 Hang 1     Tab Networking campus-b: us-east-1b, use1-az2, 10.11.11.10 -> SACH (PASS)
+04   evidence/G0/20261023-FR-INF-01-route-tables-list.png                         Hang 1     Danh sach 4 route table (khong co cot Owner ID) -> SACH (PASS)
+05   evidence/G0/20261023-FR-INF-01-private-rt-default-to-eni-a.png               Hang 1     Routes cua campus-private-rt: 0.0.0.0/0 -> eni-0c7e80027e141b982 -> SACH (PASS)
+06   evidence/G0/20261023-FR-INF-01-campus-a-nat-masquerade.png                   Hang 1     Terminal ubuntu@ip-10-11-0-10: campus-nat.service & iptables MASQUERADE -> SACH (PASS)
+07   evidence/G0/20261023-FR-INF-01-campus-b-internet-egress.png                  Hang 1     Terminal A+B: apt-get update & curl https://opendev.org 200 OK -> SACH (PASS)
+08   evidence/G0/20261023-FR-INF-01-campus-b-apt-nat-counters.png                 Hang 1     Terminal A+B: counters MASQUERADE tang 158 -> 169 pkts (dong dau da cat) -> SACH (PASS)
+09   evidence/G0/20261023-FR-INF-02-campus-a-kvm.png                              Hang 1     Terminal A: /dev/kvm, kvm-ok, virt-host-validate PASS -> SACH (PASS)
+10   evidence/G0/20261023-FR-INF-02-campus-b-kvm.png                              Hang 1     Terminal B: /dev/kvm, kvm-ok, virt-host-validate PASS -> SACH (PASS)
+11   evidence/G0/20261023-ADR-07-campus-a-sshd-key-only.png                       Hang 2     Terminal A: sshd -T (permitrootlogin without-password, passwordauthentication no) -> SACH (PASS)
+12   evidence/G0/20261023-ADR-07-campus-a-fail2ban-sshd.png                       Hang 2     Terminal A: fail2ban-client status sshd (0 banned IP) -> SACH (PASS)
+13   evidence/G3/20261120-NFR-10-ssllabs-s-hang-a-an-ket-qua.png (PR #88)         Hang 2     Trang Summary SSL Labs hang A cho s.44-198-215-187.sslip.io (HIDDEN) -> SACH (PASS)
+14   evidence/G0/20261023-FR-INF-13-launch-a-cinder-volume-encrypted.png          Hang 3     Volume 2 (/dev/sdb, 30 GiB gp3, Encrypted, DeleteOnTermination=No) -> SACH (PASS)
+15   evidence/G0/20261023-FR-INF-13-campus-a-volumes.png                          Hang 3     2 EBS volume cua A (60 GiB + 30 GiB In-use/Attached) -> SACH (PASS)
+16   evidence/G0/20261023-FR-INF-13-campus-a-vg-stack-volumes.png                 Hang 3     Terminal A: pvcreate/vgcreate stack-volumes-lvmdriver-1 <30.00g -> SACH (PASS)
+17   evidence/G3/20261118-FR-APP-06-quet-qr-iphone.png                            Hang 4     Man hinh Safari iPhone 5G mo https://example.org sau khi quet QR -> SACH (PASS)
+18   evidence/G3/20261118-FR-APP-09-web-client-key-donvi-a.png                    Hang 4     Giao dien Shlink Web Client v4.8.1 liet ke short URL cua key donvi-a (khong lo key) -> SACH (PASS)
+19   evidence/G0/20261023-FR-INF-17-launch-a-no-iam-profile.png                   Hang 5     O IAM instance profile = Select (trong luc launch A) -> SACH (PASS)
+20   evidence/G0/20261023-NFR-09-launch-a-imdsv2-hop1.png                         Hang 5     Metadata version = V2 only (token required), hop limit = 1 -> SACH (PASS)
+21   evidence/G0/20261023-NFR-16-iam-campuslink-startstop-policy.png              Hang 5     JSON policy CampusLinkStartStop (khong chua Account ID) -> SACH (PASS)
+22   evidence/G0/20261023-NFR-16-iam-users-tv2-tv4.png                            Hang 5     Danh sach 4 IAM user (luongkien25, tv2, tv3, tv4), khong co ARN/Account ID -> SACH (PASS)
+23   evidence/G0/20261118-FR-INF-21-aws-credits.png                               Hang 8     Trang Billing -> Credits: Remaining $93.96, Used $46.04, 3 goi credit (100+20+20) -> SACH (PASS)
+24   evidence/G0/20261119-FR-INF-21-aws-budgets.png                               Hang 8     Trang Billing -> Budgets: 3 budget $30/$50/$65, Used $27.34, Forecasted $53.65 -> SACH (PASS)
+25   evidence/G0/20261023-NFR-16-launch-a-shutdown-stop.png                       Hang 8     Shutdown behavior = Stop (launch A) -> SACH (PASS)
+26   evidence/G0/20261023-NFR-16-launch-b-shutdown-stop.png                       Hang 8     Shutdown behavior = Stop (launch B) -> SACH (PASS)
+27   evidence/G0/20261023-NFR-16-campus-a-idle-timer-active.png                   Hang 8     Terminal A: campus-idle-shutdown.timer active -> SACH (PASS)
+28   evidence/G0/20261023-NFR-16-campus-b-idle-timer-active.png                   Hang 8     Terminal B: campus-idle-shutdown.timer active -> SACH (PASS)
+29   evidence/G0/20261023-NFR-16-scheduler-target.png                             Hang 8     EventBridge Scheduler Target: EC2 StopInstances voi 2 instance ID -> SACH (PASS)
+30   evidence/G0/20261023-NFR-16-scheduler-retry.png                              Hang 8     EventBridge Scheduler Retry policy: 1 hour, 10 times -> SACH (PASS)
+31   evidence/G0/20261023-NFR-16-scheduler-role-permissions.png                   Hang 8     Role permissions: CampusLinkSchedulerStopEc2 -> SACH (PASS)
+32   evidence/G0/20261023-NFR-16-scheduler-role-trust.png                         Hang 8     Role trust policy: scheduler.amazonaws.com (khong chua Account ID) -> SACH (PASS)
+
+================================================================================
+2. DANH SACH 35 ANH PNG KHAC TRONG evidence/G0/ (SOAT BO SUNG TOAN THU MUC)
+================================================================================
+Da kiem tra truc quan toan bo 35 anh PNG con lai trong `evidence/G0/`:
+- `20261023-FR-INF-01-campus-a-eni-eip.png`: Chi hien ENI va EIP cong khai `44.198.215.187` -> SACH.
+- `20261023-FR-INF-01-campus-a-ip-forward.png`: Terminal sysctl net.ipv4.ip_forward=1 -> SACH.
+- `20261023-FR-INF-01-campus-a-source-dest-check-disabled.png`: Source/destination check disabled -> SACH.
+- `20261023-FR-INF-01-campus-a-ssh-first-login.png`: Terminal hostname/ip addr/ip route -> SACH.
+- `20261023-FR-INF-01-launch-a-primary-ip.png`: Primary IP 10.11.0.10 -> SACH.
+- `20261023-FR-INF-01-launch-b-network.png`: O `Owner:` trong dropdown subnet `private-B` DA DUOC BO DEN KIN -> SACH.
+- `20261023-FR-INF-01-launch-b-primary-ip.png`: Primary IP 10.11.11.10 -> SACH.
+- `20261023-FR-INF-01-sg-campus-hosts-inbound-ids.png` & `-sources.png`: Inbound rules SG campus-hosts -> SACH.
+- `20261023-FR-INF-02-launch-a-nested-enabled.png` & `launch-b-nested-imdsv2.png`: Nested virtualization Enabled -> SACH.
+- `20261023-FR-INF-06-campus-a-eip-associated.png`: EIP 44.198.215.187 -> SACH.
+- `20261023-FR-INF-19-campus-a-after-start-nat-timer.png` & `-nat-masquerade-after-start.png`: Terminal A -> SACH.
+- `20261023-G0-campus-a-*` (3 anh), `20261023-G0-campus-ab-stack-user.png`, `20261023-G0-campus-b-*` (3 anh): Terminal A/B -> SACH.
+- `20261023-G0-eip-tags-project.png`, `20261023-G0-keypair-import.png`: Tags Project=CampusLink & public key fingerprint -> SACH.
+- `20261023-G0-launch-a-root-volume-encrypted.png`, `-security-groups.png`, `-tags.png`: Form launch A -> SACH.
+- `20261023-G0-launch-b-ami-type.png`, `-root-volume-encrypted.png`, `-tags.png`: Form launch B -> SACH.
+- `20261023-NFR-16-campus-a-idle-timer-install.png`, `campus-b-idle-timer-install.png`, `campus-b-idle-timer-run-ok.png`: Terminal A/B -> SACH.
+- `20261024-G0-dlm-policy-detail.png`, `-policy-settings.png`, `-recheck-policy-enabled.png`, `-recheck-snapshots-1.png`, `-recheck-snapshots-2.png`: DLM policy va 3 snapshot (khong co cot Owner ID) -> SACH.
+- 7 anh `Screenshot (155).png` va `Screenshot 2026-10-22 *.png`: O `Owner ID` / `Owner` va `Source` (My IP) deu DA DUOC TO XAM CHE KIN -> SACH.
+
+KET LUAN: 100% anh PNG (32 anh trỏ từ `docs/acceptance.md` bao gom ca anh SSL Labs o PR #88, va 35 anh bo sung trong `evidence/G0/`) DAT yeu cau NFR-08, khong lo AWS Account ID, email, IP nha hay secret.

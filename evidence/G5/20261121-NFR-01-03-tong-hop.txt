@@ -1,0 +1,133 @@
+# Evidence NFR-01, NFR-02, NFR-03, NFR-07, NFR-22 (G5, #80 T4-4): Tong hop toan bo cac luot do hieu nang, do tin cay, failover va SLI/SLO error budget
+# Chu tri: TV4 - Cao Song Toan (@toancst)
+# Ngay tong hop: 2026-11-21
+# Nguon du lieu goc:
+#   - evidence/G4/20261116-FR-INF-11-tv2-evening-baseline.{txt,json}
+#   - evidence/G4/20261117-FR-INF-11-tv2-postpatch-run.{txt,json}
+#   - evidence/G4/20261118-NFR-01-NFR-03-tv1-baseline-30rps-raw.csv.gz (sha256 CSV: 4e02407cf14dece9a61625618bb72d228a3a685166b029c825191f7ae21fcadf, PR #68)
+#   - evidence/G4/20261118-FR-INF-20-NFR-07-tv1-failover-10rps-raw.csv.gz (sha256 CSV: 57ed94f316440ab2140475f537834ecc72d7b10b0fb7804203b20bd6e89e993d, PR #68)
+#   - evidence/G4/20261118-FR-INF-20-NFR-07-tv1-failover-analysis.{py,txt} & ...-manifest.txt (PR #68)
+#   - evidence/G4/20261118-NFR-01-tv1-nginx-request-time-p95.txt (PR #68)
+#   - evidence/G5/20261118-FR-INF-20-NFR-07-tv2-app-a-failover.{txt,json} (PR #69)
+#   - evidence/G4/20261120-FR-INF-11-ramp-redirect-ab-cpu-gnocchi.txt (PR #88)
+#   - evidence/G5/20261120-FR-INF-12-NFR-01-db-vm-cpu-kiem-chi-doc.txt (PR #84)
+
+================================================================================
+1. DINH NGHIA YEU CAU VA QUY UOC DO (SRS MUC 5)
+================================================================================
+- NFR-01 (Hieu nang): "p95 redirect <= 500 ms o muc thuc dat khoang 30 RPS (do qua Internet, da gom network latency)".
+- NFR-02 (Tin cay):   "Ty le 5xx/timeout < 1% trong luot khong gay loi".
+- NFR-03 (Workload):  "Profile 80% GET /{shortCode}, 15% GET .../visits, 5% POST /rest/v3/short-urls; muc 10/30/60 RPS muc tieu; warm-up 2 phut, steady 5 phut moi muc".
+- NFR-07 (San sang):  "Mat app VM A khong lam mat dich vu; do thoi gian phat hien, loi trong luc chuyen va thoi gian hoi phuc".
+- NFR-22 (Quan sat):  "SLO lay tu NFR-01 va NFR-02; SLI tinh tu log Nginx tren A (them $request_time vao log_format); bao cao error budget da tieu trong moi luot scale-out, cap nhat, tat app VM".
+- Quy uoc ma loi cua runner (tests/load/workload.py):
+  + HTTP 302 (redirect) va HTTP 200 (visits/create): thanh cong.
+  + HTTP 500..598: loi HTTP 5xx tu server/proxy.
+  + Status 599: timeout (10 s) hoac loi ket noi phia may phat (client-side).
+
+================================================================================
+2. BANG TONG HOP MOI LUOT DO (CUA SO W1..W9, FAILOVER 10 RPS VA RAMP REDIRECT)
+================================================================================
+
+2.1. Bang cac luot do profile 80/15/5 qua Internet (may phat Viet Nam -> HTTPS Nginx A:443 -> VIP -> App)
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+Cua so / Luot do (UTC)                  Muc dat / Thuc dat   Tong req / 302   p50 client   p95 client   p50 server   p95 server   p99 server   HTTP 5xx   Client 599 (%)
+--------------------------------------  -------------------  ---------------  -----------  -----------  -----------  -----------  -----------  ---------  ----------------
+W1: 16/11 steady (14:53:04-15:13:05Z)   30 / ~28,8 RPS       36.000 / 28.764    847,4 ms     1.080,7 ms     57,0 ms      238,0 ms     604,0 ms         0    47 (0,131%)
+    (baseline Aodh chua va + scale tay)
+W2: 17/11 luot A (14:24:10-14:44:12Z)   30 / ~24,0 RPS       36.000 / 28.788       --       ~1.200,0 ms     67,0 ms      256,0 ms     425,0 ms         0    < 0,15%
+    (sau va ADR-12 v1, toan luot 20m)
+W3: 17/11 truoc scale-out               30 / ~24,0 RPS           -- /  5.496       --             --        72,0 ms      313,0 ms     501,0 ms         0    --
+    (14:24:10-14:28:01Z, 2 app VM)
+W4: 17/11 khi co 3 app VM               30 / ~24,0 RPS           -- / 12.743       --             --        61,0 ms      189,0 ms     334,0 ms         0    --
+    (14:28:01-14:36:52Z, 3 app VM)
+W5: 17/11 sau scale-in                  30 / ~24,0 RPS           -- / 10.549       --             --        75,0 ms      288,0 ms     459,0 ms         0    --
+    (14:36:52-14:44:12Z, 2 app VM)
+W6: 18/11 doi chung 30 RPS              30 / 23,7 RPS (32t)  30.600 / 24.444    935,0 ms     2.674,0 ms*   129,0 ms      596,0 ms     839,0 ms         0    47 (0,154%)
+    (14:25:30-14:47:02Z, 2 app, 1290s)                       (Nginx: 24.447)
+W7: 18/11 failover 10 RPS - Truoc       10 / 10,0 RPS (100t)  2.992 /  2.396    933,0 ms     2.726,0 ms*    50,0 ms       76,0 ms     131,0 ms         0     1 (0,033%)
+    (Nginx 14:52:28-14:57:28Z; CSV C1)                       (Nginx:  2.397)
+W8: 18/11 failover 10 RPS - A tat       10 / 10,0 RPS (100t)  3.015 /  2.409    926,0 ms     2.613,0 ms*    57,0 ms      117,0 ms     263,0 ms         0     2 (0,066%)
+    (Nginx 14:57:28-15:02:28Z; CSV C2+3)                     (Nginx:  2.403)
+W9: 18/11 failover 10 RPS - Sau bat A   10 / 10,0 RPS (100t)  4.193 /  3.350    906,0 ms     2.519,0 ms*    52,0 ms       74,0 ms     126,0 ms         0     4 (0,095%)
+    (Nginx 15:02:28-15:09:28Z; CSV C4+5)                     (Nginx:  3.355)
+Toan luot failover 10 RPS (18/11)       10 / 10,0 RPS (100t) 10.200 /  8.155    918,0 ms     2.635,0 ms*    53,0 ms       91,0 ms     180,0 ms         0     7 (0,069%)
+17/11 luot B1 (14:45:32-14:50:26Z)      60 / ~32 RPS (32t)   Huy som (may phat 32 luong cham tran ~32 RPS)
+17/11 luot B2 (14:51:19-15:00:24Z)      60 / ~33 RPS (160t)  17.880 / 25.200 (dung cuong buc; p95 may phat ~9.267 ms, 31 loi 599 ~ 0,173%, 0 HTTP 5xx)
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+Ghi chu (*): Theo manifest PR #68, p95 phia may phat toi 18/11 (~2,67 s o luot 30 RPS va ~2,64 s o luot 10 RPS) gan bang nhau du tai khac nhau; nguyen nhan chua ro (chua do lai RTT toi 18/11) va KHONG dung hai luot 18/11 lam so do chuan cua NFR-01.
+
+2.2. Bang chi tiet 5 cua so CSV cua luot Failover App VM A (18/11/2026, 10 RPS, PR #68 & PR #69)
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+Cua so theo moc API cua TV2 (UTC)                     Thoi luong   Tong req   Redirect 302   HTTP 5xx   Timeout 599   p50 client   p95 client   Max client
+----------------------------------------------------  ----------   --------   ------------   --------   -----------   ----------   ----------   ----------
+1. Truoc (T0 14:52:27.864 -> lenh dung 14:57:27.063)     299,2 s      2.992          2.396          0     1 (0,033%)      933 ms     2.726 ms     9.060 ms
+2. Phat hien (lenh dung -> LB bao A ERROR 14:57:36.53)     9,5 s         95             74          0     1 (1,053%)      916 ms     2.665 ms     6.979 ms
+3. A tat, LB da loai A (14:57:36.53 -> bat 15:02:28.48)  291,9 s      2.920          2.335          0     1 (0,034%)      926 ms     2.613 ms    10.397 ms
+4. Hoi phuc (lenh bat -> 2 member ONLINE 15:03:19.47)     51,0 s        510            409          0     0 (0,000%)      917 ms     2.008 ms     4.690 ms
+5. Sau hoi phuc (15:03:19.47 -> het 15:09:27.763)        368,3 s      3.683          2.941          0     4 (0,109%)      904 ms     2.575 ms    10.281 ms
+----------------------------------------------------  ----------   --------   ------------   --------   -----------   ----------   ----------   ----------
+Tong hop khi A tat (cua so 2 + 3: dung -> bat)           301,4 s      3.015          2.409          0     2 (0,066%)      926 ms     2.615 ms    10.397 ms
+Toan luot steady (cua so 1..5)                         1.020,0 s     10.200          8.155          0     7 (0,069%)      918 ms     2.635 ms    10.397 ms
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+- Thoi gian Nova SHUTOFF: 4,20 s; LB phat hien member A ERROR: 9,47 s (co 1 timeout luc +1,5 s sau lenh dung).
+- Thoi gian Nova ACTIVE sau lenh start: 12,17 s; 2 member ONLINE: 51,00 s (HTTPS health pass sau 51,12 s; 0 loi trong 51,0 s hoi phuc).
+
+2.3. Bang do Ramp Chi-Redirect tu Host A qua VIP noi bo (20/11/2026, ApacheBench keep-alive, PR #88)
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+Muc Concurrency   Thoi gian (UTC)         Hoan tat   Loi   RPS thuc dat   p50 (ab)   p95 (ab)   p99 (ab)   Probe != 302   CPU nhom app (TB A,B)   CPU campus-db (1 vCPU)
+---------------   ---------------------   --------   ---   ------------   --------   --------   --------   ------------   ---------------------   ----------------------
+c = 8             13:45:01 - 13:49:01Z       7.791     0     32,46 RPS      245 ms     303 ms     542 ms          0/106          43,5 - 44,6 %            96,1 - 96,6 %
+c = 16            13:51:01 - 13:55:01Z       7.711     0     32,13 RPS      547 ms     665 ms     876 ms           0/95          42,2 - 42,7 %            97,1 - 97,2 %
+c = 24            13:57:01 - 14:01:01Z       7.870     0     32,79 RPS      712 ms     913 ms   1.054 ms           0/87          41,7 - 42,5 %            97,2 - 97,5 %
+c = 32            14:03:01 - 14:07:01Z       7.814     0     32,56 RPS      773 ms   1.395 ms   1.601 ms           0/80          40,8 - 41,3 %            97,5 - 97,8 %
+c = 64            14:09:01 - 14:13:01Z       7.872     0     32,80 RPS    1.758 ms   2.498 ms   2.660 ms           0/61          40,2 - 40,8 %            97,8 - 98,0 %
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+================================================================================
+3. BAO CAO SLI / SLO VA ERROR BUDGET DA TIEU (NFR-22 BAN 1.4)
+================================================================================
+Theo SRS NFR-22:
+- SLO 1 (Do tin cay - tu NFR-02): Ty le loi (HTTP 5xx + client timeout 599) < 1,000% -> Error budget cho phep = 1,000% so request trong cua so.
+- SLO 2 (Do tre - tu NFR-01):     p95 redirect <= 500 ms.
+  + Theo dinh nghia SRS (do phia may phat qua Internet): p95 = 1.081-2.674 ms (> 500 ms) -> SLO do tre qua Internet KHONG DAT (vuot nguong 100%).
+  + Theo SLI chan doan phia server (log Nginx $request_time tren Host A, loai bo RTT Internet):
+
+Bang SLI va Error Budget (NFR-22) trong cac luot scale-out, scale-in, doi chung va tat app VM A:
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+Su kien / Cua so van hanh                   Tong req   Loi (5xx+599)   SLI Ty le loi   Error Budget 1% da tieu   SLI p95 Nginx ($request_time)   So voi nguong 500 ms
+-----------------------------------------   --------   -------------   -------------   -----------------------   -----------------------------   --------------------
+1. Scale tay 2->3->2 (16/11 W1, 30 RPS)       36.000      47 (0 5xx)         0,1306%        13,06% budget (DAT)                        238,0 ms   <= 500 ms (47,6%)
+2. Scale tay 2->3->2 (17/11 W2, 30 RPS)       36.000     <54 (0 5xx)        <0,1500%       <15,00% budget (DAT)                        256,0 ms   <= 500 ms (51,2%)
+   - Truoc scale-out (W3, 2 app)               ~6.870       0 5xx                --                         --                         313,0 ms   <= 500 ms (62,6%)
+   - Khi chay 3 app (W4, sau scale-out)       ~15.930       0 5xx                --                         --                         189,0 ms   <= 500 ms (37,8%)
+   - Sau scale-in ve 2 app (W5)               ~13.180       0 5xx                --                         --                         288,0 ms   <= 500 ms (57,6%)
+3. Luot doi chung 30 RPS (18/11 W6, 2 app)    30.600      47 (0 5xx)         0,1536%        15,36% budget (DAT)                        596,0 ms    > 500 ms (119,2% - VUOT)
+4. Tat app VM A - Failover 10 RPS (18/11):
+   - Truoc khi dung A (W7 / C1)                2.992       1 (0 5xx)         0,0334%         3,34% budget (DAT)                         76,0 ms   <= 500 ms (15,2%)
+   - Khi A tat (W8 / C2+C3, 301,4 s)           3.015       2 (0 5xx)         0,0663%         6,63% budget (DAT)                        117,0 ms   <= 500 ms (23,4%)
+   - Hoi phuc + sau khi bat A (W9 / C4+C5)     4.193       4 (0 5xx)         0,0954%         9,54% budget (DAT)                         74,0 ms   <= 500 ms (14,8%)
+   - Toan luot failover 10 RPS                10.200       7 (0 5xx)         0,0686%         6,86% budget (DAT)                         91,0 ms   <= 500 ms (18,2%)
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+Nhan xet Error Budget (NFR-22):
+- Ve do tin cay (SLO < 1% loi): Trong moi su kien (scale-out 2->3, scale-in 3->2, doi chung 30 RPS va tat nong app VM A), he thong chi tieu thu tu 3,34% den 15,36% quy loi (error budget) 1%, voi 0 HTTP 5xx tu server trong tat ca cac luot.
+- Ve do tre phia server (SLI Nginx $request_time): Khi scale-out tu 2 len 3 app VM ngay 17/11, p95 phia server giam tu 313 ms (W3) xuong 189 ms (W4) va tang lai 288 ms (W5) sau khi scale-in ve 2 app. Khi tat app VM A o 10 RPS (W8), p95 phia server chi tang nhe tu 76 ms len 117 ms va tro ve 74 ms sau khi A hoi phuc. Rieng luot doi chung W6 (18/11) co p95 phia server = 596 ms (> 500 ms).
+
+================================================================================
+4. KET LUAN THEO DUNG DINH NGHIA SRS VA PHAN TICH GIOI HAN (KHONG SUY DIEN QUA MUC)
+================================================================================
+1. Ket luan NFR-01 (p95 redirect <= 500 ms o ~30 RPS qua Internet): KHONG DAT.
+   - Theo dung dinh nghia SRS (do phia may phat qua Internet tu Viet Nam toi us-east-1, moi request tao ket noi HTTPS moi), p95 redirect dat 1.080,7 ms (16/11), ~1.200 ms (17/11) va 2.674 ms (18/11), deu vuot nguong 500 ms.
+   - So do phia server tren Host A (log Nginx $request_time, chi la so do chan doan, khong thay the dinh nghia NFR-01) dat 238 ms (16/11) va 256 ms (17/11) o muc dat 30 RPS, 74-117 ms o 10 RPS (18/11), nhung len toi 596 ms o luot doi chung 18/11 (W6). Vi vay khong the ket luan chung la "p95 phia server luon <= 500 ms".
+
+2. Ket luan NFR-02 (ty le 5xx/timeout < 1% trong luot khong gay loi): DAT.
+   - Tat ca cac luot khong gay loi deu co 0 HTTP 5xx va ty le client timeout 599 chi tu 0,00% den 0,154% (thap hon nhieu so voi nguong 1%). Ngay ca trong luot failover tat app VM A (18/11), ty le timeout trong 301,4 s A tat cung chi la 2/3.015 = 0,066% (0 HTTP 5xx).
+
+3. Ket luan NFR-03 (Workload 80/15/5 o 10/30/60 RPS): DAT MOT PHAN (thieu muc 60 RPS on dinh).
+   - Da chay day du profile 80/15/5 o muc 10 RPS (18/11) va 30 RPS (16/11, 17/11, 18/11).
+   - Ly do thieu muc 60 RPS: Hai lan thu dat 60 RPS ngay 17/11 (B1 32 luong, B2 160 luong) chi dat thong luong thuc te ~32-33 RPS va phai dung som. Phep do ramp chi-redirect bang ApacheBench keep-alive truc tiep tu Host A qua VIP noi bo ngay 20/11 (PR #88) xac nhan thong luong toi da cua cum dung o ~32,1-32,8 RPS tu muc concurrency 8 den 64.
+
+4. Quan sat tuong quan & ung vien nguyen nhan (chua chung minh nhan qua):
+   - Trong log Nginx tren Host A, upstream_response_time (urt) xap xi request_time (rt) (lech toi da ~1 ms), cho thay do tre phia server nam o doan sau Nginx (VIP -> app VM -> DB VM).
+   - So lieu Gnocchi cpu rate:mean (60 s) cho thay khi p95 phia server tang len 596 ms (18/11 W6) va trong suot 5 muc ramp 20/11 (~32,5 RPS), CPU cua DB VM campus-db (1 vCPU) o muc 92-98%, trong khi CPU moi app VM chi o muc 27-51,5%.
+   - Kiem chi doc tren campus-db ngay 20/11 (#76, PR #84) loai tru backup va autovacuum dai trung 14:32Z ngay 18/11, dong thoi ghi nhan Shlink mo ket noi PostgreSQL TCP/TLSv1.3 + SCRAM moi cho tung request (~50 phien moi/giay o ~25 visit/giay). Day la quan sat tuong quan va ung vien nguyen nhan cho viec CPU DB VM 1 vCPU cham tran o ~32,5 RPS; chua thuc hien thi nghiem thay doi cau hinh (nhu connection pooling / pgbouncer) trong giai doan freeze nen khong khang dinh nhan qua.

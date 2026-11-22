@@ -29,12 +29,12 @@ class TestTV4Deliverables(unittest.TestCase):
         root_csv = REPO_ROOT / "cost.csv"
         with root_csv.open(encoding="utf-8", newline="") as fh:
             rows = list(csv.DictReader(fh))
-        self.assertGreaterEqual(len(rows), 35, "cost.csv phai co du cac phien G0 va Issue #4")
+        self.assertGreaterEqual(len(rows), 55, "cost.csv phai co du cac phien G0 va Issue #4 den 21/11")
         credits = [r["credit_remaining_usd"] for r in rows if r["credit_remaining_usd"] != "-"]
         self.assertEqual(
             credits,
-            ["131.38", "129.57", "125.58", "123.79", "115.00", "112.38"],
-            "Chuoi credit con lai phai khop bang Theo doi credit trong g0-checklist.md",
+            ["131.38", "129.57", "125.58", "123.79", "115.00", "112.38", "93.96"],
+            "Chuoi credit con lai phai khop bang Theo doi credit trong g0-checklist.md (den 18/11)",
         )
 
     def test_acceptance_md_has_8_categories_and_valid_links(self) -> None:
@@ -63,6 +63,42 @@ class TestTV4Deliverables(unittest.TestCase):
                 r'-H\s+"X-Api-Key:\s*\$\{?(SHLINK_)?API_KEY',
                 f"Khong duoc truyen API key qua argv trong {script.name}",
             )
+
+    def test_setup_fixture_verifies_long_url_after_post(self) -> None:
+        script = (REPO_ROOT / "tests" / "load" / "setup-fixture.sh").read_text(encoding="utf-8")
+        self.assertIn("/rest/v3/short-urls/${slug}", script)
+        self.assertIn("actual_url", script)
+
+    def test_workload_py_records_302_request_id_and_location(self) -> None:
+        import importlib.util
+        import urllib.error
+
+        wl_path = REPO_ROOT / "tests" / "load" / "workload.py"
+        spec = importlib.util.spec_from_file_location("workload", wl_path)
+        assert spec and spec.loader
+        wl = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(wl)
+
+        class FakeOpener:
+            def open(self, req, timeout=10.0):
+                raise urllib.error.HTTPError(
+                    req.full_url,
+                    302,
+                    "Found",
+                    {"X-Request-Id": "req-abc-123", "Location": "https://example.org/campuslink-fixture-1"},
+                    None,
+                )
+
+        ts, rtype, slug, status, lat, req_id, loc = wl.send_one(
+            FakeOpener(), "redirect", "tv4fix1", "https://s.example.io", "https://s.example.io", "dummy-key"
+        )
+        self.assertEqual(rtype, "redirect")
+        self.assertEqual(slug, "tv4fix1")
+        self.assertEqual(status, 302)
+        self.assertEqual(req_id, "req-abc-123")
+        self.assertEqual(loc, "https://example.org/campuslink-fixture-1")
+        self.assertGreaterEqual(lat, 0.0)
+        self.assertTrue(ts.endswith("Z"))
 
 
 if __name__ == "__main__":
