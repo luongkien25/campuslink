@@ -1,0 +1,191 @@
+# #76 - kiem CHI DOC tren DB VM campus-db (FR-INF-12, NFR-01) - TV3, 2026-11-20 13:50-13:53Z
+# Vao bang VM nhay theo docs/runbooks/db-backup.md muc 3 (tao 13:46Z, don 13:53Z; campus-db-port tro lai chi campus-db-sg).
+# Chi dung: top, ps, vmstat, systemctl list-timers/cat, journalctl, grep log, SELECT tren view thong ke va count(*) bang visits.
+# Khong VACUUM/ANALYZE/REINDEX/DROP, khong restart, khong doi cau hinh. Luc kiem cum DANG CO TAI (khoang 25 visit/s, co le phien do #77),
+# nen khong lay duoc mau "luc ranh". IP app VM ghi la app A / app B.
+=== 0. thoi diem, boot
+2026-11-20T13:50:09Z
+ 13:50:09 up 14 min,  1 user,  load average: 1.56, 1.48, 0.69
+1
+Etc/UTC
+ -7 e11f2fb82c8748989287bbe5837eeaf3 Mon 2026-11-16 13:27:00 UTC Mon 2026-11-16 16:04:06 UTC
+ -6 53cf22444ea74e18bfe5ce523cd6a084 Tue 2026-11-17 13:05:26 UTC Tue 2026-11-17 15:42:07 UTC
+ -5 2b941863daa94e67b5478296e4dff0c5 Wed 2026-11-18 02:04:59 UTC Wed 2026-11-18 02:33:50 UTC
+ -4 49fbdd7dec204ede92137b98fc7c2d79 Wed 2026-11-18 11:41:06 UTC Wed 2026-11-18 13:09:03 UTC
+ -3 3489d10c57bc4b2580786e3632b37ca1 Wed 2026-11-18 14:00:18 UTC Wed 2026-11-18 15:31:00 UTC
+ -2 ff3273037dca49ed92cd7d4cdeb8c444 Thu 2026-11-19 12:48:45 UTC Thu 2026-11-19 13:52:07 UTC
+ -1 9f8026b2af95449bbabdd68bc8d358d6 Fri 2026-11-20 10:58:41 UTC Fri 2026-11-20 11:17:56 UTC
+  0 8895719f94084d04b7c4ba9c112f8d38 Fri 2026-11-20 13:35:48 UTC Fri 2026-11-20 13:50:09 UTC
+=== 1. top -b -n 1 (luc cum dang co tai hoac khoang nghi giua cac muc ab, KHONG phai luc ranh)
+top - 13:50:11 up 14 min,  1 user,  load average: 1.56, 1.48, 0.69
+Tasks: 109 total,   3 running, 106 sleeping,   0 stopped,   0 zombie
+%Cpu(s): 72.7 us, 18.2 sy,  0.0 ni,  9.1 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st 
+MiB Mem :   1968.0 total,   1318.4 free,    348.6 used,    500.3 buff/cache     
+MiB Swap:      0.0 total,      0.0 free,      0.0 used.   1619.4 avail Mem 
+
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+    741 postgres  20   0  221100  29432  26948 S   9.1   1.5   0:07.16 postgres
+      1 root      20   0   22160  13356   9524 S   0.0   0.7   0:02.07 systemd
+      2 root      20   0       0      0      0 S   0.0   0.0   0:00.00 kthreadd
+      3 root      20   0       0      0      0 S   0.0   0.0   0:00.00 pool_workqueue_release
+      4 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 kworker/R-rcu_g
+      5 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 kworker/R-rcu_p
+      6 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 kworker/R-slub_
+      7 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 kworker/R-netns
+     10 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 kworker/0:0H-events_highpri
+     11 root      20   0       0      0      0 I   0.0   0.0   0:00.16 kworker/u2:0-events_power_efficient
+=== 2. pg_stat_user_tables (db shlink)
+                     relname                     | n_live_tup | n_dead_tup | autovacuum_count | autoanalyze_count |        last_autovacuum        |       last_autoanalyze        
+-------------------------------------------------+------------+------------+------------------+-------------------+-------------------------------+-------------------------------
+ visits                                          |       7907 |          0 |                0 |                 0 |                               | 
+ short_url_visits_counts                         |        797 |        149 |                2 |                 5 | 2026-11-20 13:47:15.860304+00 | 2026-11-20 13:49:15.896594+00
+ migrations                                      |          0 |          0 |                0 |                 0 |                               | 
+ api_key_roles                                   |          0 |          0 |                0 |                 0 |                               | 
+ api_keys                                        |          0 |          0 |                0 |                 0 |                               | 
+ geolocation_db_updates                          |          0 |          0 |                0 |                 0 |                               | 
+ short_url_redirect_rules                        |          0 |          0 |                0 |                 0 |                               | 
+ orphan_visits_counts                            |          0 |          0 |                0 |                 0 |                               | 
+ redirect_conditions_in_short_url_redirect_rules |          0 |          0 |                0 |                 0 |                               | 
+ tags                                            |          0 |          0 |                0 |                 0 |                               | 
+(10 rows)
+
+ERROR:  column "=" does not exist
+LINE 1: SELECT name||"="||setting FROM pg_settings WHERE name IN ("l...
+                     ^
+=== 3. timer backup
+NEXT                             LEFT LAST                              PASSED UNIT                           ACTIVATES
+Fri 2026-11-20 14:01:02 UTC     10min Fri 2026-11-20 13:46:37 UTC 3min 33s ago campus-db-backup.timer         campus-db-backup.service
+OnBootSec=10min
+OnCalendar=hourly
+RandomizedDelaySec=120
+Persistent=true
+--- journal campus-db-backup 18/11 14:00-15:00Z
+2026-11-18T14:00:53+00:00 campus-db systemd[1]: Starting campus-db-backup.service - CampusLink backup DB shlink len Swift (FR-INF-15)...
+2026-11-18T14:00:53+00:00 campus-db runuser[928]: pam_unix(runuser:session): session opened for user postgres(uid=110) by (uid=0)
+2026-11-18T14:00:54+00:00 campus-db runuser[928]: pam_unix(runuser:session): session closed for user postgres
+2026-11-18T14:00:54+00:00 campus-db campus-db-backup[924]: campus-db-backup: dump shlink-20261118T140053Z.dump 914228 byte sha256=1db8044d35c6620723d58449042706671d381bf236ae10934d92e5acbaa4f60b
+2026-11-18T14:00:54+00:00 campus-db campus-db-backup[924]: campus-db-backup: OK campus-backups/db/shlink-20261118T140053Z.dump etag khop md5, meta sha256 khop
+2026-11-18T14:00:54+00:00 campus-db campus-db-backup[924]: campus-db-backup: retention: Swift co 42 ban, xoa 0 (giu 48); dia giu 2
+2026-11-18T14:00:54+00:00 campus-db campus-db-backup[924]: campus-db-backup: xong
+2026-11-18T14:00:54+00:00 campus-db systemd[1]: campus-db-backup.service: Deactivated successfully.
+2026-11-18T14:00:54+00:00 campus-db systemd[1]: Finished campus-db-backup.service - CampusLink backup DB shlink len Swift (FR-INF-15).
+2026-11-18T14:12:23+00:00 campus-db systemd[1]: Starting campus-db-backup.service - CampusLink backup DB shlink len Swift (FR-INF-15)...
+2026-11-18T14:12:23+00:00 campus-db runuser[1022]: pam_unix(runuser:session): session opened for user postgres(uid=110) by (uid=0)
+2026-11-18T14:12:23+00:00 campus-db runuser[1022]: pam_unix(runuser:session): session closed for user postgres
+2026-11-18T14:12:23+00:00 campus-db campus-db-backup[1018]: campus-db-backup: dump shlink-20261118T141223Z.dump 914228 byte sha256=18526c93165d6a2bcf01918b031482fe7073499b2d3b4d4be1b20e530ec6b415
+2026-11-18T14:12:23+00:00 campus-db campus-db-backup[1018]: campus-db-backup: OK campus-backups/db/shlink-20261118T141223Z.dump etag khop md5, meta sha256 khop
+2026-11-18T14:12:23+00:00 campus-db campus-db-backup[1018]: campus-db-backup: retention: Swift co 43 ban, xoa 0 (giu 48); dia giu 2
+2026-11-18T14:12:23+00:00 campus-db campus-db-backup[1018]: campus-db-backup: xong
+2026-11-18T14:12:23+00:00 campus-db systemd[1]: campus-db-backup.service: Deactivated successfully.
+2026-11-18T14:12:23+00:00 campus-db systemd[1]: Finished campus-db-backup.service - CampusLink backup DB shlink len Swift (FR-INF-15).
+=== 4. log PostgreSQL quanh 14:32Z 18/11
+total 100
+-rw-r----- 1 postgres adm 57319 Nov 20 13:50 postgresql-16-main.log
+-rw-r----- 1 postgres adm 38431 Nov 15 05:24 postgresql-16-main.log.1
+2026-11-18 14:20:26.204 UTC [771] LOG:  checkpoint starting: time
+2026-11-18 14:20:27.749 UTC [771] LOG:  checkpoint complete: wrote 17 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.515 s, sync=0.011 s, total=1.545 s; sync files=16, longest=0.0
+2026-11-18 14:25:26.848 UTC [771] LOG:  checkpoint starting: time
+2026-11-18 14:25:34.538 UTC [771] LOG:  checkpoint complete: wrote 82 buffers (0.5%); 0 WAL file(s) added, 0 removed, 0 recycled; write=7.641 s, sync=0.026 s, total=7.691 s; sync files=21, longest=0.0
+2026-11-18 14:30:26.638 UTC [771] LOG:  checkpoint starting: time
+2026-11-18 14:30:56.659 UTC [771] LOG:  checkpoint complete: wrote 306 buffers (1.9%); 0 WAL file(s) added, 0 removed, 0 recycled; write=29.948 s, sync=0.052 s, total=30.021 s; sync files=30, longest=
+2026-11-18 14:35:26.759 UTC [771] LOG:  checkpoint starting: time
+2026-11-18 14:36:03.103 UTC [771] LOG:  checkpoint complete: wrote 371 buffers (2.3%); 0 WAL file(s) added, 0 removed, 1 recycled; write=36.260 s, sync=0.059 s, total=36.344 s; sync files=33, longest=
+2026-11-18 14:40:26.203 UTC [771] LOG:  checkpoint starting: time
+2026-11-18 14:41:03.643 UTC [771] LOG:  checkpoint complete: wrote 384 buffers (2.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=37.357 s, sync=0.049 s, total=37.440 s; sync files=34, longest=
+2026-11-18 14:45:26.743 UTC [771] LOG:  checkpoint starting: time
+2026-11-18 14:46:05.393 UTC [771] LOG:  checkpoint complete: wrote 395 buffers (2.4%); 0 WAL file(s) added, 0 removed, 0 recycled; write=38.580 s, sync=0.048 s, total=38.651 s; sync files=32, longest=
+2026-11-18 14:50:26.483 UTC [771] LOG:  checkpoint starting: time
+2026-11-18 14:50:46.114 UTC [771] LOG:  checkpoint complete: wrote 200 buffers (1.2%); 0 WAL file(s) added, 0 removed, 1 recycled; write=19.580 s, sync=0.030 s, total=19.632 s; sync files=30, longest=
+2026-11-18 14:55:26.214 UTC [771] LOG:  checkpoint starting: time
+2026-11-18 14:55:48.324 UTC [771] LOG:  checkpoint complete: wrote 227 buffers (1.4%); 0 WAL file(s) added, 0 removed, 0 recycled; write=22.074 s, sync=0.021 s, total=22.111 s; sync files=31, longest=
+2026-11-18 14:58:29.878 UTC [68176] shlink@shlink FATAL:  canceling authentication due to timeout
+--- dong log trong ngay 18/11:
+111
+0
+
+=== 2b. cau hinh lien quan
+autovacuum = on = 
+checkpoint_completion_target = 0.9 = 
+checkpoint_timeout = 300 = s
+log_autovacuum_min_duration = 600000 = ms
+log_checkpoints = on = 
+log_min_duration_statement = -1 = ms
+max_connections = 50 = 
+max_wal_size = 1024 = MB
+shared_buffers = 16384 = 8kB
+--- stats_reset va so dong that
+stats_reset db shlink: (null)
+visits count(*)=169196, max(date)=2026-11-20 13:49:01
+visits theo ngay 2026-11-11: 2
+visits theo ngay 2026-11-13: 4
+visits theo ngay 2026-11-14: 17456
+visits theo ngay 2026-11-15: 23485
+visits theo ngay 2026-11-16: 33617
+visits theo ngay 2026-11-17: 51686
+visits theo ngay 2026-11-18: 35036
+visits theo ngay 2026-11-19: 2
+visits theo ngay 2026-11-20: 7908
+kich thuoc visits=42 MB, db shlink=54 MB
+=== 1b. CPU luc dang co tai hoac khoang nghi giua cac muc (sau boot 906s, KHONG phai luc ranh): vmstat 2 5
+procs -----------memory---------- ---swap-- -----io---- -system-- -------cpu-------
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st gu
+ 4  0      0 1343804  20192 499884    0    0   488   129 1605   14 27  9 63  1  0  0
+ 1  0      0 1350956  20192 499896    0    0     0     0 2742 2558 69 16 16  0  0  0
+ 2  0      0 1349248  20240 499964    0    0     0    64 2767 2580 70 18 13  0  0  0
+ 0  0      0 1348120  20240 499964    0    0     0     0 2740 2485 68 15 18  0  0  0
+ 2  0      0 1348800  20248 499956    0    0     0   142 2822 2571 70 15 15  0  0  0
+--- ps theo %CPU (10 dong)
+    PID USER     %CPU %MEM     ELAPSED COMMAND
+  16715 postgres 28.5  2.3       00:00 postgres
+  16714 postgres 20.0  2.3       00:00 postgres
+    741 postgres  0.8  1.4       15:05 postgres
+    662 redis     0.8  0.6       15:06 redis-server
+  16109 ubuntu    0.3  0.5       00:18 systemd
+      1 root      0.2  0.6       15:14 systemd
+    980 root      0.1  2.3       14:34 fwupd
+     17 root      0.1  0.0       15:14 rcu_preempt
+     71 root      0.0  0.0       15:13 kworker/0:2-events
+    344 root      0.0  0.0       15:10 kworker/0:3-cgwb_release
+=== 4b. log 18/11: autovacuum, FATAL, ERROR
+1
+      1 2026-11-18 02:33 WARNING:  autovacuum worker took too long to start; canceled
+      1 2026-11-18 14:58 shlink@shlink FATAL:  canceling authentication due to timeout
+--- checkpoint 17/11 cung khung 14:20-14:55Z de so sanh
+2026-11-17 14:23:09 wrote 59 buffers total 5.571 s
+2026-11-17 14:28:34 wrote 320 buffers total 30.985 s
+2026-11-17 14:33:39 wrote 371 buffers total 36.205 s
+2026-11-17 14:39:39 wrote 967 buffers total 95.682 s
+2026-11-17 14:43:40 wrote 371 buffers total 36.303 s
+2026-11-17 14:48:39 wrote 370 buffers total 36.323 s
+2026-11-17 14:53:37 wrote 351 buffers total 34.354 s
+2026-11-17 14:59:38 wrote 950 buffers total 94.289 s
+
+=== 5. ket noi: phien moi moi giay (pg_stat_database.sessions, cach 10 s)
+sessions: 17001 -> 17502 (+501 trong 10 s); xact_commit: +3538
+--- pg_stat_activity theo user/state va tuoi ket noi
+shlink: so ket noi=3, ket noi gia nhat=0s
+--- tai luc do: visit 60 s gan nhat
+visits 60s gan nhat=1477
+--- ket noi shlink dang mo: client, ssl, phien ban TLS (3 lan cach 1 s)
+      5 appA t TLSv1.3
+      4 appB t TLSv1.3
+--- pg_hba (dong host) va cau hinh xac thuc
+host shlink shlink 10.20.0.0/24 scram-sha-256; password_encryption=scram-sha-256; authentication_timeout=1min; ssl=on
+
+# Ghi chu doc so lieu
+# - Bo dem pg_stat_user_tables bi xoa moi lan VM boot (VM tat theo host, PostgreSQL khoi phuc sau tat khong sach):
+#   visits n_live_tup=7907 xap xi so visit tao tu luc boot hom nay (7908), autovacuum_count=0. Khong dung duoc de biet autovacuum 18/11.
+# - Log chi ghi autovacuum chay > 10 phut (log_autovacuum_min_duration=600000 ms). 18/11 khong co dong nao quanh 14:32Z;
+#   dong duy nhat "autovacuum worker took too long to start" luc 02:33Z la luc tat may sau phien smoke, khong lien quan.
+# - Backup 18/11: boot 14:00:18Z, chay 14:00:53Z (Persistent=true bu lan lo) va 14:12:23Z (OnBootSec=10min), moi lan ~1 s,
+#   dump 914228 byte. Khong co lan nao tu 14:13Z den 15:00Z.
+# - Checkpoint: theo gio, 5 phut/lan. 18/11 14:30-14:46Z ghi 306-395 buffer (~2,4-3,1 MB), dan trong 30-38 s (completion_target 0.9).
+#   Cung khung 17/11 ghi 320-967 buffer, nhieu hon 18/11.
+# - 18/11 14:58:29Z: "shlink@shlink FATAL: canceling authentication due to timeout" (authentication_timeout=1min): co ket noi khong xac thuc xong trong 60 s.
+# - Ket noi: +501 phien PostgreSQL trong 10 s (~50/s) luc ~25 visit/s; moi ket noi cua shlink deu tuoi 0 s; ca 2 app dung TLSv1.3 va scram-sha-256.
+#   Tuc la moi request mo ket noi moi (fork backend + bat tay TLS + SCRAM). Khac voi do tren Compose o H1 muc 5.1 (moi worker giu 1 ket noi).
+#
+# Ket luan: khong co backup hay autovacuum dai trung 14:32Z 18/11; checkpoint deu va I/O nho (17/11 con ghi nhieu hon) nen khong giai thich
+# CPU 18/11 cao hon 17/11. Khong xac dinh duoc vi sao CPU moi request 18/11 cao hon (bo dem thong ke mat sau moi lan boot, log khong ghi thoi gian cau lenh).
+# Dau hieu moi, la TUONG QUAN chua chung minh: ~50 ket noi moi/s, moi cai co TLS + SCRAM tren 1 vCPU, va 1 lan het han xac thuc luc 14:58Z 18/11.
+# Thu nghiem xac nhan (ngoai freeze, khong lam bay gio): giu ket noi lau dai, hoac pgbouncer, hoac so sanh CPU khi tat TLS ket noi noi bo.
