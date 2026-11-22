@@ -1,0 +1,77 @@
+# #77 cong 1, cau 1 (FR-INF-11, NFR-05): vi sao 14/11 (36,48 RPS, nhom app 61-62 %) khac 20/11 (32,8 RPS, nhom app 40-45 %)
+# TV3, 2026-11-21. KHONG cham cum: chi doc evidence trong repo, ma nguon Shlink v5.1.8 tren GitHub, va 1 ban SAO LOCAL cua dump
+# db/shlink-20261120T134638Z.dump (sha256 khop) trong container postgres:16 tam tren may TV3 (--network none, da xoa sau khi do).
+# Khong restore vao DB that. So lieu nao la TINH TAY hoac DO LOCAL thi ghi ro.
+
+== 1. Nguon
+- 14/11: evidence/G4/20261114-FR-INF-10-tv2-metric-alarm.txt (+ .json). Luot 2 keep-alive 07:46:01-07:50:01Z, 8756 request, 36,48 RPS,
+  nhom app 61,19 / 62,08 / 61,98 % (07:47-07:49Z). Sau tai 07:51/52/53Z: 0,77 / 0,62 / 0,63 % -> KHONG co "duoi".
+  File cpu-*.json 14/11 chi co 2-3 app VM (523d67b4, 88d79382, 157e3878); KHONG co CPU campus-db -> khong biet DB 14/11 co bao hoa khong.
+- 20/11: evidence/G4/20261120-FR-INF-11-ramp-redirect-ab-cpu-gnocchi.txt (PR #88), muc D va E (Gnocchi rate:mean 60 s).
+- Ma nguon: https://github.com/shlinkio/shlink/tree/v5.1.8 (doc 21/11).
+
+== 2. Khong doi giua 14/11 va 20/11 (theo repo)
+- Image app: campus-app-tv2-g4-20261111 (2c43a06d...) ca hai ngay (inventory app_image); digest Shlink trong versions.lock khong doi.
+- Env Shlink: REDIS_PUB_SUB_ENABLED=true, WEB_WORKER_NUM=1, TASK_WORKER_NUM=1 tu 02/11 (H1, app/shlink.env.example, infra/heat/app-integration.md).
+  git log infra/heat tren main: commit cuoi 15/11, khong doi env.
+- DB: cung VM 6d17a9e8 + volume f43fbbd2; cloud-init app/db khong doi cau hinh PostgreSQL (max_connections 50, ssl=on, scram-sha-256 tu 07/11).
+  Doi trong khoang nay: them DB campus_portal (15/11, khong co tai), script fixture H5 (18/11).
+- Thay doi co that: (a) app B la VM moi (cung image); (b) slug do khac nhau; (c) so visit tich luy (muc 5).
+
+== 3. CPU app moi request KHONG giam neu tinh ca quang nghi va duoi (TINH TAY tu muc D/E PR #88)
+Tong ns CPU tung phut / 1e9, 39 058 request ab (bo qua ~429 probe):
+                                   app (A+B) CPU-s   ms/request   campus-db CPU-s   ms/request
+ 13:46-14:12Z (chi luc ab chay+nghi)      1163          29,8            1545            39,5
+ 13:46-14:21Z (them duoi)                 1378          35,3            1997            51,1
+ Tru muc ranh (app ~1,08 CPU-s/phut, DB ~0,41) x 36 phut: app ~34,3 ms/request, DB ~50,7 ms/request.
+=> 14/11 tinh trong cua so: 0,62 x 2 / 36,48 ~ 34 ms/request. 20/11 tinh du: ~34-35 ms/request. GAN BANG NHAU.
+   Con so ~25 ms cua 20/11 chi tinh 3 bucket giua moi muc: mot phan viec cua app bi day ra quang nghi va duoi.
+Quang nghi 120 s KHONG co tai van ban (Gnocchi, %/1 vCPU):
+ 13:50Z: DB 89,5 %, app A 27,7 %, app B 19,0 %    14:02Z: DB 91,3 %, app A 23,9 %, app B 17,0 %
+ 14:14-14:18Z (sau muc cuoi): DB 91,6-92,6 %, app A 21-24 %, app B 15-21 %; 14:20Z app B ranh, 14:22Z DB ranh.
+
+== 4. Viec gi chay sau khi request da tra loi (ma nguon v5.1.8)
+- module/Core/config/event_dispatcher.config.php: UrlVisited co listener ASYNC NotifyVisitToRedis (bat khi REDIS_PUB_SUB_ENABLED,
+  xem Helper/EnabledListenerChecker.php); moi listener async boc CloseDbConnectionEventListenerDelegator
+  (CloseDbConnectionEventListener.php: em->open() ... finally getConnection()->close()) -> moi task 1 ket noi DB moi.
+- config/roadrunner/.rr.yml: jobs pipeline "shlink" driver memory, num_workers=${TASK_WORKER_NUM} (=1 o cum) -> 1 tien trinh task moi app,
+  hang doi trong RAM. DB cham thi hang doi dai ra, chay tiep sau khi ab dung (khop "duoi" ~8 phut).
+- config/autoload/middleware-pipeline.global.php: CloseDbConnectionMiddleware o pre-routing -> moi request HTTP cung 1 ket noi moi.
+  (Than ham middleware doc tu nhanh main cua shlink-common, CHUA doi chieu dung tag ma 5.1.8 dung.)
+  => 2 ket noi TLS + SCRAM moi visit: khop #76 (~50 phien moi/s o ~25 visit/s). Phan nay GIONG NHAU ca 2 ngay.
+- Async/AbstractNotifyVisitListener.php: em->find(Visit) roi tao 2 update (topic new-visit/{shortCode} va new-visit; H1 muc 5.1
+  da thay ca 2 topic tren Redis). PublishingUpdatesGenerator -> ShortUrlDataTransformer -> ShortUrl::toArray():
+    'visitsSummary' => VisitsSummary::fromTotalAndNonBots(count($this->visits), count($this->visits->matching(potentialBot = false)))
+  Mapping Shlinkio.Shlink.Core.ShortUrl.Entity.ShortUrl.php: visits ->fetchExtraLazy() -> count() la SELECT COUNT(*) tren bang visits
+  theo short_url_id. => moi visit 2 x 2 = 4 lenh COUNT, chi phi TANG THEO SO VISIT DA CO CUA SLUG (O(N)). Phan nay KHAC giua 2 ngay.
+
+== 5. So visit cua slug luc bat dau moi luot (ban sao local cua dump 13:46:38Z 20/11)
+ tv2g4-20261111 truoc 14/11 07:46Z:   8 559  (sau luot 2 ~17,3k; visit lien tiep, cum o it block)
+ tv4fix1        truoc 20/11 13:45Z:  24 087  (sau ramp ~63k; 16-18/11 tai chia deu 5 slug tv4fix1..5 nen visit xen ke, rai nhieu block)
+ Visit theo ngay: tv2g4 14/11 17 455, 15/11 23 207; moi tv4fix 16/11 ~6,7k, 17/11 ~10,3k, 18/11 ~7,0k; tv4fix1 20/11 (toi 13:46Z) 3 208.
+
+== 6. Do LOCAL cap lenh COUNT ma Doctrine sinh (pgbench -M prepared, 1 client, 15 s, container gioi han --cpus 1, CPU laptop, KHONG phai DB VM)
+ SELECT COUNT(*) FROM visits t0 WHERE t0.short_url_id = :sid;
+ SELECT COUNT(*) FROM visits t0 WHERE t0.potential_bot = false AND t0.short_url_id = :sid;
+ slug 25 visit (tv3-smoke-...):        0,079 ms / cap
+ tv4fix1 27 292 visit (xen ke):        7,483 ms / cap   (EXPLAIN: Bitmap Heap Scan, 3 242 heap block)
+ tv2g4-20261111 40 704 visit (lien tiep): 5,432 ms / cap
+ Moi visit 2 cap -> tv4fix1 o 27k visit ~15 ms CPU DB tren laptop, chi rieng phan dem; tang tiep khi slug nhieu visit hon.
+
+== Ket luan (GIA THUYET khop so lieu, CHUA chung minh nhan qua tren cum)
+1. CPU app moi request khong that su giam: tinh ca quang nghi va duoi, 20/11 ~34-35 ms/request, bang 14/11.
+   ~25 ms la do task async bi tre (DB bao hoa) nen chay ra ngoai 3 bucket duoc tinh.
+2. Cai doi la chi phi DB moi visit: 20/11 ~50 ms/visit (TINH TAY). 14/11 khong co CPU DB, nhung 36,48 RPS khong duoi tren 1 vCPU
+   thi DB phai <= ~27 ms/visit (SUY RA, khong phai so do).
+3. Ung vien chinh: payload pub/sub dem TOAN BO visit cua slug moi lan co visit (O(N)); tv4fix1 co 24k-63k visit xen ke, tv2g4 chi 8,6k-17k
+   lien tiep. 2 ket noi TLS+SCRAM moi visit la chi phi co dinh, giong nhau 2 ngay. Cung huong voi #76 (CPU/request 18/11 > 17/11, N tang moi ngay).
+Kiem xac nhan (TV1 quyet; can 1 lenh ghi tao short URL): do doi chung nhu TV2 de xuat, mot slug moi 0 visit vs tv4fix1, cung profile.
+ Du doan neu gia thuyet dung: slug moi DB/visit thap ro, RPS cao hon, gan nhu khong co duoi, CPU nhom app trong cua so tang.
+Huong sua (SAU freeze, can ADR vi SRS 1.3 dat REDIS_PUB_SUB_ENABLED=true cho campus-stats): tat pub/sub khi campus-stats khong chay
+ (portal khong dung pub/sub, chi ping Redis), hoac giu ket noi/pgbouncer cho phan ket noi. Khong fork Shlink.
+
+== Bo sung 22/11 (sau luot cloud toi 21/11, KHONG sua phan tren)
+Luot 2 toi 21/11 (TV1/TV2, evidence/G4/20261121-FR-INF-11-tu-scale-aodh-heat-hai-chieu.txt, PR #91; #77) cung chieu voi du doan o muc Ket luan:
+ slug moi tv3dc-20261121 (0 visit luc bat dau) vs tv4fix1 (~124k visit), cung ab -k -c 64 -t 600 tu A qua VIP noi bo:
+ CPU DB moi visit ~25 ms vs ~148 ms (TINH TAY cua TV1 tu Gnocchi); 39,54 vs 23,49 RPS; duoi DB 1-2 phut vs ~26 phut;
+ CPU nhom app dinh 62,48 % vs 27,35 % (TV2). Van chi la mot cap luot do, chua doi chung lap lai -> giu cach noi "khop, chua chung minh".
