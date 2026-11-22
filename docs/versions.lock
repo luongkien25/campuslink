@@ -45,8 +45,13 @@ postgresql_version=16.15   # Ubuntu 16.15-0ubuntu0.24.04.1 tren campus-db 10.20.
 redis_version=7.0.15   # apt Ubuntu 24.04 tren campus-db, >= 6.2 (co XAUTOCLAIM), appendonly=yes, maxmemory=256mb, noeviction (O-17, ADR-09), kiem 2026-11-08 UTC, TV3
 
 # SRS 1.3: dich vu nhom tu viet, build tu repo nhom; ghi digest sau khi build that
-campus_portal_image_digest=REPLACE_DIGEST   # portal + worker cung image, khac ROLE
-campus_stats_image_digest=REPLACE_DIGEST
+# Portal dung o MVP Compose theo dieu kien lui #40 (SRS 6.3 ban 20/11): KHONG phat hanh len registry, nen KHONG co RepoDigest.
+# Gia tri duoi la Image ID (config digest) cua ban build cuc bo tren may TV3 18/11, KHONG phai RepoDigest; build lai se ra ID khac
+# (apt/pip goi gian tiep theo thoi diem build). Nguon: commit b09832fc74f7ed39fbb63d1957489ae84b4aec55, base python:3.12-slim khoa digest
+# trong app/portal/Dockerfile, smoke 31 PASS tren chinh image: evidence/G3/20261118-H1b-FR-APP-13-portal-image-build.txt (#63).
+campus_portal_image_digest=khong-phat-hanh   # #40: portal chi chay tren Compose, khong push GHCR trong freeze
+campus_portal_local_image_id=sha256:c17e3fb990fd1e3df4da726f19fbdaf0e3ad9118bef383eec842ba1215b9e059   # build cuc bo 18/11, linux/amd64, TV3; worker (FR-APP-21) khong lam
+campus_stats_image_digest=khong-build   # campus-stats (FR-APP-18) khong duoc build, khong len cum (#40, chot 15/11); khong co image
 
 recorded_utc=2026-11-15T07:55:00Z
 recorded_by=TV4
