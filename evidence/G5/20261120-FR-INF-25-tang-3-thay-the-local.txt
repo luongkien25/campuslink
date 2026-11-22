@@ -16,7 +16,7 @@ OK ~/campuslink-backups/shlink-20261120T134638Z.dump (1233029 byte)
 #   export SHLINK_HOST_PORT=18180 SHLINK_B_HOST_PORT=18181; dc() { docker compose -p campuslink-dr --profile hai-replica "$@"; }  (app/compose/compose.yaml)
 #   sha256sum -c ; dc up -d --wait postgres redis ; dc exec -T postgres pg_restore -U shlink -d shlink --no-owner --no-acl --exit-on-error < dump
 #   dc up -d --wait shlink ; curl /tv4fix1 ; dc up -d --wait shlink-b
-T0 2026-11-20T14:20:45.798Z bat dau (dump da o may: /home/dqh2115/campuslink-backups/shlink-20261120T134638Z.dump)
+T0 2026-11-20T14:20:45.798Z bat dau (dump da o may: ~/campuslink-backups/shlink-20261120T134638Z.dump)
 shlink-20261120T134638Z.dump: OK
 +12 ms sha256 khop
 +5921 ms postgres + redis healthy (volume moi)
