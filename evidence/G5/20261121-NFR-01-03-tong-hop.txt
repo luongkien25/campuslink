@@ -11,6 +11,8 @@
 #   - evidence/G5/20261118-FR-INF-20-NFR-07-tv2-app-a-failover.{txt,json} (PR #69)
 #   - evidence/G4/20261120-FR-INF-11-ramp-redirect-ab-cpu-gnocchi.txt (PR #88)
 #   - evidence/G5/20261120-FR-INF-12-NFR-01-db-vm-cpu-kiem-chi-doc.txt (PR #84)
+#   - evidence/G4/20261121-FR-INF-11-NFR-05-vi-sao-1411-khac-2011.txt (PR #89)
+#   - evidence/G4/20261121-FR-INF-11-tu-scale-aodh-heat-hai-chieu.txt, ...-ab-tv4fix1-c64-luot1.txt, ...-ab-tv3dc-20261121-c64-luot2.txt (PR #91)
 
 ================================================================================
 1. DINH NGHIA YEU CAU VA QUY UOC DO (SRS MUC 5)
@@ -84,6 +86,15 @@ c = 32            14:03:01 - 14:07:01Z       7.814     0     32,56 RPS      773 
 c = 64            14:09:01 - 14:13:01Z       7.872     0     32,80 RPS    1.758 ms   2.498 ms   2.660 ms           0/61          40,2 - 40,8 %            97,8 - 98,0 %
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+2.4. Bang 2 luot do ApacheBench (c=64, 600 s) tu Host A qua VIP trong phien tu scale Aodh -> Heat toi 21/11/2026 (PR #91, #77)
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+Luot do / Slug (so visit ban dau)       Thoi gian (UTC)         Hoan tat   Loi (ab)   RPS thuc dat   p50 (ab)   p95 (ab)   p99 (ab)   CPU nhom app dinh   CPU campus-db (1 vCPU)   Ket qua Aodh -> Heat
+-------------------------------------   ---------------------   --------   --------   ------------   --------   --------   --------   -----------------   ----------------------   --------------------
+Luot 1: /tv4fix1 (~124k visit)          14:25:46 - 14:35:47Z      14.096          0     23,49 RPS    2.746 ms   3.075 ms   3.210 ms    27,35 % (14:27Z)     ~99,5 - 99,7 % (duoi 26m) cpu_low ALARM 14:21:22Z -> scale_in 3->2; cpu_high giu ok (khong scale-out)
+Luot 2: /tv3dc-20261121 (0 visit)       15:48:39 - 15:58:39Z      23.724          0     39,54 RPS    1.660 ms   2.017 ms   2.128 ms    62,48 % (15:50Z)     ~87,5 - 94,0 % (duoi 1-2m) Tu dong 2->3->2: cpu_high ALARM 15:53:22Z -> scale_out 15:54:12Z -> 3 ONLINE 15:54:19.543Z; cpu_low ALARM 16:04:22Z -> scale_in 16:04:38Z -> 2 ONLINE 16:04:57.781Z
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+Ghi chu: Ca 2 luot ab ghi Non-2xx = so request hoan tat (ky vong HTTP 302 redirect nhung ab khong chia theo ma HTTP), Failed requests = 0.
+
 ================================================================================
 3. BAO CAO SLI / SLO VA ERROR BUDGET DA TIEU (NFR-22 BAN 1.4)
 ================================================================================
@@ -130,4 +141,5 @@ Nhan xet Error Budget (NFR-22):
 4. Quan sat tuong quan & ung vien nguyen nhan (chua chung minh nhan qua):
    - Trong log Nginx tren Host A, upstream_response_time (urt) xap xi request_time (rt) (lech toi da ~1 ms), cho thay do tre phia server nam o doan sau Nginx (VIP -> app VM -> DB VM).
    - So lieu Gnocchi cpu rate:mean (60 s) cho thay khi p95 phia server tang len 596 ms (18/11 W6) va trong suot 5 muc ramp 20/11 (~32,5 RPS), CPU cua DB VM campus-db (1 vCPU) o muc 92-98%, trong khi CPU moi app VM chi o muc 27-51,5%.
-   - Kiem chi doc tren campus-db ngay 20/11 (#76, PR #84) loai tru backup va autovacuum dai trung 14:32Z ngay 18/11, dong thoi ghi nhan Shlink mo ket noi PostgreSQL TCP/TLSv1.3 + SCRAM moi cho tung request (~50 phien moi/giay o ~25 visit/giay). Day la quan sat tuong quan va ung vien nguyen nhan cho viec CPU DB VM 1 vCPU cham tran o ~32,5 RPS; chua thuc hien thi nghiem thay doi cau hinh (nhu connection pooling / pgbouncer) trong giai doan freeze nen khong khang dinh nhan qua.
+   - Kiem chi doc tren campus-db ngay 20/11 (#76, PR #84) loai tru backup va autovacuum dai trung 14:32Z ngay 18/11, dong thoi ghi nhan Shlink mo ket noi PostgreSQL TCP/TLSv1.3 + SCRAM moi cho tung request (~50 phien moi/giay o ~25 visit/giay).
+   - Phan tich ma nguon Shlink v5.1.8 va ban sao dump local ngay 21/11 (#77, PR #89) ghi nhan ung vien thu hai: moi visit chay task async NotifyVisitToRedis goi 4 lenh SELECT COUNT(*) tren bang visits cua slug (chi phi tang theo so visit da tich luy). Hai luot do toi 21/11 (PR #91) khop chieu du doan nay: tren slug moi tv3dc-20261121 (0 visit ban dau), RPS dat 39,54 RPS, CPU DB ~25 ms/visit, CPU nhom app dat dinh 62,48% va kich hoat Aodh -> Heat tu scale 2->3->2; trong khi tren slug tv4fix1 (~124k visit), RPS chi dat 23,49 RPS, CPU DB ~148 ms/visit (~99,5-99,7% CPU, duoi ~26 phut) va CPU nhom app chi dat 27,35%. Day la quan sat tuong quan tren mot cap luot do, chua doi chung lap lai va chua sua cau hinh trong freeze nen khong khang dinh nhan qua.

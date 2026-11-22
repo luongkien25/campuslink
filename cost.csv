@@ -60,3 +60,4 @@ date,start_utc,stop_utc,host,started_by,duration_min,unit_price_usd_hr,estimated
 2026-11-20,13:34:59Z,14:50:00Z,B,TV1,75.0,0.205,0.26,-,"Issue #4 cmt 31-33 (PR #88): B boot 13:34:59Z, chay trong phien ramp redirect va after-start 20/11"
 2026-11-21,08:20:00Z,10:20:00Z,A,TV1,120.0,0.410,0.82,-,"PR #81 & #77: TV1 ap gate v2.1 (~08:27Z) -> v2.2 (09:38:04Z), chay luot chi danh gia Gnocchi that + TV2 scale tay 2->3->2 (09:46:28Z-10:11:57Z; gio Start/Stop EC2 uoc tinh theo khung phien)"
 2026-11-21,08:20:00Z,10:20:00Z,B,TV1,120.0,0.205,0.41,-,"PR #81 & #77: B chay trong phien kiem gate v2.2 va scale tay 2->3->2 chieu 21/11 (gio Start/Stop EC2 uoc tinh theo khung phien)"
+2026-11-21,13:27:00Z,chua_ghi_ro,A+B,TV1,-,-,-,-,"PR #91 & #77: phien toi 21/11 (A boot 13:27Z theo last -x, campus-keepalive 240 luc 13:34:52Z, hau kiem 16:11:10Z): tu scale Aodh -> Heat hai chieu 2->3->2 tren slug tv3dc-20261121; gio Stop chinh xac cho doi chieu last -x"
