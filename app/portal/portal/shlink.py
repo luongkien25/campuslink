@@ -60,6 +60,16 @@ class Shlink:
     def get(self, short_code: str) -> dict:
         return self._check(self._c.get(f"/rest/v3/short-urls/{short_code}"))
 
+    def links_by_tag(self, tag: str) -> list[dict]:
+        """Moi link mang tag, kem visitsSummary.total (tong luot, gom ca bot, cung cach dem voi tags/{tag}/visits)."""
+        links, page = [], 1
+        while True:
+            d = self._check(self._c.get("/rest/v3/short-urls", params={"tags[]": tag, "itemsPerPage": 100, "page": page}))["shortUrls"]
+            links += d["data"]
+            if page >= d["pagination"]["pagesCount"]:
+                return links
+            page += 1
+
     def tag_visits_total(self, tag: str) -> int:
         d = self._check(self._c.get(f"/rest/v3/tags/{tag}/visits", params={"itemsPerPage": 1}))
         return int(d["visits"]["pagination"]["totalItems"])

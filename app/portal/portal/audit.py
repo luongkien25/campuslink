@@ -1,6 +1,6 @@
 """Nhat ky thao tac cua portal (FR-APP-20): ai, lam gi, doi tuong nao, luc nao.
 
-Moi thao tac tao/sua/dong/nhap CSV/dat luat/xoa luat goi record() MOT lan sau khi thao tac thanh cong.
+Moi thao tac tao/sua/dong/nhap CSV/dat luat/xoa luat/xuat bao cao goi record() MOT lan sau khi thao tac thanh cong.
 Quy tac: chi truyen ten, ma, so luong vao `target`/`detail`; KHONG BAO GIO truyen API key, mat khau, secret.
 """
 LIMIT = 200  # so dong trang nhat ky hien thi (moi nhat truoc)

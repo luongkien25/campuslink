@@ -274,6 +274,50 @@ check FR-APP-15 "nhap lai: 0 link moi" 0 "$(tong ok)"
 check FR-APP-15 "nhap lai: 195 link da co, 5 loi" "195 5" "$(tong exists) $(tong error)"
 check FR-APP-15 "nhap lai: Shlink van 195 link" 195 "$(n_tag5)"
 
+echo "== FR-APP-19 bao cao chien dich CSV (tong khop API tag visits)"
+r=$(post unit-a /campaigns --data-urlencode "name=Bao cao $rid" --data-urlencode "ends_at=$end" \
+  --data-urlencode $'links=https://example.org/bc1?r='"$rid"$' | Mot\nhttps://example.org/bc2?r='"$rid"$' | Hai\nhttps://example.org/bc3?r='"$rid"' | Ba')
+cid6=${r##*/campaigns/}; tag6="campaign-$cid6"
+get unit-a "/campaigns/$cid6" >/dev/null
+mapfile -t bc < <(grep -oE 'http://localhost:18080/[A-Za-z0-9_-]+' "$work/out" | sort -u)
+for i in 1 2 3; do loc "${bc[0]/localhost/127.0.0.1}" >/dev/null; done   # 3 luot vao link 1, 2 luot vao link 2, link 3 khong luot
+for i in 1 2; do loc "${bc[1]/localhost/127.0.0.1}" >/dev/null; done
+sleep 1
+tag_visits() { curl -sS -H @"$hk_a" "$S/rest/v3/tags/$tag6/visits?itemsPerPage=1" | jq '.visits.pagination.totalItems'; }
+csv_total() { awk -F, 'NR > 1 && $1 == "" { gsub(/\r/, "", $5); print $5 }' "$work/bc.csv"; }   # dong tong: short_code rong
+csv_rows() { awk -F, 'NR > 1 && $1 != ""' "$work/bc.csv"; }
+download_latest() { # ai -> ma HTTP, tai ban moi nhat cua chien dich vao $work/bc.csv
+  get "$1" "/campaigns/$cid6" >/dev/null
+  local href; href=$(grep -oE "/campaigns/$cid6/reports/[0-9]+\.csv" "$work/out" | head -1)
+  curl -sS -o "$work/bc.csv" -b "$(jar "$1")" -w '%{http_code} %{content_type}' "$P$href"
+}
+check FR-APP-19 "API tag visits: 5 luot (3 + 2)" 5 "$(tag_visits)"
+check FR-APP-19 "chua xuat: trang co 'Chua xuat bao cao'" 1 "$(grep -c 'Chưa xuất báo cáo' "$work/out")"
+r=$(CSRF_PAGE="/campaigns/$cid6" post unit-a "/campaigns/$cid6/reports")
+check FR-APP-19 "unit-a xuat bao cao" 303 "${r%% *}"
+check FR-APP-19 "tai CSV (unit-a): 200 text/csv" "200 text/csv; charset=utf-8" "$(download_latest unit-a)"
+check FR-APP-19 "tieu de CSV" "short_code,short_url,long_url,label,visits" "$(head -1 "$work/bc.csv" | tr -d '\r\357\273\277')"
+check FR-APP-19 "CSV co 3 dong link" 3 "$(csv_rows | wc -l)"
+check FR-APP-19 "so luot tung link: 0, 2, 3" "0 2 3" "$(csv_rows | awk -F, '{ gsub(/\r/, "", $5); print $5 }' | sort -n | tr '\n' ' ' | sed 's/ $//')"
+check FR-APP-19 "dong tong = tong cac dong link" "$(csv_rows | awk -F, '{ s += $5 } END { print s }')" "$(csv_total)"
+check FR-APP-19 "tong trong CSV khop GET /rest/v3/tags/{tag}/visits" "$(tag_visits)" "$(csv_total)"
+found=0; for s in "${bc[@]:0:3}"; do [[ $(csv_rows | grep -c "^${s##*/},") == 1 ]] && found=$((found+1)); done
+check FR-APP-19 "CSV co dung ma 3 link cua chien dich" 3 "$found"
+check FR-APP-19 "kho local: file nam trong QR_LOCAL_DIR/reports/<chien dich>" yes "$(dc exec -T portal sh -c "ls /data/qr/reports/$cid6" | grep -q '\.csv$' && echo yes || echo no)"
+
+loc "${bc[2]/localhost/127.0.0.1}" >/dev/null; sleep 1   # them 1 luot vao link 3 roi xuat lai: so moi phai khop
+r=$(CSRF_PAGE="/campaigns/$cid6" post admin "/campaigns/$cid6/reports")
+check FR-APP-19 "admin xuat bao cao" 303 "${r%% *}"
+check FR-APP-19 "tai ban moi nhat (admin)" "200" "$(download_latest admin | cut -d' ' -f1)"
+check FR-APP-19 "xuat lai: tong moi 6 khop API tag visits" "$(tag_visits) 6" "$(csv_total) $(tag_visits)"
+check FR-APP-19 "viewer-a tai duoc bao cao" 200 "$(download_latest viewer-a | cut -d' ' -f1)"
+check FR-APP-19 "viewer-a khong xuat duoc" 403 "$(CSRF_PAGE=/campaigns post viewer-a "/campaigns/$cid6/reports" | cut -d' ' -f1)"
+check FR-APP-19 "unit-b khong xuat duoc bao cao cua A" 404 "$(CSRF_PAGE=/campaigns post unit-b "/campaigns/$cid6/reports" | cut -d' ' -f1)"
+rep_href=$(get unit-a "/campaigns/$cid6" >/dev/null; grep -oE "/campaigns/$cid6/reports/[0-9]+\.csv" "$work/out" | head -1)
+check FR-APP-19 "unit-b khong tai duoc bao cao cua A" 404 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$(jar unit-b)" "$P$rep_href")"
+check FR-APP-19 "bao cao khong thuoc chien dich nay: 404" 404 "$(get unit-a "/campaigns/$cid6/reports/999999.csv")"
+check FR-APP-19 "thieu CSRF: 400" 400 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$(jar unit-a)" -X POST "$P/campaigns/$cid6/reports")"
+
 echo "== FR-APP-20 nhat ky thao tac"
 # tao them don vi + tai khoan de co dong 'tao don vi', 'tao tai khoan' va kiem key, mat khau khong lot vao nhat ky
 pw_audit=$(openssl rand -hex 12)
@@ -297,6 +341,8 @@ check FR-APP-20 "nhap CSV lan 2: chi tiet 0 moi, 18 da co" 1 "$(row "<td>chiến
 check FR-APP-20 "dat luat: 5 lan (luat bi tu choi khong ghi)" 5 "$(row "<td>đặt luật chuyển hướng</td><td>link $code3 (chiến dịch #$cid3)<")"
 check FR-APP-20 "xoa luat: 2 lan" 2 "$(row "<td>xóa luật chuyển hướng</td><td>link $code3 (chiến dịch #$cid3)<")"
 check FR-APP-20 "admin dat luat: ghi dung nguoi, vai tro" 1 "$(row "<td>admin</td><td>admin</td><td>đặt luật chuyển hướng</td><td>link $code3 ")"
+check FR-APP-20 "xuat bao cao (unit-a): ghi so link, tong luot" 1 "$(row "<td>unit-a</td><td>unit</td><td>xuất báo cáo</td><td>chiến dịch #$cid6</td><td>3 link, tổng 5 lượt, ")"
+check FR-APP-20 "xuat bao cao (admin): ghi so link, tong luot" 1 "$(row "<td>admin</td><td>admin</td><td>xuất báo cáo</td><td>chiến dịch #$cid6</td><td>3 link, tổng 6 lượt, ")"
 check FR-APP-20 "tao don vi" 1 "$(row "<td>tạo đơn vị</td><td>Audit $rid<")"
 check FR-APP-20 "tao tai khoan" 1 "$(row "<td>tạo tài khoản</td><td>audit-$rid</td><td>vai trò viewer<")"
 check FR-APP-20 "khong ghi API key vao nhat ky" 0 "$(grep -c -F -f "$sec/api_key_portal-donvi-a" "$work/out")"

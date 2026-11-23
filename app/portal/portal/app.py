@@ -22,7 +22,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import audit, cards, csvimport, db, security, storage
+from . import audit, cards, csvimport, db, reports, security, storage
 from .config import Config
 from .shlink import Shlink, ShlinkError, valid_url
 
@@ -40,6 +40,7 @@ def create_app(cfg: Config) -> FastAPI:
     tpl = Jinja2Templates(directory=__file__.rsplit("/", 1)[0] + "/templates")
     fer = security.fernet(cfg.secret_key)
     store = storage.make(cfg)
+    report_store = storage.make(cfg, reports=True)
     tz = ZoneInfo(__import__("os").environ.get("TIMEZONE", "UTC"))
 
     def conn():
@@ -248,6 +249,8 @@ def create_app(cfg: Config) -> FastAPI:
         row = campaign_of(c, u, cid)
         links = c.execute("SELECT * FROM campaign_links WHERE campaign_id = %s AND batch_id IS NULL ORDER BY id", (cid,)).fetchall()
         batches = c.execute("SELECT * FROM card_batches WHERE campaign_id = %s ORDER BY version DESC", (cid,)).fetchall()
+        report_rows = c.execute("SELECT * FROM campaign_reports WHERE campaign_id = %s ORDER BY created_at DESC, id DESC LIMIT 20",
+                                (cid,)).fetchall()
         visits = None
         if u["role"] != "admin":
             try:
@@ -255,7 +258,7 @@ def create_app(cfg: Config) -> FastAPI:
                     visits = s.tag_visits_total(row["tag"])
             except ShlinkError:
                 visits = None
-        return render(request, "campaign.html", c=row, links=links, batches=batches, visits=visits,
+        return render(request, "campaign.html", c=row, links=links, batches=batches, reports=report_rows, visits=visits,
                       now=datetime.now(timezone.utc), msg=request.query_params.get("msg"))
 
     @app.post("/campaigns/{cid}/links")
@@ -486,6 +489,42 @@ def create_app(cfg: Config) -> FastAPI:
         log.info("user=%s xoa luat link=%s campaign=%s", u["username"], code, cid)
         audit.record(c, u, "xóa luật chuyển hướng", f"link {code} (chiến dịch #{cid})", f"luật số {index} tới {expect}")
         return rules_back(cid, code, "Đã xóa luật")
+
+    # ---------- bao cao chien dich CSV (FR-APP-19, chay DONG BO, chua co hang doi FR-APP-21) ----------
+    @app.post("/campaigns/{cid}/reports")
+    def export_report(request: Request, cid: int, csrf: str = Form(""), u=Depends(user), c=Depends(conn)):
+        check_csrf(request, csrf)
+        need(u, "admin", "unit")          # viewer chi xem va tai. Admin dung key cua don vi chu chien dich. Chien dich da dong van xuat duoc.
+        row = campaign_of(c, u, cid)
+        try:
+            with unit_shlink(c, row["unit_id"]) as s:
+                links = s.links_by_tag(row["tag"])
+        except (ShlinkError, httpx.TransportError) as e:
+            return RedirectResponse(f"/campaigns/{cid}?msg=" + quote(f"Không đọc được số liệu từ Shlink: {e}"), 303)
+        data, total = reports.build(links)
+        obj = f"{cid}/{datetime.now(timezone.utc):%Y%m%dT%H%MZ}.csv"      # ten theo SRS 4.6
+        try:
+            report_store.put(obj, data, "text/csv; charset=utf-8")
+        except Exception as e:  # noqa: BLE001
+            log.error("campaign=%s luu bao cao loi: %s", cid, e)
+            return RedirectResponse(f"/campaigns/{cid}?msg=" + quote(f"Lưu báo cáo lỗi: {e}"), 303)
+        c.execute("INSERT INTO campaign_reports (campaign_id, object_name, n_links, total_visits) VALUES (%s, %s, %s, %s) "
+                  "ON CONFLICT (campaign_id, object_name) DO UPDATE "
+                  "SET n_links = EXCLUDED.n_links, total_visits = EXCLUDED.total_visits, created_at = now()",
+                  (cid, obj, len(links), total))
+        c.commit()
+        log.info("campaign=%s xuat bao cao %s: %d link, %d luot", cid, obj, len(links), total)
+        audit.record(c, u, "xuất báo cáo", f"chiến dịch #{cid}", f"{len(links)} link, tổng {total} lượt, {obj}")
+        return RedirectResponse(f"/campaigns/{cid}?msg=" + quote(f"Đã xuất báo cáo: {len(links)} link, tổng {total} lượt"), 303)
+
+    @app.get("/campaigns/{cid}/reports/{rid}.csv")
+    def report_csv(cid: int, rid: int, u=Depends(user), c=Depends(conn)):
+        campaign_of(c, u, cid)            # moi vai tro xem duoc chien dich thi tai duoc; don vi khac: 404
+        r = c.execute("SELECT * FROM campaign_reports WHERE id = %s AND campaign_id = %s", (rid, cid)).fetchone()
+        if not r:
+            raise HTTPException(404, "Không có báo cáo này")
+        return Response(report_store.get(r["object_name"]), media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="bao-cao-{cid}-{r["object_name"].rsplit("/", 1)[1]}"'})
 
     # ---------- phat hanh the QR (FR-APP-16, duong lui: 1 lo, chay dong bo) ----------
     @app.post("/campaigns/{cid}/cards")

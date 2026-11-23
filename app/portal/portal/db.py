@@ -80,6 +80,19 @@ MIGRATIONS: list[tuple[int, str]] = [
         detail    text NOT NULL DEFAULT ''
     );
     """),
+    # FR-APP-19: moi lan xuat bao cao la mot dong. File CSV nam o kho bao cao (object_name), DB chi giu danh sach de hien va tai.
+    # Xuat lai trong cung phut thi trung ten object: ghi de file va cap nhat dong cu.
+    (3, """
+    CREATE TABLE campaign_reports (
+        id           serial PRIMARY KEY,
+        campaign_id  int NOT NULL REFERENCES campaigns(id),
+        object_name  text NOT NULL,
+        n_links      int NOT NULL,
+        total_visits int NOT NULL,
+        created_at   timestamptz NOT NULL DEFAULT now(),
+        UNIQUE (campaign_id, object_name)
+    );
+    """),
 ]
 
 

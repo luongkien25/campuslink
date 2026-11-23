@@ -42,6 +42,19 @@
   {% endif %}
 </section>
 <section class="scroll">
+  <h2>Báo cáo</h2>
+  <table><tr><th>Lúc</th><th>Số link</th><th>Tổng lượt</th><th></th></tr>
+  {% for r in reports %}<tr><td>{{ r.created_at|fmt }}</td><td>{{ r.n_links }}</td><td>{{ r.total_visits }}</td>
+    <td><a href="/campaigns/{{ c.id }}/reports/{{ r.id }}.csv">Tải CSV</a></td></tr>
+  {% else %}<tr><td colspan="4" class="muted">Chưa xuất báo cáo</td></tr>{% endfor %}</table>
+  {% if user.role != 'viewer' %}
+  <form method="post" action="/campaigns/{{ c.id }}/reports">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button type="submit">Xuất báo cáo</button> <span class="muted">Số lượt của từng link và tổng, lấy từ Shlink lúc bấm.</span>
+  </form>
+  {% endif %}
+</section>
+<section class="scroll">
   <h2>Thẻ QR</h2>
   <table><tr><th>Lần</th><th>Số thẻ</th><th>Trạng thái</th><th>Lúc</th><th></th></tr>
   {% for b in batches %}<tr><td>v{{ b.version }}</td><td>{{ b.n }}</td><td>{{ b.status }}{% if b.error %} <span class="muted">{{ b.error }}</span>{% endif %}</td><td>{{ b.created_at|fmt }}</td>
