@@ -70,6 +70,20 @@ class Shlink:
                 return links
             page += 1
 
+    def tag_visits_since(self, tag: str, since: datetime, limit: int) -> tuple[list[datetime], bool]:
+        """Thoi diem cac luot truy cap tu `since` (startDate cua Shlink, bao gom ca bot), moi nhat truoc, doc nhieu trang.
+        Toi da `limit` luot de khong treo; tra (danh sach, True neu con luot chua doc)."""
+        times, page = [], 1
+        while True:
+            d = self._check(self._c.get(f"/rest/v3/tags/{quote(tag, safe='')}/visits",
+                                        params={"startDate": _iso(since), "itemsPerPage": 500, "page": page}))["visits"]
+            times += [datetime.fromisoformat(v["date"]) for v in d["data"]]
+            if page >= d["pagination"]["pagesCount"]:
+                return times, False
+            if len(times) >= limit:
+                return times[:limit], True
+            page += 1
+
     def tag_visits_total(self, tag: str) -> int:
         d = self._check(self._c.get(f"/rest/v3/tags/{tag}/visits", params={"itemsPerPage": 1}))
         return int(d["visits"]["pagination"]["totalItems"])

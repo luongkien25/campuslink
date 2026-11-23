@@ -5,7 +5,7 @@
 <section>
   <p>Tag <code>{{ c.tag }}</code> · hết hạn {{ c.ends_at|fmt }} ({{ tzname }}) ·
   <span class="tag {{ c.status if c.ends_at > now else 'closed' }}">{{ c.status if c.ends_at > now else 'hết hạn' }}</span>
-  {% if visits is not none %} · <b>{{ visits }}</b> lượt quét/nhấp{% endif %}</p>
+  {% if visits is not none %} · <b>{{ visits }}</b> lượt quét/nhấp{% endif %} · <a href="/campaigns/{{ c.id }}/live">Theo dõi trực tiếp</a></p>
   {% if user.role == 'unit' and c.status == 'open' %}
   <details><summary>Sửa / đóng chiến dịch</summary>
     <form method="post" action="/campaigns/{{ c.id }}/edit">

@@ -318,6 +318,44 @@ check FR-APP-19 "unit-b khong tai duoc bao cao cua A" 404 "$(curl -sS -o /dev/nu
 check FR-APP-19 "bao cao khong thuoc chien dich nay: 404" 404 "$(get unit-a "/campaigns/$cid6/reports/999999.csv")"
 check FR-APP-19 "thieu CSRF: 400" 400 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$(jar unit-a)" -X POST "$P/campaigns/$cid6/reports")"
 
+echo "== FR-APP-18 trang theo doi chien dich (polling REST, cache 10 s)"
+r=$(post unit-a /campaigns --data-urlencode "name=Theo doi $rid" --data-urlencode "ends_at=$end" --data-urlencode "links=https://example.org/live-thuong?r=$rid | Link thuong")
+cid7=${r##*/campaigns/}; tag7="campaign-$cid7"
+get unit-a "/campaigns/$cid7" >/dev/null
+normal=$(grep -oE 'http://localhost:18080/[A-Za-z0-9_-]+' "$work/out" | head -1)   # link tao tay (khong phai the)
+check FR-APP-18 "trang chien dich co link Theo doi" 1 "$(grep -c "href=\"/campaigns/$cid7/live\"" "$work/out")"
+att=$(printf 'Nguoi A, DV\nNguoi B, DV\nNguoi C, DV\nNguoi D, DV\nNguoi E, DV')
+r=$(CSRF_PAGE="/campaigns/$cid7" post unit-a "/campaigns/$cid7/cards" --data-urlencode "target_url=https://example.org/live-the?r=$rid" --data-urlencode "attendees=$att")
+check FR-APP-18 "phat hanh 5 the" 303 "${r%% *}"
+mapfile -t lc < <(curl -sS -H @"$hk_a" "$S/rest/v3/short-urls?tags%5B%5D=$tag7&itemsPerPage=100" \
+  | jq -r --arg u "https://example.org/live-the?r=$rid" '.shortUrls.data[] | select(.longUrl == $u) | .shortCode')
+lj() { curl -sS -b "$(jar "$1")" "$P/campaigns/$cid7/live.json"; }   # ai -> JSON
+check FR-APP-18 "trang theo doi (unit-a)" 200 "$(get unit-a "/campaigns/$cid7/live")"
+j=$(lj unit-a)
+check FR-APP-18 "truoc khi co luot: check-in 0/5, tong 0" "0 5 0" "$(echo "$j" | jq -r '[.checked_in, .cards, .total_visits] | map(tostring) | join(" ")')"
+check FR-APP-18 "bieu do 60 cot theo phut" 60 "$(echo "$j" | jq '.per_minute | length')"
+for s in "${lc[0]}" "${lc[1]}"; do loc "$S/$s" >/dev/null; done      # 2 the, moi the 1 luot
+for i in 1 2; do loc "${normal/localhost/127.0.0.1}" >/dev/null; done # link thuong 2 luot
+check FR-APP-18 "cache 10 s: goi ngay sau luot van tra so cu (tong 0)" 0 "$(lj unit-a | jq '.total_visits')"
+sleep 11
+j=$(lj unit-a)
+check FR-APP-18 "sau 10 s: da check-in 2 tren 5 the" "2 5" "$(echo "$j" | jq -r '[.checked_in, .cards] | map(tostring) | join(" ")')"
+check FR-APP-18 "tong luot 4 (2 the + 2 link thuong)" 4 "$(echo "$j" | jq '.total_visits')"
+check FR-APP-18 "tong cac cot theo phut = 4" 4 "$(echo "$j" | jq '[.per_minute[].n] | add')"
+check FR-APP-18 "cot cuoi cua bieu do la phut hien tai (theo TIMEZONE)" true "$(echo "$j" | jq '.per_minute[-1].t == (.updated_at | .[0:5])')"
+check FR-APP-18 "4 luot nam o 3 cot cuoi" 4 "$(echo "$j" | jq '[.per_minute[-3:][].n] | add')"
+check FR-APP-18 "top: link thuong 2 luot dung dau" "${normal##*/} 2" "$(echo "$j" | jq -r '.top[0] | "\(.short_code) \(.visits)"')"
+check FR-APP-18 "top: co 3 link co luot (1 thuong + 2 the)" 3 "$(echo "$j" | jq '.top | length')"
+check FR-APP-18 "tong khop API tag visits" "$(curl -sS -H @"$hk_a" "$S/rest/v3/tags/$tag7/visits?itemsPerPage=1" | jq '.visits.pagination.totalItems')" "$(echo "$j" | jq '.total_visits')"
+check FR-APP-18 "moc cap nhat dang HH:MM:SS" 1 "$(echo "$j" | jq -r '.updated_at' | grep -cE '^[0-9]{2}:[0-9]{2}:[0-9]{2}$')"
+check FR-APP-18 "viewer-a xem trang" 200 "$(get viewer-a "/campaigns/$cid7/live")"
+check FR-APP-18 "viewer-a lay duoc du lieu (tong 4)" 4 "$(lj viewer-a | jq '.total_visits')"
+check FR-APP-18 "admin lay duoc du lieu (tong 4)" 4 "$(lj admin | jq '.total_visits')"
+check FR-APP-18 "unit-b: trang theo doi cua A" 404 "$(get unit-b "/campaigns/$cid7/live")"
+check FR-APP-18 "unit-b: live.json cua A" 404 "$(get unit-b "/campaigns/$cid7/live.json")"
+check FR-APP-18 "chua dang nhap: chuyen toi /login" "303 $P/login" "$(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' "$P/campaigns/$cid7/live.json")"
+check FR-APP-18 "chi doc: POST bi tu choi (405)" 405 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$(jar unit-a)" -X POST "$P/campaigns/$cid7/live.json")"
+
 echo "== FR-APP-20 nhat ky thao tac"
 # tao them don vi + tai khoan de co dong 'tao don vi', 'tao tai khoan' va kiem key, mat khau khong lot vao nhat ky
 pw_audit=$(openssl rand -hex 12)

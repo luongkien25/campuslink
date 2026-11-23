@@ -9,6 +9,7 @@ Cổng chiến dịch cho đơn vị, bao quanh Shlink 5.1.8 qua REST v3 (ADR-08
 | FR-APP-16 | Đường lùi | 1 lô, chạy đồng bộ, tối đa 300 người. Mỗi người một short link riêng; PDF A4 8 thẻ/trang; lưu `<campaign_id>/v<n>/lo-1.pdf` |
 | FR-APP-17 | Có | Luật chuyển hướng theo thiết bị (android/ios/desktop), ngôn ngữ, trước/sau một mốc giờ. Admin và đơn vị đặt được, người xem thì không. Luật lưu trong Shlink, trang `/campaigns/<id>/links/<mã>/rules` |
 | FR-APP-15 | Có, chạy đồng bộ | Nhập link từ CSV (cột `long_url`, `custom_slug`, `label`; ≤ 1 MB, ≤ 1000 dòng) ngay trong request, không qua hàng đợi (FR-APP-21 chưa có). Báo kết quả từng dòng; nhập lại cùng file không tạo link trùng |
+| FR-APP-18 | Một phần (polling) | Trang `/campaigns/<id>/live`: số người đã check-in (thẻ QR có ≥ 1 lượt / tổng thẻ), tổng lượt, lượt theo phút trong 60 phút, top 5 link. Tự làm mới 15 giây bằng cách gọi REST Shlink (kết quả giữ 10 giây trong bộ nhớ), **không** dùng Redis pub/sub, SSE hay `campus-stats` |
 | FR-APP-19 | Có, chạy đồng bộ | Nút "Xuất báo cáo" ở trang chiến dịch: CSV từng link (mã, short URL, đích, nhãn, số lượt) và dòng tổng, số lượt lấy từ Shlink bằng key của đơn vị. Lưu `<campaign_id>/<yyyymmddThhmmZ>.csv` vào container `campus-reports` (swift) hoặc `QR_LOCAL_DIR/reports/` (local); admin và đơn vị xuất, mọi vai trò xem được tải về |
 | FR-APP-20 | Có | Nhật ký thao tác (ai, làm gì, đối tượng, lúc nào) ở bảng `audit_log`, admin xem tại `/admin/audit` (mới nhất trước, 200 dòng). Không ghi API key, mật khẩu |
 | FR-APP-21 | Không | Bỏ theo #40. `ROLE=worker` thoát mã 2 |

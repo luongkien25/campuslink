@@ -10,7 +10,8 @@ Chien dich cua don vi khac luon tra 404 (khong lo la co ton tai).
 import logging
 import re
 import secrets
-from datetime import datetime, timezone
+import time
+from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
@@ -22,7 +23,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import audit, cards, csvimport, db, reports, security, storage
+from . import audit, cards, csvimport, db, live, reports, security, storage
 from .config import Config
 from .shlink import Shlink, ShlinkError, valid_url
 
@@ -30,6 +31,8 @@ log = logging.getLogger("campus-portal")
 MAX_LINKS = 50        # link moi lan tao chien dich
 MAX_CARDS = 300       # nguoi tham du moi lo (duong lui: 1 lo, chay dong bo)
 MAX_RULES = 20        # luat chuyen huong toi da tren mot link
+LIVE_TTL = 10         # giay giu ket qua trang theo doi trong bo nho
+LIVE_MAX_VISITS = 5000   # so luot toi da doc tu Shlink cho bieu do theo phut
 DEVICES = ("android", "ios", "desktop")
 
 
@@ -525,6 +528,36 @@ def create_app(cfg: Config) -> FastAPI:
             raise HTTPException(404, "Không có báo cáo này")
         return Response(report_store.get(r["object_name"]), media_type="text/csv; charset=utf-8",
                         headers={"Content-Disposition": f'attachment; filename="bao-cao-{cid}-{r["object_name"].rsplit("/", 1)[1]}"'})
+
+    # ---------- theo doi chien dich (FR-APP-18 dang polling: doc REST Shlink, KHONG dung Redis pub/sub hay SSE) ----------
+    live_cache: dict[int, tuple[float, dict]] = {}   # id chien dich -> (luc tinh, du lieu): nhieu nguoi mo trang van chi hoi Shlink 1 lan / LIVE_TTL
+
+    def live_data(c, row) -> dict:
+        hit = live_cache.get(row["id"])
+        if hit and time.monotonic() - hit[0] < LIVE_TTL:
+            return hit[1]
+        now = datetime.now(timezone.utc)
+        # the QR ca nhan (FR-APP-16) la link co batch_id; link tao tay khong co
+        card_codes = [r["short_code"] for r in c.execute(
+            "SELECT short_code FROM campaign_links WHERE campaign_id = %s AND batch_id IS NOT NULL", (row["id"],))]
+        with unit_shlink(c, row["unit_id"]) as s:
+            links = s.links_by_tag(row["tag"])
+            times, truncated = s.tag_visits_since(row["tag"], live.window_start(now, tz), LIVE_MAX_VISITS)
+        data = live.build(links, card_codes, times, truncated, now, tz)
+        live_cache[row["id"]] = (time.monotonic(), data)
+        return data
+
+    @app.get("/campaigns/{cid}/live", response_class=HTMLResponse)
+    def live_page(request: Request, cid: int, u=Depends(user), c=Depends(conn)):
+        return render(request, "live.html", c=campaign_of(c, u, cid))   # chi doc, moi vai tro xem duoc chien dich
+
+    @app.get("/campaigns/{cid}/live.json")
+    def live_json(cid: int, u=Depends(user), c=Depends(conn)):
+        row = campaign_of(c, u, cid)      # kiem quyen truoc khi tra du lieu trong bo nho
+        try:
+            return JSONResponse(live_data(c, row))
+        except (ShlinkError, httpx.TransportError) as e:
+            return JSONResponse({"error": f"Không đọc được số liệu từ Shlink: {e}"}, status_code=502)
 
     # ---------- phat hanh the QR (FR-APP-16, duong lui: 1 lo, chay dong bo) ----------
     @app.post("/campaigns/{cid}/cards")

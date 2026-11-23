@@ -1,0 +1,63 @@
+{% extends "base.html" %}{% block title %}Theo dõi {{ c.name }}{% endblock %}
+{% block body %}
+<style>
+  .stat { font-size:30px; font-weight:700; line-height:1.2; }
+  .bars { display:flex; align-items:flex-end; gap:2px; height:120px; border-bottom:1px solid var(--line); }
+  .bars div { flex:1; background:var(--accent); min-height:1px; border-radius:2px 2px 0 0; }
+  .axis { display:flex; justify-content:space-between; }
+</style>
+<p><a href="/campaigns/{{ c.id }}">← {{ c.name }}</a></p>
+<h1>Theo dõi: {{ c.name }}</h1>
+<p id="err" class="err" hidden></p>
+<div class="grid">
+  <section><div class="muted">Đã check-in (thẻ có ≥ 1 lượt / tổng thẻ)</div><div class="stat" id="checkin">…</div></section>
+  <section><div class="muted">Tổng lượt của chiến dịch</div><div class="stat" id="total">…</div></section>
+</div>
+<section>
+  <h2>Lượt theo phút, 60 phút gần nhất ({{ tzname }})</h2>
+  <div class="bars" id="bars"></div>
+  <div class="axis muted"><span id="t0"></span><span id="t1"></span></div>
+  <p class="muted" id="cut" hidden>Quá nhiều lượt: biểu đồ chỉ tính phần mới nhất.</p>
+</section>
+<section class="scroll">
+  <h2>5 link nhiều lượt nhất</h2>
+  <table><thead><tr><th>Short link</th><th>Nhãn</th><th>Lượt</th></tr></thead><tbody id="top"></tbody></table>
+</section>
+<p class="muted" id="upd"></p>
+<script>
+// Hỏi lại /live.json mỗi 15 giây. Mọi chuỗi từ server (nhãn do người dùng nhập) đặt bằng textContent, không dùng innerHTML.
+const $ = id => document.getElementById(id);
+function cell(tr, text) { const td = document.createElement("td"); td.textContent = text; tr.appendChild(td); }
+async function refresh() {
+  try {
+    const r = await fetch("/campaigns/{{ c.id }}/live.json", {credentials: "same-origin"});
+    const d = await r.json();   // hết phiên đăng nhập: trang đăng nhập trả về, json() lỗi và rơi xuống catch
+    if (d.error) throw new Error(d.error);
+    $("checkin").textContent = d.cards ? d.checked_in + "/" + d.cards : "Chưa phát thẻ";
+    $("total").textContent = d.total_visits;
+    const max = Math.max(1, ...d.per_minute.map(m => m.n));
+    $("bars").replaceChildren(...d.per_minute.map(m => {
+      const b = document.createElement("div");
+      b.style.height = (m.n / max * 100) + "%";
+      b.title = m.t + ": " + m.n + " lượt";
+      return b;
+    }));
+    $("t0").textContent = d.per_minute[0].t;
+    $("t1").textContent = d.per_minute[d.per_minute.length - 1].t;
+    $("cut").hidden = !d.truncated;
+    $("top").replaceChildren(...d.top.map(l => {
+      const tr = document.createElement("tr");
+      cell(tr, l.short_url); cell(tr, l.label); cell(tr, l.visits);
+      return tr;
+    }));
+    $("err").hidden = true;
+    $("upd").textContent = "Cập nhật lúc " + d.updated_at + " (tự làm mới mỗi 15 giây)";
+  } catch (e) {
+    $("err").textContent = "Không tải được số liệu: " + e.message;
+    $("err").hidden = false;
+  }
+}
+refresh();
+setInterval(refresh, 15000);
+</script>
+{% endblock %}
