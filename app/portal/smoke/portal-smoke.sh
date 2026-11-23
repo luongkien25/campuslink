@@ -132,5 +132,67 @@ echo "INFO  cho het han ${wait_s}s"
 sleep "$(( wait_s > 0 ? wait_s : 0 ))"
 check FR-APP-14 "sau han: khong chuyen huong" 404 "$(loc "${s2/localhost/127.0.0.1}" | cut -d' ' -f1)"
 
+echo "== FR-APP-17 luat chuyen huong theo thiet bi, ngon ngu, moc gio"
+r=$(post unit-a /campaigns --data-urlencode "name=Luat $rid" --data-urlencode "ends_at=$end" --data-urlencode "links=https://example.org/mac-dinh?r=$rid | Mac dinh")
+cid3=${r##*/campaigns/}
+get unit-a "/campaigns/$cid3" >/dev/null
+code3=$(grep -oE "/campaigns/$cid3/links/[A-Za-z0-9_-]+/rules" "$work/out" | head -1 | cut -d/ -f5)
+rules="/campaigns/$cid3/links/$code3/rules"
+UA_ANDROID='Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36'
+UA_IOS='Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+UA_PC='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
+rloc() { curl -sS -o /dev/null -w '%{redirect_url}' -A "$1" ${2:+-H "Accept-Language: $2"} "$S/$code3"; }   # UA [ngon ngu] -> header Location
+nrules() { get unit-a "$rules" >/dev/null; grep -c 'name="index"' "$work/out"; }
+dest="https://example.org"
+rule() { CSRF_PAGE="$rules" post "$@"; }   # unit-a/admin: lay CSRF tu chinh trang luat; in "code location"
+check FR-APP-17 "trang luat cua unit-a" 200 "$(get unit-a "$rules")"
+check FR-APP-17 "viewer-a khong xem trang luat" 403 "$(get viewer-a "$rules")"
+check FR-APP-17 "viewer-a khong dat duoc luat" 403 "$(CSRF_PAGE=/campaigns post viewer-a "$rules" --data-urlencode kind=device --data-urlencode device=ios --data-urlencode "long_url=$dest/x" | cut -d' ' -f1)"
+check FR-APP-17 "unit-b khong xem trang luat cua A" 404 "$(get unit-b "$rules")"
+check FR-APP-17 "unit-b khong dat duoc luat cua A" 404 "$(CSRF_PAGE=/campaigns post unit-b "$rules" --data-urlencode kind=device --data-urlencode device=ios --data-urlencode "long_url=$dest/x" | cut -d' ' -f1)"
+check FR-APP-17 "link chua co luat: Android ve dich mac dinh" "$dest/mac-dinh?r=$rid" "$(rloc "$UA_ANDROID")"
+
+r=$(rule unit-a "$rules" --data-urlencode kind=device --data-urlencode device=android --data-urlencode "long_url=$dest/android?r=$rid")
+check FR-APP-17 "dat luat Android" 303 "${r%% *}"
+r=$(rule unit-a "$rules" --data-urlencode kind=device --data-urlencode device=ios --data-urlencode "long_url=$dest/ios?r=$rid")
+check FR-APP-17 "dat luat iOS" 303 "${r%% *}"
+check FR-APP-17 "User-Agent Android: Location rieng" "$dest/android?r=$rid" "$(rloc "$UA_ANDROID")"
+check FR-APP-17 "User-Agent iOS: Location rieng" "$dest/ios?r=$rid" "$(rloc "$UA_IOS")"
+check FR-APP-17 "Android va iOS ra 2 Location khac nhau" 2 "$(printf '%s\n%s\n' "$(rloc "$UA_ANDROID")" "$(rloc "$UA_IOS")" | sort -u | grep -c .)"
+check FR-APP-17 "may tinh khong khop luat: ve dich mac dinh" "$dest/mac-dinh?r=$rid" "$(rloc "$UA_PC")"
+r=$(rule admin "$rules" --data-urlencode kind=language --data-urlencode language=vi --data-urlencode "long_url=$dest/vi?r=$rid")
+check FR-APP-17 "admin dat luat ngon ngu" 303 "${r%% *}"
+check FR-APP-17 "Accept-Language vi: Location rieng" "$dest/vi?r=$rid" "$(rloc "$UA_PC" 'vi-VN,vi;q=0.9')"
+check FR-APP-17 "Accept-Language en: ve dich mac dinh" "$dest/mac-dinh?r=$rid" "$(rloc "$UA_PC" en-US)"
+check FR-APP-17 "co 3 luat tren trang" 3 "$(nrules)"
+
+past=$(TZ=UTC-7 date -d '-1 day' +%Y-%m-%dT%H:%M); future=$(TZ=UTC-7 date -d '+30 day' +%Y-%m-%dT%H:%M)
+r=$(rule unit-a "$rules" --data-urlencode kind=after-date --data-urlencode "when=$past" --data-urlencode position=1 --data-urlencode "long_url=$dest/sau-moc?r=$rid")
+check FR-APP-17 "dat luat sau moc gio (da qua), uu tien 1" 303 "${r%% *}"
+check FR-APP-17 "sau moc: Android ra dich thu ba" "$dest/sau-moc?r=$rid" "$(rloc "$UA_ANDROID")"
+check FR-APP-17 "sau moc: iOS ra dich thu ba" "$dest/sau-moc?r=$rid" "$(rloc "$UA_IOS")"
+r=$(rule unit-a "$rules" --data-urlencode kind=before-date --data-urlencode "when=$future" --data-urlencode position=1 --data-urlencode "long_url=$dest/truoc-moc?r=$rid")
+check FR-APP-17 "dat luat truoc moc gio (tuong lai), uu tien 1" 303 "${r%% *}"
+check FR-APP-17 "truoc moc: may tinh ra dich rieng" "$dest/truoc-moc?r=$rid" "$(rloc "$UA_PC")"
+
+r=$(rule unit-a "$rules/delete" --data-urlencode index=1 --data-urlencode "expect=$dest/sau-moc?r=$rid")
+check FR-APP-17 "xoa sai luat (danh sach da doi): khong xoa" 5 "$(nrules)"
+r=$(rule unit-a "$rules/delete" --data-urlencode index=1 --data-urlencode "expect=$dest/truoc-moc?r=$rid")
+r=$(rule unit-a "$rules/delete" --data-urlencode index=1 --data-urlencode "expect=$dest/sau-moc?r=$rid")
+check FR-APP-17 "xoa 2 luat moc gio: con 3 luat" 3 "$(nrules)"
+check FR-APP-17 "sau khi xoa luat: Android tro lai dich rieng" "$dest/android?r=$rid" "$(rloc "$UA_ANDROID")"
+
+r=$(rule unit-a "$rules" --data-urlencode kind=device --data-urlencode device=toaster --data-urlencode "long_url=$dest/x")
+check FR-APP-17 "thiet bi la: bi tu choi, khong them luat" 3 "$(nrules)"
+r=$(rule unit-a "$rules" --data-urlencode kind=after-date --data-urlencode when= --data-urlencode "long_url=$dest/x")
+check FR-APP-17 "thieu moc gio: bi tu choi, khong them luat" 3 "$(nrules)"
+r=$(rule unit-a "$rules" --data-urlencode kind=language --data-urlencode language=khong-hop-le-qua-dai --data-urlencode "long_url=$dest/x")
+check FR-APP-17 "ngon ngu sai dinh dang: bi tu choi" 3 "$(nrules)"
+r=$(rule unit-a "$rules" --data-urlencode kind=device --data-urlencode device=ios --data-urlencode "long_url=javascript:alert(1)")
+check FR-APP-17 "dich khong phai http(s): bi tu choi" 3 "$(nrules)"
+check FR-APP-17 "thieu CSRF: 400" 400 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$(jar unit-a)" "$P$rules" --data-urlencode kind=device --data-urlencode device=ios --data-urlencode "long_url=$dest/x")"
+check FR-APP-17 "chien dich da dong: xem duoc trang luat" 200 "$(get unit-a "/campaigns/$cid/links/${shorts[0]##*/}/rules")"
+check FR-APP-17 "chien dich da dong: khong dat them luat" 400 "$(CSRF_PAGE=/campaigns post unit-a "/campaigns/$cid/links/${shorts[0]##*/}/rules" --data-urlencode kind=device --data-urlencode device=ios --data-urlencode "long_url=$dest/x" | cut -d' ' -f1)"
+
 echo "== ket qua: $fails FAIL"
 exit $((fails > 0))

@@ -22,9 +22,10 @@
 </section>
 <section class="scroll">
   <h2>Link</h2>
-  <table><tr><th>Short link</th><th>Đích</th><th>Nhãn</th></tr>
-  {% for l in links %}<tr><td><code>{{ l.short_url }}</code></td><td><code>{{ l.long_url }}</code></td><td>{{ l.label or '' }}</td></tr>
-  {% else %}<tr><td colspan="3" class="muted">Chưa có link</td></tr>{% endfor %}</table>
+  <table><tr><th>Short link</th><th>Đích</th><th>Nhãn</th>{% if user.role != 'viewer' %}<th></th>{% endif %}</tr>
+  {% for l in links %}<tr><td><code>{{ l.short_url }}</code></td><td><code>{{ l.long_url }}</code></td><td>{{ l.label or '' }}</td>
+    {% if user.role != 'viewer' %}<td><a href="/campaigns/{{ c.id }}/links/{{ l.short_code }}/rules">Luật chuyển hướng</a></td>{% endif %}</tr>
+  {% else %}<tr><td colspan="4" class="muted">Chưa có link</td></tr>{% endfor %}</table>
   {% if user.role == 'unit' and c.status == 'open' %}
   <form method="post" action="/campaigns/{{ c.id }}/links">
     <input type="hidden" name="csrf" value="{{ csrf }}">

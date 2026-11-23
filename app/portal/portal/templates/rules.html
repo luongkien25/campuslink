@@ -1,0 +1,52 @@
+{% extends "base.html" %}{% block title %}Luật chuyển hướng{% endblock %}
+{% block body %}
+<p><a href="/campaigns/{{ c.id }}">← {{ c.name }}</a></p>
+<h1>Luật chuyển hướng</h1>
+<section>
+  <p>Link <code>{{ link.short_url }}</code><br>Đích mặc định: <code>{{ link.long_url }}</code></p>
+  <p class="muted">Shlink xét luật từ trên xuống; luật đầu tiên khớp thì chuyển tới đích của luật đó, không luật nào khớp thì về đích mặc định.</p>
+  {% if err %}<p class="err">{{ err }}</p>{% endif %}
+</section>
+<section class="scroll">
+  <h2>Luật hiện có</h2>
+  <table><tr><th>Ưu tiên</th><th>Điều kiện</th><th>Chuyển tới</th><th></th></tr>
+  {% for r in rules %}<tr>
+    <td>{{ loop.index }}</td>
+    <td>{% for cd in r.conditions %}{{ cd|cond }}{% if not loop.last %} và {% endif %}{% endfor %}</td>
+    <td><code>{{ r.longUrl }}</code></td>
+    <td>{% if c.status == 'open' %}
+      <form method="post" action="/campaigns/{{ c.id }}/links/{{ link.short_code }}/rules/delete" style="margin:0" onsubmit="return confirm('Xóa luật này?')">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="index" value="{{ loop.index }}"><input type="hidden" name="expect" value="{{ r.longUrl }}">
+        <button class="danger" type="submit" style="margin:0">Xóa</button>
+      </form>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="4" class="muted">Chưa có luật: mọi người đều tới đích mặc định</td></tr>{% endfor %}</table>
+</section>
+{% if c.status == 'open' %}
+<section>
+  <h2>Thêm luật</h2>
+  <form method="post" action="/campaigns/{{ c.id }}/links/{{ link.short_code }}/rules">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label for="k">Loại luật</label>
+    <select id="k" name="kind" onchange="showFields(this.value)">
+      <option value="device">Theo thiết bị</option><option value="language">Theo ngôn ngữ trình duyệt</option>
+      <option value="before-date">Trước một mốc giờ</option><option value="after-date">Sau một mốc giờ</option>
+    </select>
+    <div id="f-device"><label for="d">Thiết bị</label>
+      <select id="d" name="device">{% for d in devices %}<option value="{{ d }}">{{ d }}</option>{% endfor %}</select></div>
+    <div id="f-language" hidden><label for="g">Ngôn ngữ (vd <code>vi</code>, <code>en-US</code>)</label><input id="g" name="language"></div>
+    <div id="f-when" hidden><label for="w">Mốc giờ ({{ tzname }})</label><input id="w" name="when" type="datetime-local"></div>
+    <label for="u">Chuyển tới (URL)</label><input id="u" name="long_url" type="url" required>
+    <label for="p">Thứ tự ưu tiên (1 = xét đầu tiên, bỏ trống = cuối danh sách)</label><input id="p" name="position" type="number" min="1" max="20">
+    <button type="submit">Thêm luật</button>
+  </form>
+</section>
+<script>
+// Chi hien o nhap hop voi loai luat; server van tu kiem moi gia tri
+function showFields(kind) {
+  document.getElementById('f-device').hidden = kind !== 'device';
+  document.getElementById('f-language').hidden = kind !== 'language';
+  document.getElementById('f-when').hidden = !kind.endsWith('-date');
+}
+</script>
+{% endif %}
+{% endblock %}

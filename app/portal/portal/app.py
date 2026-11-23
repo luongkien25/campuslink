@@ -4,13 +4,17 @@ Phan quyen (FR-APP-13):
   admin  : tao don vi (kem API key --author-only cua don vi), tao tai khoan; xem moi chien dich, khong tao link
   unit   : tao/sua/dong chien dich va phat hanh the cua DON VI MINH, bang key cua don vi
   viewer : chi xem chien dich cua don vi minh
+Luat chuyen huong (FR-APP-17) dat duoc boi admin va unit cua dung don vi; viewer nhan 403.
 Chien dich cua don vi khac luon tra 404 (khong lo la co ton tai).
 """
 import logging
+import re
 import secrets
 from datetime import datetime, timezone
+from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
+import httpx
 import psycopg
 import redis
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
@@ -20,11 +24,13 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import cards, db, security, storage
 from .config import Config
-from .shlink import Shlink, ShlinkError
+from .shlink import Shlink, ShlinkError, valid_url
 
 log = logging.getLogger("campus-portal")
 MAX_LINKS = 50        # link moi lan tao chien dich
 MAX_CARDS = 300       # nguoi tham du moi lo (duong lui: 1 lo, chay dong bo)
+MAX_RULES = 20        # luat chuyen huong toi da tren mot link
+DEVICES = ("android", "ios", "desktop")
 
 
 def create_app(cfg: Config) -> FastAPI:
@@ -48,6 +54,24 @@ def create_app(cfg: Config) -> FastAPI:
         return dt.astimezone(tz).strftime("%Y-%m-%d %H:%M") if dt else ""
 
     tpl.env.filters["fmt"] = fmt
+
+    def cond_text(cd: dict) -> str:
+        """Dieu kien luat cua Shlink -> cau tieng Viet de hien tren trang luat."""
+        t, v = cd.get("type"), cd.get("matchValue") or ""
+        if t == "device":
+            return f"thiết bị là {v}"
+        if t == "language":
+            return f"ngôn ngữ trình duyệt là {v}"
+        if t in ("before-date", "after-date"):
+            try:
+                d = datetime.fromisoformat(v)
+                shown = fmt(d if d.tzinfo else d.replace(tzinfo=tz)) + f" ({tz})"
+            except ValueError:
+                shown = v
+            return ("trước mốc " if t == "before-date" else "sau mốc ") + shown
+        return f"{t} {cd.get('matchKey') or ''}={v}".strip()   # luat tao ngoai portal (vd query-param): chi hien, khong sua
+
+    tpl.env.filters["cond"] = cond_text
 
     def render(request: Request, name: str, **ctx):
         request.session.setdefault("csrf", secrets.token_urlsafe(24))
@@ -266,6 +290,124 @@ def create_app(cfg: Config) -> FastAPI:
         c.commit()
         log.info("unit=%s dong chien dich %s", u["unit_id"], cid)
         return RedirectResponse(f"/campaigns/{cid}?msg=Đã đóng chiến dịch, link không còn chuyển hướng", 303)
+
+    # ---------- luat chuyen huong (FR-APP-17) ----------
+    # Luat luu trong Shlink (khong luu o DB portal): portal doc ca bo luat, sua, gui lai ca bo. Thu tu = do uu tien:
+    # Shlink xet tu tren xuong, luat dau tien khop thi chuyen toi longUrl cua luat do, khong luat nao khop thi ve dich cua link.
+    def link_of(c, u: dict, cid: int, code: str):
+        need(u, "admin", "unit")          # viewer: 403. Admin dung key cua don vi chu chien dich (nhu khi xem so luot).
+        camp = campaign_of(c, u, cid)     # don vi khac: 404
+        link = c.execute("SELECT * FROM campaign_links WHERE campaign_id = %s AND short_code = %s", (cid, code)).fetchone()
+        if not link:
+            raise HTTPException(404, "Không có link này trong chiến dịch")
+        return camp, link
+
+    def rule_condition(kind: str, device: str, language: str, when: str) -> tuple[dict, str]:
+        """Form -> dieu kien Shlink va nhan hien thi. Shlink chi kiem 'device'; ngay va ngon ngu portal phai tu kiem."""
+        if kind == "device":
+            if device not in DEVICES:
+                raise ValueError("Thiết bị phải là android, ios hoặc desktop")
+            return {"type": kind, "matchKey": None, "matchValue": device}, f"thiết bị = {device}"
+        if kind == "language":
+            lang = language.strip()
+            if not re.fullmatch(r"[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})?", lang):
+                raise ValueError("Ngôn ngữ viết dạng vi, en hoặc en-US")
+            return {"type": kind, "matchKey": None, "matchValue": lang}, f"ngôn ngữ = {lang}"
+        if kind in ("before-date", "after-date"):
+            try:
+                at = parse_dt(when)
+            except ValueError:
+                at = None
+            if not at:
+                raise ValueError("Chọn mốc giờ hợp lệ")
+            # ISO 8601 co mui gio (vd 2026-12-01T10:00:00+07:00): dang Shlink doc duoc
+            return ({"type": kind, "matchKey": None, "matchValue": at.isoformat(timespec="seconds")},
+                    ("trước " if kind == "before-date" else "sau ") + f"{fmt(at)} ({tz})")
+        raise ValueError("Loại luật không hợp lệ")
+
+    def rules_back(cid: int, code: str, text: str) -> RedirectResponse:
+        return RedirectResponse(f"/campaigns/{cid}/links/{code}/rules?msg={quote(text)}", 303)
+
+    def edit_rules(c, camp, code: str, change):
+        """Doc bo luat tu Shlink, de `change(rules)` sua tai cho, roi gui lai ca bo. Tra ve chuoi loi, hoac None neu xong."""
+        try:
+            with unit_shlink(c, camp["unit_id"]) as s:
+                # chi giu 2 truong Shlink nhan vao; 'priority' do Shlink tu danh lai theo thu tu
+                rules = [{"longUrl": r["longUrl"], "conditions": r["conditions"]} for r in s.redirect_rules(code)]
+                err = change(rules)
+                if err:
+                    return err
+                s.set_redirect_rules(code, rules)
+        except ShlinkError as e:
+            return f"Shlink từ chối ({e.status} {e.detail})"
+        except httpx.TransportError:
+            return "Shlink không trả lời"
+        return None
+
+    @app.get("/campaigns/{cid}/links/{code}/rules", response_class=HTMLResponse)
+    def rules_page(request: Request, cid: int, code: str, u=Depends(user), c=Depends(conn)):
+        camp, link = link_of(c, u, cid, code)
+        rules, err = [], None
+        try:
+            with unit_shlink(c, camp["unit_id"]) as s:
+                rules = s.redirect_rules(code)
+        except (ShlinkError, httpx.TransportError) as e:
+            err = f"Không đọc được luật từ Shlink: {e}"
+        return render(request, "rules.html", c=camp, link=link, rules=rules, err=err, devices=DEVICES,
+                      msg=request.query_params.get("msg"))
+
+    @app.post("/campaigns/{cid}/links/{code}/rules")
+    def add_rule(request: Request, cid: int, code: str, kind: str = Form(...), long_url: str = Form(...),
+                 device: str = Form(""), language: str = Form(""), when: str = Form(""), position: str = Form(""),
+                 csrf: str = Form(""), u=Depends(user), c=Depends(conn)):
+        check_csrf(request, csrf)
+        camp, _ = link_of(c, u, cid, code)
+        if camp["status"] != "open":
+            raise HTTPException(400, "Chiến dịch đã đóng")
+        long_url = long_url.strip()
+        if not valid_url(long_url):
+            return rules_back(cid, code, "Đích phải là URL http(s) hợp lệ")
+        try:
+            pos = int(position) if position.strip() else None
+        except ValueError:
+            return rules_back(cid, code, "Vị trí ưu tiên phải là số")
+        try:
+            cond, label = rule_condition(kind, device, language, when)
+        except ValueError as e:
+            return rules_back(cid, code, str(e))
+
+        def change(rules):
+            if len(rules) >= MAX_RULES:
+                return f"Tối đa {MAX_RULES} luật mỗi link"
+            # vi tri 1 = xet dau tien; bo trong hoac qua cuoi thi them vao cuoi
+            at = len(rules) if pos is None else min(max(pos - 1, 0), len(rules))
+            rules.insert(at, {"longUrl": long_url, "conditions": [cond]})
+
+        err = edit_rules(c, camp, code, change)
+        if err:
+            return rules_back(cid, code, err)
+        log.info("user=%s dat luat link=%s campaign=%s", u["username"], code, cid)
+        return rules_back(cid, code, f"Đã đặt luật: nếu {label} thì chuyển tới {long_url}")
+
+    @app.post("/campaigns/{cid}/links/{code}/rules/delete")
+    def delete_rule(request: Request, cid: int, code: str, index: int = Form(...), expect: str = Form(""),
+                    csrf: str = Form(""), u=Depends(user), c=Depends(conn)):
+        check_csrf(request, csrf)
+        camp, _ = link_of(c, u, cid, code)
+        if camp["status"] != "open":
+            raise HTTPException(400, "Chiến dịch đã đóng")
+
+        def change(rules):
+            # `expect` la dich cua luat luc nguoi dung bam xoa: danh sach vua bi doi thi khong xoa nham luat khac
+            if not 1 <= index <= len(rules) or rules[index - 1]["longUrl"] != expect:
+                return "Danh sách luật vừa thay đổi, hãy xem lại rồi xóa lại"
+            del rules[index - 1]
+
+        err = edit_rules(c, camp, code, change)
+        if err:
+            return rules_back(cid, code, err)
+        log.info("user=%s xoa luat link=%s campaign=%s", u["username"], code, cid)
+        return rules_back(cid, code, "Đã xóa luật")
 
     # ---------- phat hanh the QR (FR-APP-16, duong lui: 1 lo, chay dong bo) ----------
     @app.post("/campaigns/{cid}/cards")
