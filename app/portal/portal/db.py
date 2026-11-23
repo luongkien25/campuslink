@@ -65,6 +65,21 @@ MIGRATIONS: list[tuple[int, str]] = [
         short_code text
     );
     """),
+    # FR-APP-20: nhat ky thao tac. Chi ghi ten nguoi dung, vai tro, hanh dong, doi tuong; KHONG ghi key/mat khau.
+    # Khong co khoa ngoai toi users/units: doi hay xoa tai khoan sau nay van giu duoc dong nhat ky cu.
+    (2, """
+    CREATE TABLE audit_log (
+        id        bigserial PRIMARY KEY,
+        at        timestamptz NOT NULL DEFAULT now(),
+        user_id   int,
+        username  text NOT NULL,
+        role      text NOT NULL,
+        unit_id   int,
+        action    text NOT NULL,
+        target    text NOT NULL DEFAULT '',
+        detail    text NOT NULL DEFAULT ''
+    );
+    """),
 ]
 
 

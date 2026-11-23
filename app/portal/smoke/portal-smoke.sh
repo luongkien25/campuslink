@@ -245,5 +245,37 @@ printf 'long_url,custom_slug\nhttps://example.org/b/%s,csv-%s-17\n' "$rid" "$rid
 check FR-APP-15 "unit-b nhap slug da dung o don vi A" 200 "$(imp unit-b "${r##*/campaigns/}" "$work/b.csv")"
 check FR-APP-15 "Shlink bao non-unique-slug cho dong do" 1 "$(grep -c '<code>non-unique-slug</code>' "$work/out")"
 
+echo "== FR-APP-20 nhat ky thao tac"
+# tao them don vi + tai khoan de co dong 'tao don vi', 'tao tai khoan' va kiem key, mat khau khong lot vao nhat ky
+pw_audit=$(openssl rand -hex 12)
+CSRF_PAGE=/admin post admin /admin/units --data-urlencode "name=Audit $rid" --data-urlencode "api_key@$sec/api_key_portal-donvi-a" >/dev/null
+get admin /admin >/dev/null
+uid_audit=$(sed -n "s/.*<option value=\"\([0-9]*\)\">Audit $rid<.*/\1/p" "$work/out" | head -1)
+CSRF_PAGE=/admin post admin /admin/users --data-urlencode "username=audit-$rid" --data-urlencode "password@$(sf "$pw_audit")" --data-urlencode role=viewer --data-urlencode "unit_id=$uid_audit" >/dev/null
+r=$(CSRF_PAGE="/campaigns/$cid3" post unit-a "/campaigns/$cid3/links" --data-urlencode "links=https://example.org/them?r=$rid | Them")   # thao tac cuoi: dong dau nhat ky
+check FR-APP-20 "thao tac cuoi (them link) thanh cong" 303 "${r%% *}"
+check FR-APP-20 "admin xem nhat ky" 200 "$(get admin /admin/audit)"
+row() { grep -c -F -- "$1" "$work/out"; }   # so dong nhat ky chua chuoi (moi dong bang nam tren 1 dong HTML)
+check FR-APP-20 "dong moi nhat nam tren cung" 1 "$(grep -m1 -E '<tr><td>[0-9]{4}-' "$work/out" | grep -c 'thêm link')"
+check FR-APP-20 "tao chien dich: ai (unit-a, vai tro unit)" 1 "$(row "<td>unit-a</td><td>unit</td><td>tạo chiến dịch</td><td>chiến dịch #$cid<")"
+check FR-APP-20 "sua chien dich" 1 "$(row "<td>sửa chiến dịch</td><td>chiến dịch #$cid<")"
+check FR-APP-20 "dong chien dich" 1 "$(row "<td>đóng chiến dịch</td><td>chiến dịch #$cid<")"
+check FR-APP-20 "phat hanh the" 1 "$(row "<td>phát hành thẻ</td><td>chiến dịch #$cid<")"
+check FR-APP-20 "them link" 1 "$(row "<td>thêm link</td><td>chiến dịch #$cid3<")"
+check FR-APP-20 "nhap CSV: 2 lan nhap, moi lan 1 dong" 2 "$(row "<td>nhập CSV</td><td>chiến dịch #$cid4<")"
+check FR-APP-20 "nhap CSV lan 1: chi tiet 18 moi, 2 loi" 1 "$(row "<td>chiến dịch #$cid4</td><td>18 link mới, 0 đã có, 2 dòng lỗi<")"
+check FR-APP-20 "nhap CSV lan 2: chi tiet 0 moi, 18 da co" 1 "$(row "<td>chiến dịch #$cid4</td><td>0 link mới, 18 đã có, 2 dòng lỗi<")"
+check FR-APP-20 "dat luat: 5 lan (luat bi tu choi khong ghi)" 5 "$(row "<td>đặt luật chuyển hướng</td><td>link $code3 (chiến dịch #$cid3)<")"
+check FR-APP-20 "xoa luat: 2 lan" 2 "$(row "<td>xóa luật chuyển hướng</td><td>link $code3 (chiến dịch #$cid3)<")"
+check FR-APP-20 "admin dat luat: ghi dung nguoi, vai tro" 1 "$(row "<td>admin</td><td>admin</td><td>đặt luật chuyển hướng</td><td>link $code3 ")"
+check FR-APP-20 "tao don vi" 1 "$(row "<td>tạo đơn vị</td><td>Audit $rid<")"
+check FR-APP-20 "tao tai khoan" 1 "$(row "<td>tạo tài khoản</td><td>audit-$rid</td><td>vai trò viewer<")"
+check FR-APP-20 "khong ghi API key vao nhat ky" 0 "$(grep -c -F -f "$sec/api_key_portal-donvi-a" "$work/out")"
+check FR-APP-20 "khong ghi mat khau vao nhat ky" 0 "$(grep -c -F -f "$(sf "$pw_audit")" "$work/out")"
+check FR-APP-20 "toi da 200 dong" yes "$([[ $(grep -cE '<tr><td>[0-9]{4}-' "$work/out") -le 200 ]] && echo yes || echo no)"
+check FR-APP-20 "unit-a khong xem duoc nhat ky" 403 "$(get unit-a /admin/audit)"
+check FR-APP-20 "viewer-a khong xem duoc nhat ky" 403 "$(get viewer-a /admin/audit)"
+check FR-APP-20 "chua dang nhap: chuyen toi /login" "303 $P/login" "$(curl -sS -o /dev/null -w '%{http_code} %{redirect_url}' "$P/admin/audit")"
+
 echo "== ket qua: $fails FAIL"
 exit $((fails > 0))

@@ -22,7 +22,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import cards, csvimport, db, security, storage
+from . import audit, cards, csvimport, db, security, storage
 from .config import Config
 from .shlink import Shlink, ShlinkError, valid_url
 
@@ -159,6 +159,11 @@ def create_app(cfg: Config) -> FastAPI:
                           "ORDER BY c.id DESC").fetchall()
         return render(request, "admin.html", units=units, users=users, campaigns=camps, msg=request.query_params.get("msg"))
 
+    @app.get("/admin/audit", response_class=HTMLResponse)
+    def audit_page(request: Request, u=Depends(user), c=Depends(conn)):
+        need(u, "admin")
+        return render(request, "audit.html", rows=audit.latest(c), limit=audit.LIMIT)
+
     @app.post("/admin/units")
     def add_unit(request: Request, name: str = Form(...), api_key: str = Form(...), csrf: str = Form(""),
                  u=Depends(user), c=Depends(conn)):
@@ -175,6 +180,7 @@ def create_app(cfg: Config) -> FastAPI:
         except psycopg.errors.UniqueViolation:
             raise HTTPException(400, "Tên đơn vị đã có")
         log.info("admin=%s tao don vi %s", u["username"], name)
+        audit.record(c, u, "tạo đơn vị", name.strip())   # chi ghi ten, khong ghi API key
         return RedirectResponse("/admin?msg=Đã thêm đơn vị", 303)
 
     @app.post("/admin/users")
@@ -190,6 +196,7 @@ def create_app(cfg: Config) -> FastAPI:
                       (username.strip(), security.hash_password(password), role, uid))
         except psycopg.errors.UniqueViolation:
             raise HTTPException(400, "Tên đăng nhập đã có")
+        audit.record(c, u, "tạo tài khoản", username.strip(), f"vai trò {role}")   # khong ghi mat khau
         return RedirectResponse("/admin?msg=Đã thêm tài khoản", 303)
 
     # ---------- chien dich (FR-APP-14) ----------
@@ -215,7 +222,8 @@ def create_app(cfg: Config) -> FastAPI:
             cid = row["id"]
             tag = f"campaign-{cid}"
             c.execute("UPDATE campaigns SET tag = %s WHERE id = %s", (tag, cid))
-        _add_links(c, u, cid, tag, lines, start, end)
+        errs = _add_links(c, u, cid, tag, lines, start, end)
+        audit.record(c, u, "tạo chiến dịch", f"chiến dịch #{cid}", f"{name.strip()}; {len(lines) - len(errs)} link, {len(errs)} lỗi")
         return RedirectResponse(f"/campaigns/{cid}", 303)
 
     def _add_links(c, u, cid, tag, lines, start, end, batch_id=None):
@@ -259,6 +267,7 @@ def create_app(cfg: Config) -> FastAPI:
             raise HTTPException(400, "Chiến dịch đã đóng")
         lines = [l.strip() for l in links.splitlines() if l.strip()][:MAX_LINKS]
         errs = _add_links(c, u, cid, row["tag"], lines, row["starts_at"], row["ends_at"])
+        audit.record(c, u, "thêm link", f"chiến dịch #{cid}", f"{len(lines) - len(errs)} link, {len(errs)} lỗi")
         return RedirectResponse(f"/campaigns/{cid}?msg=" + (f"{len(errs)} link lỗi: " + "; ".join(errs)[:300] if errs else "Đã thêm link"), 303)
 
     # ---------- nhap link tu CSV (FR-APP-15, chay DONG BO trong request, khong co hang doi) ----------
@@ -323,6 +332,7 @@ def create_app(cfg: Config) -> FastAPI:
         results = _import_rows(c, row, rows)
         n = {k: sum(1 for r in results if r["status"] == k) for k in ("ok", "exists", "error")}
         log.info("unit=%s nhap CSV campaign=%s: %s", u["unit_id"], cid, n)
+        audit.record(c, u, "nhập CSV", f"chiến dịch #{cid}", f"{n['ok']} link mới, {n['exists']} đã có, {n['error']} dòng lỗi")
         return render(request, "import_result.html", c=row, results=results, n=n)
 
     def _set_valid_until(c, row, until):
@@ -341,6 +351,7 @@ def create_app(cfg: Config) -> FastAPI:
         c.commit()
         if row["status"] == "open" and end != row["ends_at"]:
             _set_valid_until(c, {**row, "ends_at": end}, end)
+        audit.record(c, u, "sửa chiến dịch", f"chiến dịch #{cid}", f"{name.strip()}; hết hạn {fmt(end)}")
         return RedirectResponse(f"/campaigns/{cid}?msg=Đã lưu", 303)
 
     @app.post("/campaigns/{cid}/close")
@@ -353,6 +364,7 @@ def create_app(cfg: Config) -> FastAPI:
         c.execute("UPDATE campaigns SET status = 'closed', ends_at = %s, updated_at = now() WHERE id = %s", (now, cid))
         c.commit()
         log.info("unit=%s dong chien dich %s", u["unit_id"], cid)
+        audit.record(c, u, "đóng chiến dịch", f"chiến dịch #{cid}", row["name"])
         return RedirectResponse(f"/campaigns/{cid}?msg=Đã đóng chiến dịch, link không còn chuyển hướng", 303)
 
     # ---------- luat chuyen huong (FR-APP-17) ----------
@@ -451,6 +463,7 @@ def create_app(cfg: Config) -> FastAPI:
         if err:
             return rules_back(cid, code, err)
         log.info("user=%s dat luat link=%s campaign=%s", u["username"], code, cid)
+        audit.record(c, u, "đặt luật chuyển hướng", f"link {code} (chiến dịch #{cid})", f"nếu {label} thì tới {long_url}")
         return rules_back(cid, code, f"Đã đặt luật: nếu {label} thì chuyển tới {long_url}")
 
     @app.post("/campaigns/{cid}/links/{code}/rules/delete")
@@ -471,6 +484,7 @@ def create_app(cfg: Config) -> FastAPI:
         if err:
             return rules_back(cid, code, err)
         log.info("user=%s xoa luat link=%s campaign=%s", u["username"], code, cid)
+        audit.record(c, u, "xóa luật chuyển hướng", f"link {code} (chiến dịch #{cid})", f"luật số {index} tới {expect}")
         return rules_back(cid, code, "Đã xóa luật")
 
     # ---------- phat hanh the QR (FR-APP-16, duong lui: 1 lo, chay dong bo) ----------
@@ -516,6 +530,8 @@ def create_app(cfg: Config) -> FastAPI:
             c.commit()
             log.error("campaign=%s phat hanh the loi: %s", cid, e)
             msg = f"Phát hành lỗi: {e}"
+        else:   # ngoai khoi try: loi ghi nhat ky khong bi nham thanh loi phat hanh
+            audit.record(c, u, "phát hành thẻ", f"chiến dịch #{cid}", f"{len(out)} thẻ, lô v{ver}")
         return RedirectResponse(f"/campaigns/{cid}?msg={msg}", 303)
 
     @app.get("/campaigns/{cid}/cards/{bid}.pdf")
