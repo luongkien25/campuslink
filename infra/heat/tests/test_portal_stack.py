@@ -32,7 +32,10 @@ class PortalStackTests(unittest.TestCase):
         self.assertEqual(props['server']['networks'], [{'port': {'get_resource': 'port'}}])
         self.assertEqual(props['lb']['provider'], 'ovn')
         self.assertEqual(props['vip_fip']['port_id'], {'get_attr': ['lb', 'vip_port_id']})
-        self.assertEqual(props['vip_fip']['floating_ip_address'], {'get_param': 'portal_fip_address'})
+        self.assertNotIn('floating_ip_address', props['vip_fip'])
+        self.assertNotIn('portal_fip_address', self.hot['parameters'])
+        self.assertEqual(self.hot['outputs']['portal_fip']['value'],
+                         {'get_attr': ['vip_fip', 'floating_ip_address']})
         self.assertEqual(props['listener']['protocol'], 'TCP')
         self.assertEqual(props['listener']['protocol_port'], 8081)
         self.assertEqual(props['pool']['lb_algorithm'], 'SOURCE_IP_PORT')
@@ -57,6 +60,16 @@ class PortalStackTests(unittest.TestCase):
             if 'get_file' in item['content']:
                 self.assertTrue((HEAT / item['content']['get_file']).is_file())
 
+    def test_qr_storage_defaults_to_swift_and_flows_to_boot_config(self):
+        mode = self.hot['parameters']['qr_storage']
+        self.assertEqual(mode['default'], 'swift')
+        self.assertEqual(mode['constraints'], [{'allowed_values': ['swift', 'local']}])
+        files = self.resources['config']['properties']['cloud_config']['write_files']
+        boot = next(item for item in files if item['path'].endswith('/boot.json'))
+        config = boot['content']['str_replace']
+        self.assertEqual(config['params']['%QR_STORAGE%'], {'get_param': 'qr_storage'})
+        self.assertEqual(json.loads(config['template'])['qr_storage'], '%QR_STORAGE%')
+
 
 class PortalBootstrapTests(unittest.TestCase):
     def setUp(self):
@@ -70,6 +83,7 @@ class PortalBootstrapTests(unittest.TestCase):
             'keystone_url': 'http://10.11.0.10/identity',
             'swift_url': 'http://10.11.0.10:8080/v1/AUTH_test',
             'shlink_api_url': 'http://10.20.0.203:8080',
+            'qr_storage': 'swift',
             'portal_image_ref': 'ghcr.io/dqh1215/campus-portal@sha256:' + 'a' * 64,
         }
         self.payload = {
@@ -107,11 +121,30 @@ class PortalBootstrapTests(unittest.TestCase):
                 self.boot.fetch(self.config, self.state)
         self.assertTrue(all(not (self.state / n).exists() for n in self.payload))
 
+    def test_local_fetches_boot_secrets_without_swift_writer_and_mounts_qr_directory(self):
+        config = dict(self.config, qr_storage='local')
+        self.payload.pop('swift_app_cred')
+        qr_dir = self.state / 'qr'
+        with patch.object(self.boot, 'request', side_effect=self.request) as request, patch.object(os, 'chown'):
+            secrets = self.boot.fetch(config, self.state)
+            self.boot.prepare_local_qr(qr_dir)
+        self.assertEqual([args.args[1].split('/app/')[-1] for args in request.call_args_list[1:]], list(self.payload))
+        self.assertEqual(qr_dir.stat().st_mode & 0o777, 0o700)
+        argv = self.boot.docker_args(config, secrets, local_qr=qr_dir)
+        self.assertIn('QR_STORAGE=local', argv)
+        self.assertIn('QR_LOCAL_DIR=/data/qr', argv)
+        self.assertIn(f'type=bind,src={qr_dir},dst=/data/qr', argv)
+        self.assertNotIn('SWIFT_APP_CRED_FILE', repr(argv))
+
     def test_unpinned_image_and_same_host_or_public_http_endpoint_are_rejected(self):
         for change in (
             {'portal_image_ref': 'ghcr.io/dqh1215/campus-portal:latest'},
             {'shlink_api_url': 'http://127.0.0.1:8080'},
             {'shlink_api_url': 'http://example.org'},
+            {'shlink_api_url': 'http://10.20.0.203:8081'},
+            {'shlink_api_url': 'http://10.20.0.0:8080'},
+            {'shlink_api_url': 'http://10.21.0.203:8080'},
+            {'qr_storage': 'other'},
         ):
             with self.subTest(change=change), self.assertRaises(self.boot.Failure):
                 self.boot.settings(dict(self.config, **change))
