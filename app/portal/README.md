@@ -8,7 +8,8 @@ Cổng chiến dịch cho đơn vị, bao quanh Shlink 5.1.8 qua REST v3 (ADR-08
 | FR-APP-14 | Có | Chiến dịch tạo, sửa, đóng. Link mang tag `campaign-<id>`, có `validUntil` = hạn chiến dịch. Đóng thì `validUntil` = lúc đóng |
 | FR-APP-16 | Đường lùi | 1 lô, chạy đồng bộ, tối đa 300 người. Mỗi người một short link riêng; PDF A4 8 thẻ/trang; lưu `<campaign_id>/v<n>/lo-1.pdf` |
 | FR-APP-17 | Có | Luật chuyển hướng theo thiết bị (android/ios/desktop), ngôn ngữ, trước/sau một mốc giờ. Admin và đơn vị đặt được, người xem thì không. Luật lưu trong Shlink, trang `/campaigns/<id>/links/<mã>/rules` |
-| FR-APP-15, 20, 21 | Không | Bỏ theo #40. `ROLE=worker` thoát mã 2 |
+| FR-APP-15 | Có, chạy đồng bộ | Nhập link từ CSV (cột `long_url`, `custom_slug`, `label`; ≤ 1 MB, ≤ 1000 dòng) ngay trong request, không qua hàng đợi (FR-APP-21 chưa có). Báo kết quả từng dòng; nhập lại cùng file không tạo link trùng |
+| FR-APP-20, 21 | Không | Bỏ theo #40. `ROLE=worker` thoát mã 2 |
 
 ## Chạy trên Compose local
 

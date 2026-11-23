@@ -12,7 +12,7 @@ class ShlinkError(Exception):
 
 
 def valid_url(u: str) -> bool:
-    """Dich chuyen huong phai la http(s) co ten mien (dung cho luat chuyen huong)."""
+    """Dich chuyen huong phai la http(s) co ten mien (dung cho luat chuyen huong va nhap CSV)."""
     p = urlsplit(u)
     return p.scheme in ("http", "https") and bool(p.netloc) and len(u) <= 2048
 
@@ -43,8 +43,9 @@ class Shlink:
         return r.json() if r.content else {}
 
     def create(self, long_url: str, tags: list[str], valid_until: datetime,
-               valid_since: datetime | None = None, slug: str | None = None, title: str | None = None) -> dict:
-        body = {"longUrl": long_url, "tags": tags, "validUntil": _iso(valid_until), "findIfExists": False}
+               valid_since: datetime | None = None, slug: str | None = None, title: str | None = None,
+               find_if_exists: bool = False) -> dict:
+        body = {"longUrl": long_url, "tags": tags, "validUntil": _iso(valid_until), "findIfExists": find_if_exists}
         if valid_since:
             body["validSince"] = _iso(valid_since)
         if slug:

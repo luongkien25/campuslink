@@ -2,7 +2,7 @@
 
 Phan quyen (FR-APP-13):
   admin  : tao don vi (kem API key --author-only cua don vi), tao tai khoan; xem moi chien dich, khong tao link
-  unit   : tao/sua/dong chien dich va phat hanh the cua DON VI MINH, bang key cua don vi
+  unit   : tao/sua/dong chien dich, nhap link tu CSV va phat hanh the cua DON VI MINH, bang key cua don vi
   viewer : chi xem chien dich cua don vi minh
 Luat chuyen huong (FR-APP-17) dat duoc boi admin va unit cua dung don vi; viewer nhan 403.
 Chien dich cua don vi khac luon tra 404 (khong lo la co ton tai).
@@ -17,12 +17,12 @@ from zoneinfo import ZoneInfo
 import httpx
 import psycopg
 import redis
-from fastapi import Depends, FastAPI, Form, HTTPException, Request
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import cards, db, security, storage
+from . import cards, csvimport, db, security, storage
 from .config import Config
 from .shlink import Shlink, ShlinkError, valid_url
 
@@ -260,6 +260,70 @@ def create_app(cfg: Config) -> FastAPI:
         lines = [l.strip() for l in links.splitlines() if l.strip()][:MAX_LINKS]
         errs = _add_links(c, u, cid, row["tag"], lines, row["starts_at"], row["ends_at"])
         return RedirectResponse(f"/campaigns/{cid}?msg=" + (f"{len(errs)} link lỗi: " + "; ".join(errs)[:300] if errs else "Đã thêm link"), 303)
+
+    # ---------- nhap link tu CSV (FR-APP-15, chay DONG BO trong request, khong co hang doi) ----------
+    def _import_rows(c, row, rows):
+        """Moi dong CSV -> mot ket qua {status: ok | exists | error, detail}. Nhap lai cung file khong tao link trung:
+        slug da co trong chien dich, hoac URL (khong slug) da co trong chien dich, thi tinh la 'exists'."""
+        have = c.execute("SELECT short_code, long_url FROM campaign_links WHERE campaign_id = %s AND batch_id IS NULL",
+                         (row["id"],)).fetchall()
+        urls = {h["long_url"] for h in have}
+        codes = {h["short_code"]: h["long_url"] for h in have}
+        out, down = [], False
+        with unit_shlink(c, row["unit_id"]) as s:
+            for r in rows:
+                res = {"line": r["line"], "long_url": r["long_url"], "short_url": "", "status": "error", "detail": r["error"] or ""}
+                out.append(res)
+                if r["error"]:
+                    continue
+                if down:                       # Shlink da khong tra loi: khong cho het timeout o tung dong con lai
+                    res["detail"] = "bỏ qua vì Shlink không trả lời"
+                    continue
+                slug = r["slug"]
+                if slug in codes:              # slug da dung trong chien dich nay
+                    if codes[slug] == r["long_url"]:
+                        res.update(status="exists")
+                    else:
+                        res["detail"] = "non-unique-slug"
+                    continue
+                if not slug and r["long_url"] in urls:
+                    res.update(status="exists")
+                    continue
+                try:
+                    # findIfExists: neu lan nhap truoc dung giua chung (Shlink da tao, DB chua ghi) thi lay lai link do
+                    d = s.create(r["long_url"], [row["tag"]], row["ends_at"], row["starts_at"], slug=slug or None,
+                                 title=r["label"] or None, find_if_exists=True)
+                except ShlinkError as e:
+                    res["detail"] = e.detail or f"shlink-{e.status}"
+                    continue
+                except httpx.TransportError:
+                    down, res["detail"] = True, "Shlink không trả lời"
+                    continue
+                new = c.execute("INSERT INTO campaign_links (campaign_id, short_code, short_url, long_url, label) "
+                                "VALUES (%s, %s, %s, %s, %s) ON CONFLICT (short_code) DO NOTHING RETURNING id",
+                                (row["id"], d["shortCode"], d["shortUrl"], r["long_url"], r["label"] or None)).fetchone()
+                c.commit()                     # tung dong: Shlink va DB khong lech nhau neu request bi ngat giua chung
+                codes[d["shortCode"]] = r["long_url"]
+                urls.add(r["long_url"])
+                res.update(status="ok" if new else "exists", short_url=d["shortUrl"])
+        return out
+
+    @app.post("/campaigns/{cid}/import")
+    def import_csv(request: Request, cid: int, file: UploadFile = File(...), csrf: str = Form(""),
+                   u=Depends(user), c=Depends(conn)):
+        check_csrf(request, csrf)
+        need(u, "unit")
+        row = campaign_of(c, u, cid)
+        if row["status"] != "open":
+            raise HTTPException(400, "Chiến dịch đã đóng")
+        try:
+            rows = csvimport.parse(file.file.read(csvimport.MAX_BYTES + 1))
+        except csvimport.CsvError as e:
+            return RedirectResponse(f"/campaigns/{cid}?msg=" + quote(f"File CSV không nhập được: {e}"), 303)
+        results = _import_rows(c, row, rows)
+        n = {k: sum(1 for r in results if r["status"] == k) for k in ("ok", "exists", "error")}
+        log.info("unit=%s nhap CSV campaign=%s: %s", u["unit_id"], cid, n)
+        return render(request, "import_result.html", c=row, results=results, n=n)
 
     def _set_valid_until(c, row, until):
         with unit_shlink(c, row["unit_id"]) as s:

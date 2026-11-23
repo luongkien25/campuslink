@@ -32,6 +32,13 @@
     <label for="l">Thêm link, mỗi dòng: <code>URL đích | nhãn</code></label><textarea id="l" name="links" required></textarea>
     <button type="submit">Thêm</button>
   </form>
+  <form method="post" action="/campaigns/{{ c.id }}/import" enctype="multipart/form-data">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label for="f">Hoặc nhập từ file CSV (UTF-8, ≤ 1 MB, ≤ 1000 dòng)</label>
+    <input id="f" name="file" type="file" accept=".csv,text/csv" required>
+    <p class="muted">Dòng đầu là tiêu đề: <code>long_url</code> (bắt buộc), <code>custom_slug</code>, <code>label</code>. Nhập lại cùng file không tạo link trùng.</p>
+    <button type="submit">Nhập CSV</button>
+  </form>
   {% endif %}
 </section>
 <section class="scroll">

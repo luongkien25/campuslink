@@ -194,5 +194,56 @@ check FR-APP-17 "thieu CSRF: 400" 400 "$(curl -sS -o /dev/null -w '%{http_code}'
 check FR-APP-17 "chien dich da dong: xem duoc trang luat" 200 "$(get unit-a "/campaigns/$cid/links/${shorts[0]##*/}/rules")"
 check FR-APP-17 "chien dich da dong: khong dat them luat" 400 "$(CSRF_PAGE=/campaigns post unit-a "/campaigns/$cid/links/${shorts[0]##*/}/rules" --data-urlencode kind=device --data-urlencode device=ios --data-urlencode "long_url=$dest/x" | cut -d' ' -f1)"
 
+echo "== FR-APP-15 nhap link tu CSV (dong bo)"
+r=$(post unit-a /campaigns --data-urlencode "name=CSV $rid" --data-urlencode "ends_at=$end")
+cid4=${r##*/campaigns/}
+tag4="campaign-$cid4"
+imp() { # ai, id chien dich, tep csv -> ma HTTP; noi dung tra ve o $work/out
+  local t; t=$(csrf "$1" /campaigns)
+  curl -sS -o "$work/out" -b "$(jar "$1")" -w '%{http_code}' "$P/campaigns/$2/import" --form-string "csrf=$t" -F "file=@$3;type=text/csv"
+}
+tong() { sed -n "s/.*data-$1=\"\([0-9]*\)\".*/\1/p" "$work/out" | head -1; }   # ok | exists | error trong trang ket qua
+n_tag() { curl -sS -H @"$hk_a" "$S/rest/v3/short-urls?tags%5B%5D=$tag4&itemsPerPage=100" | jq '.shortUrls.data | length'; }
+csv="$work/links.csv"
+{
+  echo 'long_url,custom_slug,label'
+  for i in $(seq 1 16); do printf 'https://example.org/csv/%s/%02d,,Dong %02d\n' "$rid" "$i" "$i"; done
+  printf 'https://example.org/csv/%s/17,csv-%s-17,"Co slug, dau phay"\n' "$rid" "$rid"
+  printf 'https://example.org/csv/%s/18,csv-%s-18,Co slug\n' "$rid" "$rid"
+  echo 'khong-phai-url,,URL sai'
+  printf 'https://example.org/csv/%s/20,csv-%s-17,Trung slug\n' "$rid" "$rid"
+} > "$csv"
+check FR-APP-15 "file CSV co 20 dong du lieu (2 dong loi co y)" 20 "$(( $(wc -l < "$csv") - 1 ))"
+check FR-APP-15 "unit-a nhap CSV" 200 "$(imp unit-a "$cid4" "$csv")"
+check FR-APP-15 "18 link moi" 18 "$(tong ok)"
+check FR-APP-15 "0 link da co" 0 "$(tong exists)"
+check FR-APP-15 "2 dong loi" 2 "$(tong error)"
+check FR-APP-15 "bao loi tung dong: URL sai" 1 "$(grep -c '<code>invalid-url</code>' "$work/out")"
+check FR-APP-15 "bao loi tung dong: non-unique-slug" 1 "$(grep -c '<code>non-unique-slug</code>' "$work/out")"
+check FR-APP-15 "Shlink co 18 link mang tag chien dich (REST key A)" 18 "$(n_tag)"
+check FR-APP-15 "link CSV co slug: 302 toi dich" "302 https://example.org/csv/$rid/17" "$(loc "$S/csv-$rid-17" | cut -d' ' -f1,2)"
+check FR-APP-15 "link CSV mang validUntil cua chien dich" 1 "$(curl -sS -H @"$hk_a" "$S/rest/v3/short-urls/csv-$rid-17" | grep -c '"validUntil":"20')"
+get unit-a "/campaigns/$cid4" >/dev/null
+check FR-APP-15 "trang chien dich liet ke 18 link" 18 "$(grep -oE 'http://localhost:18080/[A-Za-z0-9_-]+' "$work/out" | sort -u | wc -l)"
+check FR-APP-15 "nhap lai cung file" 200 "$(imp unit-a "$cid4" "$csv")"
+check FR-APP-15 "nhap lai: 0 link moi" 0 "$(tong ok)"
+check FR-APP-15 "nhap lai: 18 link da co" 18 "$(tong exists)"
+check FR-APP-15 "nhap lai: 2 dong loi van bao" 2 "$(tong error)"
+check FR-APP-15 "nhap lai: Shlink van 18 link" 18 "$(n_tag)"
+
+printf 'url,ghi_chu\nhttps://example.org/x,thieu cot long_url\n' > "$work/bad.csv"
+check FR-APP-15 "file thieu cot long_url: bi tu choi" 303 "$(imp unit-a "$cid4" "$work/bad.csv")"
+{ echo long_url; for i in $(seq 1 1001); do echo "https://example.org/qua-nhieu/$rid/$i"; done; } > "$work/big.csv"
+check FR-APP-15 "file 1001 dong: bi tu choi" 303 "$(imp unit-a "$cid4" "$work/big.csv")"
+check FR-APP-15 "file bi tu choi khong tao link" 18 "$(n_tag)"
+check FR-APP-15 "viewer-a khong nhap duoc" 403 "$(imp viewer-a "$cid4" "$csv")"
+check FR-APP-15 "unit-b nhap vao chien dich cua A" 404 "$(imp unit-b "$cid4" "$csv")"
+check FR-APP-15 "chien dich da dong: khong nhap" 400 "$(imp unit-a "$cid" "$csv")"
+check FR-APP-15 "thieu CSRF: 400" 400 "$(curl -sS -o /dev/null -w '%{http_code}' -b "$(jar unit-a)" "$P/campaigns/$cid4/import" -F "file=@$csv;type=text/csv")"
+r=$(post unit-b /campaigns --data-urlencode "name=CSV B $rid" --data-urlencode "ends_at=$end")
+printf 'long_url,custom_slug\nhttps://example.org/b/%s,csv-%s-17\n' "$rid" "$rid" > "$work/b.csv"
+check FR-APP-15 "unit-b nhap slug da dung o don vi A" 200 "$(imp unit-b "${r##*/campaigns/}" "$work/b.csv")"
+check FR-APP-15 "Shlink bao non-unique-slug cho dong do" 1 "$(grep -c '<code>non-unique-slug</code>' "$work/out")"
+
 echo "== ket qua: $fails FAIL"
 exit $((fails > 0))
