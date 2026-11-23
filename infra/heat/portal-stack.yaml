@@ -5,7 +5,7 @@ parameters:
   portal_image_ref:
     type: string
     constraints:
-      - allowed_pattern: 'ghcr\.io/dqh1215/campus-portal@sha256:[a-f0-9]{64}\Z'
+      - allowed_pattern: 'ghcr\.io/(dqh1215|luongkien25)/campus-portal@sha256:[a-f0-9]{64}\Z'
   shlink_api_url:
     type: string
     description: VIP noi bo cua LB loi (http://VIP:8080), lay tu vip_address.
@@ -39,6 +39,10 @@ parameters:
   base_image:
     type: string
     default: ubuntu-noble-base
+  key_name:
+    type: string
+    default: campus-tv2
+    description: Keypair Nova de TV2 vao VM portal theo duong SSH noi bo da duyet.
   flavor:
     type: string
     default: campus.app
@@ -148,6 +152,7 @@ resources:
       name: campus-portal-2411-vm
       image: {get_param: base_image}
       flavor: {get_param: flavor}
+      key_name: {get_param: key_name}
       availability_zone: {get_param: availability_zone}
       networks:
         - port: {get_resource: port}

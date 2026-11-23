@@ -30,6 +30,8 @@ class PortalStackTests(unittest.TestCase):
         self.assertEqual({k: r['type'] for k, r in self.resources.items()}, expected)
         props = {k: r['properties'] for k, r in self.resources.items()}
         self.assertEqual(props['server']['networks'], [{'port': {'get_resource': 'port'}}])
+        self.assertEqual(self.hot['parameters']['key_name']['default'], 'campus-tv2')
+        self.assertEqual(props['server']['key_name'], {'get_param': 'key_name'})
         self.assertEqual(props['lb']['provider'], 'ovn')
         self.assertEqual(props['vip_fip']['port_id'], {'get_attr': ['lb', 'vip_port_id']})
         self.assertNotIn('floating_ip_address', props['vip_fip'])
@@ -47,11 +49,14 @@ class PortalStackTests(unittest.TestCase):
 
     def test_digest_is_required_and_bootstrap_material_is_hidden(self):
         params = self.hot['parameters']
-        image = 'ghcr.io/dqh1215/campus-portal'
         pattern = params['portal_image_ref']['constraints'][0]['allowed_pattern']
-        self.assertIsNotNone(re.fullmatch(pattern, image + '@sha256:' + 'a' * 64))
-        for value in (image + ':latest', image + '@sha256:abc', 'other/' + image):
-            self.assertIsNone(re.fullmatch(pattern, value))
+        for namespace in ('dqh1215', 'luongkien25'):
+            image = f'ghcr.io/{namespace}/campus-portal'
+            with self.subTest(image=image):
+                self.assertIsNotNone(re.fullmatch(pattern, image + '@sha256:' + 'a' * 64))
+                self.assertIsNone(re.fullmatch(pattern, image + ':latest'))
+                self.assertIsNone(re.fullmatch(pattern, image + '@sha256:abc'))
+        self.assertIsNone(re.fullmatch(pattern, 'ghcr.io/other/campus-portal@sha256:' + 'a' * 64))
         for key in ('bootstrap_credential_id', 'bootstrap_credential_secret'):
             self.assertTrue(params[key]['hidden'])
             self.assertNotIn('default', params[key])
@@ -139,6 +144,8 @@ class PortalBootstrapTests(unittest.TestCase):
     def test_unpinned_image_and_same_host_or_public_http_endpoint_are_rejected(self):
         for change in (
             {'portal_image_ref': 'ghcr.io/dqh1215/campus-portal:latest'},
+            {'portal_image_ref': 'ghcr.io/luongkien25/campus-portal:latest'},
+            {'portal_image_ref': 'ghcr.io/other/campus-portal@sha256:' + 'a' * 64},
             {'shlink_api_url': 'http://127.0.0.1:8080'},
             {'shlink_api_url': 'http://example.org'},
             {'shlink_api_url': 'http://10.20.0.203:8081'},
@@ -148,3 +155,7 @@ class PortalBootstrapTests(unittest.TestCase):
         ):
             with self.subTest(change=change), self.assertRaises(self.boot.Failure):
                 self.boot.settings(dict(self.config, **change))
+
+    def test_image_from_tv1_namespace_is_accepted_by_guest(self):
+        config = dict(self.config, portal_image_ref='ghcr.io/luongkien25/campus-portal@sha256:' + 'b' * 64)
+        self.assertEqual(self.boot.docker_args(config, self.state)[-1], config['portal_image_ref'])

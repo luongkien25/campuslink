@@ -16,7 +16,7 @@ from runtime import Deadline, Failure, command, private_dir, read_json
 ROOT = Path('/run/campuslink-portal-2411')
 BOOT = Path('/etc/campuslink-portal-2411/boot.json')
 LOCAL_QR = Path('/var/lib/campuslink-portal-2411/qr')
-IMAGE = r'ghcr\.io/dqh1215/campus-portal@sha256:[a-f0-9]{64}'
+IMAGE = r'ghcr\.io/(dqh1215|luongkien25)/campus-portal@sha256:[a-f0-9]{64}'
 FILES = {
     'portal_db_url': 'PORTAL_DB_URL_FILE',
     'portal_secret_key': 'PORTAL_SECRET_KEY_FILE',
