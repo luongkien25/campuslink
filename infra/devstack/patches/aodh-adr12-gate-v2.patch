@@ -1,0 +1,121 @@
+diff --git a/aodh/evaluator/gnocchi.py b/aodh/evaluator/gnocchi.py
+index 6497f498..a6b43d29 100644
+--- a/aodh/evaluator/gnocchi.py
++++ b/aodh/evaluator/gnocchi.py
+@@ -12,12 +12,16 @@
+ # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ # License for the specific language governing permissions and limitations
+ # under the License.
++import datetime
+ import json
++import math
+ 
+ from gnocchiclient import client
+ from gnocchiclient import exceptions
+ from oslo_log import log
++from oslo_utils import timeutils
+ 
++from aodh import evaluator
+ from aodh.evaluator import threshold
+ from aodh import keystone_client
+ 
+@@ -142,7 +146,99 @@ class GnocchiAggregationMetricsThresholdEvaluator(GnocchiBase):
+ 
+ 
+ class GnocchiAggregationResourcesThresholdEvaluator(GnocchiBase):
++    # CAMPUS ADR-12 gate v2: do tre (giay) cho diem Gnocchi cua bucket da dong
++    CAMPUS_GATE_LAG = 45
++
++    def _campus_reject(self, rule, why, detail=''):
++        LOG.info('campus-gate reject=%s op=%s n=%s %s', why,
++                 rule['comparison_operator'], rule['evaluation_periods'],
++                 detail)
++        raise threshold.InsufficientDataError('campus-gate reject=%s' % why,
++                                              [])
++
++    def _campus_gate(self, rule, end):
++        # CAMPUS ADR-12 gate v2 (chi aggregation rate:*): chi dung N bucket
++        # lien tiep DA DONG (ts + granularity + LAG <= now), bucket moi nhat
++        # phai la bucket dong gan nhat; moi VM trong cohort (ket qua resource
++        # search luc danh gia) phai co diem o moi bucket (needed_overlap=100,
++        # Gnocchi tra 400 neu thieu); min rate tung VM < 0 hoac khong huu han
++        # thi tu choi. Tu choi = InsufficientDataError (insufficient data).
++        gran = rule['granularity']
++        n = rule['evaluation_periods']
++        epoch = datetime.datetime(1970, 1, 1)
++        now = timeutils.normalize_time(timeutils.parse_isotime(end))
++        now_s = (now - epoch).total_seconds()
++        last = (now_s - gran - self.CAMPUS_GATE_LAG) // gran * gran
++        want = [last - gran * i for i in range(n - 1, -1, -1)]
++        method = rule['aggregation_method']
++        res = {}
++        for agg in (method[len('rate:'):], 'min'):
++            try:
++                res[agg] = self._gnocchi_client.aggregates.fetch(
++                    operations=['aggregate', agg,
++                                ['metric', rule['metric'], method]],
++                    granularity=gran,
++                    search=json.loads(rule['query']),
++                    resource_type=rule['resource_type'],
++                    start=(epoch + datetime.timedelta(
++                        seconds=want[0])).isoformat(),
++                    stop=(epoch + datetime.timedelta(
++                        seconds=last + gran)).isoformat(),
++                    needed_overlap=100)
++            except exceptions.BadRequest as e:
++                self._campus_reject(rule, 'gnocchi_400', str(e)[:200])
++            except Exception as e:
++                msg = 'alarm statistics retrieval failed: %s'
++                LOG.warning(msg, e)
++                raise threshold.InsufficientDataError(msg % e, [])
++        pts = {}
++        for agg, stats in res.items():
++            if isinstance(stats, dict):
++                stats = stats['measures']['aggregated']
++            pts[agg] = {}
++            for ts, g, v in stats:
++                try:
++                    # v2.2: client tren A tra datetime (co mui gio), khong phai
++                    # chuoi ISO; nhan ca hai, kieu khac thi tu choi
++                    t = (ts if isinstance(ts, datetime.datetime)
++                         else timeutils.parse_isotime(ts))
++                    t = timeutils.normalize_time(t)
++                except (ValueError, TypeError):
++                    self._campus_reject(rule, 'bad_timestamp', repr(ts))
++                if g == gran:
++                    pts[agg][(t - epoch).total_seconds()] = v
++        mean = pts[method[len('rate:'):]]
++        if not mean or max(mean) < last:
++            self._campus_reject(rule, 'stale')
++        for agg in pts:
++            if any(t not in pts[agg] for t in want):
++                self._campus_reject(rule, 'missing_bucket', agg)
++            if not all(isinstance(pts[agg][t], (int, float)) and
++                       math.isfinite(pts[agg][t]) for t in want):
++                self._campus_reject(rule, 'nonfinite', agg)
++        if any(pts['min'][t] < 0 for t in want):
++            self._campus_reject(rule, 'negative')
++        return [[(epoch + datetime.timedelta(seconds=t)).isoformat(), gran,
++                 mean[t]] for t in want]
++
++    def _transition_alarm(self, alarm, state, trending_state, statistics,
++                          outside_count, unknown_reason):
++        # CAMPUS ADR-12 gate v2.1: alarm dang insufficient data ma cua so lan
++        # lon (equivocal) thi upstream lay trending_state theo bucket cuoi
++        # (threshold.py _transition_alarm). Voi rate:* giu insufficient data
++        # cho toi khi co cua so quyet dinh (du N bucket cung chieu).
++        if (trending_state and alarm.state == evaluator.UNKNOWN and
++                alarm.rule['aggregation_method'].startswith('rate:')):
++            LOG.info('campus-gate hold=equivocal op=%s n=%s trend=%s',
++                     alarm.rule['comparison_operator'],
++                     alarm.rule['evaluation_periods'], trending_state)
++            return
++        super()._transition_alarm(alarm, state, trending_state, statistics,
++                                  outside_count, unknown_reason)
++
+     def _statistics(self, rule, start, end):
++        if rule['aggregation_method'].startswith('rate:'):
++            return self._campus_gate(rule, end)
+         try:
+             # FIXME(sileht): In case of a heat autoscaling stack decide to
+             # delete an instance, the gnocchi metrics associated to this

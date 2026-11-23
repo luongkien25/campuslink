@@ -1,0 +1,20 @@
+diff --git a/aodh/evaluator/gnocchi.py b/aodh/evaluator/gnocchi.py
+index be5d3a3e..a6b43d29 100644
+--- a/aodh/evaluator/gnocchi.py
++++ b/aodh/evaluator/gnocchi.py
+@@ -198,9 +198,13 @@ class GnocchiAggregationResourcesThresholdEvaluator(GnocchiBase):
+             pts[agg] = {}
+             for ts, g, v in stats:
+                 try:
+-                    t = timeutils.normalize_time(timeutils.parse_isotime(ts))
++                    # v2.2: client tren A tra datetime (co mui gio), khong phai
++                    # chuoi ISO; nhan ca hai, kieu khac thi tu choi
++                    t = (ts if isinstance(ts, datetime.datetime)
++                         else timeutils.parse_isotime(ts))
++                    t = timeutils.normalize_time(t)
+                 except (ValueError, TypeError):
+-                    self._campus_reject(rule, 'bad_timestamp', str(ts))
++                    self._campus_reject(rule, 'bad_timestamp', repr(ts))
+                 if g == gran:
+                     pts[agg][(t - epoch).total_seconds()] = v
+         mean = pts[method[len('rate:'):]]
