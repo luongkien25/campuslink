@@ -245,6 +245,35 @@ printf 'long_url,custom_slug\nhttps://example.org/b/%s,csv-%s-17\n' "$rid" "$rid
 check FR-APP-15 "unit-b nhap slug da dung o don vi A" 200 "$(imp unit-b "${r##*/campaigns/}" "$work/b.csv")"
 check FR-APP-15 "Shlink bao non-unique-slug cho dong do" 1 "$(grep -c '<code>non-unique-slug</code>' "$work/out")"
 
+echo "== FR-APP-15 file 200 dong, 5 dong loi co y (cot Kiem bang cua SRS)"
+r=$(post unit-a /campaigns --data-urlencode "name=CSV200 $rid" --data-urlencode "ends_at=$end")
+cid5=${r##*/campaigns/}
+tag5="campaign-$cid5"
+n_tag5() { curl -sS -H @"$hk_a" "$S/rest/v3/short-urls?tags%5B%5D=$tag5&itemsPerPage=1" | jq '.shortUrls.pagination.totalItems'; }
+imp_timed() { # nhu imp nhung in them "INFO" thoi gian request (giay)
+  local t0 t1 code; t0=$(date +%s%N); code=$(imp "$1" "$2" "$3"); t1=$(date +%s%N)
+  echo "INFO  $4: request $(( (t1 - t0) / 1000000000 )).$(( (t1 - t0) / 1000000 % 1000 / 100 )) giay" >&2
+  echo "$code"
+}
+csv200="$work/links200.csv"
+{
+  echo 'long_url,custom_slug,label'
+  for i in $(seq 1 193); do printf 'https://example.org/csv200/%s/%03d,,Dong %03d\n' "$rid" "$i" "$i"; done
+  for i in 1 2; do printf 'https://example.org/csv200/%s/slug%d,c200-%s-%d,Co slug\n' "$rid" "$i" "$rid" "$i"; done   # 195 dong hop le
+  for i in 1 2 3; do printf 'khong-phai-url-%d,,URL sai\n' "$i"; done                                                 # 3 loi invalid-url
+  for i in 1 2; do printf 'https://example.org/csv200/%s/trung%d,c200-%s-%d,Trung slug\n' "$rid" "$i" "$rid" "$i"; done  # 2 loi non-unique-slug
+} > "$csv200"
+check FR-APP-15 "file CSV co 200 dong du lieu" 200 "$(( $(wc -l < "$csv200") - 1 ))"
+check FR-APP-15 "nhap file 200 dong" 200 "$(imp_timed unit-a "$cid5" "$csv200" "lan 1")"
+check FR-APP-15 "200 dong: 195 link moi" 195 "$(tong ok)"
+check FR-APP-15 "200 dong: 5 dong bao loi" 5 "$(tong error)"
+check FR-APP-15 "200 dong: bao ro loi tung dong (3 invalid-url, 2 non-unique-slug)" "3 2" "$(grep -c '<code>invalid-url</code>' "$work/out") $(grep -c '<code>non-unique-slug</code>' "$work/out")"
+check FR-APP-15 "200 dong: Shlink co 195 link tag chien dich" 195 "$(n_tag5)"
+check FR-APP-15 "nhap lai file 200 dong" 200 "$(imp_timed unit-a "$cid5" "$csv200" "lan 2 (nhap lai)")"
+check FR-APP-15 "nhap lai: 0 link moi" 0 "$(tong ok)"
+check FR-APP-15 "nhap lai: 195 link da co, 5 loi" "195 5" "$(tong exists) $(tong error)"
+check FR-APP-15 "nhap lai: Shlink van 195 link" 195 "$(n_tag5)"
+
 echo "== FR-APP-20 nhat ky thao tac"
 # tao them don vi + tai khoan de co dong 'tao don vi', 'tao tai khoan' va kiem key, mat khau khong lot vao nhat ky
 pw_audit=$(openssl rand -hex 12)
