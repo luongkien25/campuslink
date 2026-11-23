@@ -1,0 +1,52 @@
+2026-11-21T08:44:59+00:00 campus-a aodh-evaluator[10292]: WARNING oslo_db.sqlalchemy.utils [-] Unique keys not in sort_keys. The sorting order may be unstable.
+2026-11-21T08:44:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator [-] initiating evaluation cycle on 2 alarms
+2026-11-21T08:44:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator [-] Evaluating alarm 37680d7a-7c46-4cf8-a789-035c7d990219 {{(pid=10292) _evaluate_alarm /opt/stack/aodh/aodh/evaluator/__init__.py:290}}
+2026-11-21T08:44:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator.threshold [-] query stats from 2026-11-21 08:41:59.032454 to 2026-11-21 08:44:59.032454 {{(pid=10292) _bound_duration /opt/stack/aodh/aodh/evaluator/threshold.py:70}}
+2026-11-21T08:44:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator.gnocchi [-] campus-gate reject=bad_timestamp op=gt n=2 2026-11-21 08:42:00+00:00
+2026-11-21T08:44:59+00:00 campus-a aodh-evaluator[10292]: WARNING aodh.evaluator.threshold [-] Expecting 2 datapoints but only get 0
+2026-11-21T08:44:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator [-] alarm 37680d7a-7c46-4cf8-a789-035c7d990219 transitioning to insufficient data because campus-gate reject=bad_timestamp
+2026-11-21T08:44:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.storage [-] looking for 'mysql+pymysql' driver in 'aodh.storage' {{(pid=10292) get_connection_from_config /opt/stack/aodh/aodh/storage/__init__.py:65}}
+2026-11-21T08:44:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.queue [-] alarm 37680d7a-7c46-4cf8-a789-035c7d990219 has no action configured for state transition from ok to state insufficient data, skipping the notification. {{(pid=10292) notify /opt/stack/aodh/aodh/queue.py:42}}
+2026-11-21T08:44:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator [-] Evaluating alarm 90f9060e-af83-4bba-834c-52753144421c {{(pid=10292) _evaluate_alarm /opt/stack/aodh/aodh/evaluator/__init__.py:290}}
+2026-11-21T08:44:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator.threshold [-] query stats from 2026-11-21 08:40:59.149036 to 2026-11-21 08:44:59.149036 {{(pid=10292) _bound_duration /opt/stack/aodh/aodh/evaluator/threshold.py:70}}
+2026-11-21T08:44:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator.gnocchi [-] campus-gate reject=bad_timestamp op=lt n=3 2026-11-21 08:41:00+00:00
+2026-11-21T08:44:59+00:00 campus-a aodh-evaluator[10292]: WARNING aodh.evaluator.threshold [-] Expecting 3 datapoints but only get 0
+2026-11-21T08:44:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator [-] alarm 90f9060e-af83-4bba-834c-52753144421c transitioning to insufficient data because campus-gate reject=bad_timestamp
+2026-11-21T08:44:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.queue [-] alarm 90f9060e-af83-4bba-834c-52753144421c has no action configured for state transition from alarm to state insufficient data, skipping the notification. {{(pid=10292) notify /opt/stack/aodh/aodh/queue.py:42}}
+2026-11-21T08:45:09+00:00 campus-a aodh-evaluator[10292]: DEBUG dbcounter [-] [10292] Writing DB stats aodh:SELECT=1,aodh:UPDATE=4,aodh:INSERT=2 {{(pid=10292) stat_writer /opt/stack/data/venv/lib/python3.12/site-packages/dbcounter.py:115}}
+2026-11-21T08:45:59+00:00 campus-a aodh-evaluator[10292]: WARNING oslo_db.sqlalchemy.utils [-] Unique keys not in sort_keys. The sorting order may be unstable.
+2026-11-21T08:45:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator [-] initiating evaluation cycle on 2 alarms
+2026-11-21T08:45:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator [-] Evaluating alarm 37680d7a-7c46-4cf8-a789-035c7d990219 {{(pid=10292) _evaluate_alarm /opt/stack/aodh/aodh/evaluator/__init__.py:290}}
+2026-11-21T08:45:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator.threshold [-] query stats from 2026-11-21 08:42:59.017999 to 2026-11-21 08:45:59.017999 {{(pid=10292) _bound_duration /opt/stack/aodh/aodh/evaluator/threshold.py:70}}
+2026-11-21T08:45:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator.gnocchi [-] campus-gate reject=bad_timestamp op=gt n=2 2026-11-21 08:43:00+00:00
+2026-11-21T08:45:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator [-] Evaluating alarm 90f9060e-af83-4bba-834c-52753144421c {{(pid=10292) _evaluate_alarm /opt/stack/aodh/aodh/evaluator/__init__.py:290}}
+2026-11-21T08:45:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator.threshold [-] query stats from 2026-11-21 08:41:59.074145 to 2026-11-21 08:45:59.074145 {{(pid=10292) _bound_duration /opt/stack/aodh/aodh/evaluator/threshold.py:70}}
+2026-11-21T08:45:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator.gnocchi [-] campus-gate reject=bad_timestamp op=lt n=3 2026-11-21 08:42:00+00:00
+2026-11-21T08:46:09+00:00 campus-a aodh-evaluator[10292]: DEBUG dbcounter [-] [10292] Writing DB stats aodh:SELECT=1,aodh:UPDATE=2 {{(pid=10292) stat_writer /opt/stack/data/venv/lib/python3.12/site-packages/dbcounter.py:115}}
+2026-11-21T08:46:59+00:00 campus-a aodh-evaluator[10292]: WARNING oslo_db.sqlalchemy.utils [-] Unique keys not in sort_keys. The sorting order may be unstable.
+2026-11-21T08:46:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator [-] initiating evaluation cycle on 2 alarms
+2026-11-21T08:46:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator [-] Evaluating alarm 37680d7a-7c46-4cf8-a789-035c7d990219 {{(pid=10292) _evaluate_alarm /opt/stack/aodh/aodh/evaluator/__init__.py:290}}
+2026-11-21T08:46:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator.threshold [-] query stats from 2026-11-21 08:43:59.017133 to 2026-11-21 08:46:59.017133 {{(pid=10292) _bound_duration /opt/stack/aodh/aodh/evaluator/threshold.py:70}}
+2026-11-21T08:46:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator.gnocchi [-] campus-gate reject=bad_timestamp op=gt n=2 2026-11-21 08:44:00+00:00
+2026-11-21T08:46:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator [-] Evaluating alarm 90f9060e-af83-4bba-834c-52753144421c {{(pid=10292) _evaluate_alarm /opt/stack/aodh/aodh/evaluator/__init__.py:290}}
+2026-11-21T08:46:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator.threshold [-] query stats from 2026-11-21 08:42:59.073287 to 2026-11-21 08:46:59.073287 {{(pid=10292) _bound_duration /opt/stack/aodh/aodh/evaluator/threshold.py:70}}
+2026-11-21T08:46:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator.gnocchi [-] campus-gate reject=bad_timestamp op=lt n=3 2026-11-21 08:43:00+00:00
+2026-11-21T08:47:09+00:00 campus-a aodh-evaluator[10292]: DEBUG dbcounter [-] [10292] Writing DB stats aodh:SELECT=1,aodh:UPDATE=2 {{(pid=10292) stat_writer /opt/stack/data/venv/lib/python3.12/site-packages/dbcounter.py:115}}
+2026-11-21T08:47:59+00:00 campus-a aodh-evaluator[10292]: WARNING oslo_db.sqlalchemy.utils [-] Unique keys not in sort_keys. The sorting order may be unstable.
+2026-11-21T08:47:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator [-] initiating evaluation cycle on 2 alarms
+2026-11-21T08:47:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator [-] Evaluating alarm 37680d7a-7c46-4cf8-a789-035c7d990219 {{(pid=10292) _evaluate_alarm /opt/stack/aodh/aodh/evaluator/__init__.py:290}}
+2026-11-21T08:47:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator.threshold [-] query stats from 2026-11-21 08:44:59.019564 to 2026-11-21 08:47:59.019564 {{(pid=10292) _bound_duration /opt/stack/aodh/aodh/evaluator/threshold.py:70}}
+2026-11-21T08:47:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator.gnocchi [-] campus-gate reject=bad_timestamp op=gt n=2 2026-11-21 08:45:00+00:00
+2026-11-21T08:47:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator [-] Evaluating alarm 90f9060e-af83-4bba-834c-52753144421c {{(pid=10292) _evaluate_alarm /opt/stack/aodh/aodh/evaluator/__init__.py:290}}
+2026-11-21T08:47:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator.threshold [-] query stats from 2026-11-21 08:43:59.079051 to 2026-11-21 08:47:59.079051 {{(pid=10292) _bound_duration /opt/stack/aodh/aodh/evaluator/threshold.py:70}}
+2026-11-21T08:47:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator.gnocchi [-] campus-gate reject=bad_timestamp op=lt n=3 2026-11-21 08:44:00+00:00
+2026-11-21T08:48:09+00:00 campus-a aodh-evaluator[10292]: DEBUG dbcounter [-] [10292] Writing DB stats aodh:SELECT=1,aodh:UPDATE=2 {{(pid=10292) stat_writer /opt/stack/data/venv/lib/python3.12/site-packages/dbcounter.py:115}}
+2026-11-21T08:48:59+00:00 campus-a aodh-evaluator[10292]: WARNING oslo_db.sqlalchemy.utils [-] Unique keys not in sort_keys. The sorting order may be unstable.
+2026-11-21T08:48:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator [-] initiating evaluation cycle on 2 alarms
+2026-11-21T08:48:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator [-] Evaluating alarm 37680d7a-7c46-4cf8-a789-035c7d990219 {{(pid=10292) _evaluate_alarm /opt/stack/aodh/aodh/evaluator/__init__.py:290}}
+2026-11-21T08:48:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator.threshold [-] query stats from 2026-11-21 08:45:59.015592 to 2026-11-21 08:48:59.015592 {{(pid=10292) _bound_duration /opt/stack/aodh/aodh/evaluator/threshold.py:70}}
+2026-11-21T08:48:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator.gnocchi [-] campus-gate reject=bad_timestamp op=gt n=2 2026-11-21 08:46:00+00:00
+2026-11-21T08:48:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator [-] Evaluating alarm 90f9060e-af83-4bba-834c-52753144421c {{(pid=10292) _evaluate_alarm /opt/stack/aodh/aodh/evaluator/__init__.py:290}}
+2026-11-21T08:48:59+00:00 campus-a aodh-evaluator[10292]: DEBUG aodh.evaluator.threshold [-] query stats from 2026-11-21 08:44:59.071343 to 2026-11-21 08:48:59.071343 {{(pid=10292) _bound_duration /opt/stack/aodh/aodh/evaluator/threshold.py:70}}
+2026-11-21T08:48:59+00:00 campus-a aodh-evaluator[10292]: INFO aodh.evaluator.gnocchi [-] campus-gate reject=bad_timestamp op=lt n=3 2026-11-21 08:45:00+00:00
+2026-11-21T08:49:09+00:00 campus-a aodh-evaluator[10292]: DEBUG dbcounter [-] [10292] Writing DB stats aodh:SELECT=1,aodh:UPDATE=2 {{(pid=10292) stat_writer /opt/stack/data/venv/lib/python3.12/site-packages/dbcounter.py:115}}

@@ -1,0 +1,485 @@
+Evidence FR-INF-11 + NFR-06 (G4, #77): chep NGUYEN VAN comment cua TV2 (nchh06) o issue #77, 2026-11-21T16:15:42Z (issuecomment-7065510182): bang quan sat va JSON alarm history, Heat events, CPU nhom, LB cua luot 2 (slug tv3dc-20261121).
+Nguon: https://github.com/luongkien25/campuslink/issues/77#issuecomment-7065510182. TV1 chi chep, KHONG sua noi dung, de du lieu tho nam trong repo; JSON da duoc TV2 che UUID va URL. Ban chep nay chua duoc TV2 xac nhan lai tung dong.
+Quet tay (TV1): khong co secret, email, Account ID, UUID day du, URL; chi IP noi bo cua cum; 0 CR, 0 NUL; JSON doc duoc (11 khoa cap 1).
+
+=================== NOI DUNG COMMENT CUA TV2 (nguyen van) ===================
+@luongkien25 @toancst Tôi bổ sung kết quả sau comment trước. **Aodh → Heat đã tự chạy đủ 2→3→2 trong cùng một lượt ngày 21/11/2026**, giữ nguyên ngưỡng **60%/25%**. Tôi không gửi signal tay trong lượt này.
+
+| UTC | Quan sát |
+| --- | --- |
+| 15:48:39 | TV1 bắt đầu tải trên slug mới `tv3dc-20261121`, ban đầu 0 visit |
+| 15:53:22.719459 | `cpu_high` → `ALARM` |
+| 15:53:40 / 15:54:08 | Heat ghi VM mới `CREATE_COMPLETE` / readiness `CREATE_COMPLETE` |
+| 15:54:12 | Heat `scale_out SIGNAL_COMPLETE` |
+| 15:54:19.543 | LB có 3 member `ONLINE`, gồm .102 mới |
+| 15:58:39 | TV1 dừng tải |
+| 16:04:22.582082 | `cpu_low` → `ALARM` |
+| 16:04:38 | Heat `scale_in SIGNAL_COMPLETE` |
+| 16:04:57.781 | LB trở về 2 member `ONLINE` (.195, .102). Nova hậu kiểm xác nhận VM .170 đã bị xóa |
+
+**Điều kiện đo:** CPU nhóm app đạt đỉnh **62,48%** ở bucket 60 giây bắt đầu `15:50:00Z`. Lượt trước dùng `tv4fix1` (khoảng 124 nghìn visit) và CPU nhóm chỉ lên **27,35%**. NFR-06 còn thiếu mốc request đầu tiên tới VM .102 vì chưa đối chiếu được log guest.
+
+**Cuối phiên:** stack alarm `UPDATE_COMPLETE` lúc `16:11:07.154Z`. Hậu kiểm `16:11:10.357Z`: hai alarm `enabled=false`, cả ba danh sách action đều rỗng, LB vẫn đúng 2 member `ONLINE`.
+
+Nhờ TV1 đối chiếu journal và chốt FR-INF-11. TV4 có thể dùng timeline cùng lượt này để cập nhật bảng nghiệm thu và giữ ghi chú về mốc NFR-06 còn thiếu.
+
+<details>
+<summary>Evidence JSON đã che UUID và URL: alarm history, Heat events, CPU nhóm và LB</summary>
+
+```json
+{
+  "window_start_utc": "2026-11-21T15:48:00Z",
+  "load_start_utc": "2026-11-21T15:48:39Z",
+  "load_stop_utc": "2026-11-21T15:58:39Z",
+  "load_slug": "tv3dc-20261121",
+  "alarm_history_cpu_high": [
+    {
+      "timestamp": "2026-11-21T15:58:22.572713",
+      "type": "state transition",
+      "detail": {
+        "state": "ok",
+        "transition_reason": "Transition to ok due to 2 samples inside threshold, most recent: 23140000000.0"
+      },
+      "event_id": "[uuid]"
+    },
+    {
+      "timestamp": "2026-11-21T15:54:22.582265",
+      "type": "state transition",
+      "detail": {
+        "state": "insufficient data",
+        "transition_reason": "campus-gate reject=gnocchi_400"
+      },
+      "event_id": "[uuid]"
+    },
+    {
+      "timestamp": "2026-11-21T15:53:22.719459",
+      "type": "state transition",
+      "detail": {
+        "state": "alarm",
+        "transition_reason": "Transition to alarm due to 2 samples outside threshold, most recent: 37345000000.0"
+      },
+      "event_id": "[uuid]"
+    }
+  ],
+  "alarm_history_cpu_low": [
+    {
+      "timestamp": "2026-11-21T16:04:22.582082",
+      "type": "state transition",
+      "detail": {
+        "state": "alarm",
+        "transition_reason": "Transition to alarm due to 3 samples outside threshold, most recent: 350000000.0"
+      },
+      "event_id": "[uuid]"
+    },
+    {
+      "timestamp": "2026-11-21T15:59:22.556621",
+      "type": "state transition",
+      "detail": {
+        "state": "ok",
+        "transition_reason": "Transition to ok due to 3 samples inside threshold, most recent: 22566666666.666668"
+      },
+      "event_id": "[uuid]"
+    },
+    {
+      "timestamp": "2026-11-21T15:54:22.532349",
+      "type": "state transition",
+      "detail": {
+        "state": "insufficient data",
+        "transition_reason": "campus-gate reject=gnocchi_400"
+      },
+      "event_id": "[uuid]"
+    },
+    {
+      "timestamp": "2026-11-21T15:53:22.644362",
+      "type": "state transition",
+      "detail": {
+        "state": "ok",
+        "transition_reason": "Transition to ok due to 3 samples inside threshold, most recent: 37345000000.0"
+      },
+      "event_id": "[uuid]"
+    }
+  ],
+  "heat_events_campus_app": [
+    {
+      "resource_name": "scale_out",
+      "resource_status": "SIGNAL_COMPLETE",
+      "resource_status_reason": "alarm state changed from ok to alarm (Transition to alarm due to 2 samples outside threshold, most recent: 37345000000.0)",
+      "event_time": "2026-11-21T15:54:12Z",
+      "physical_resource_id": "[uuid]"
+    },
+    {
+      "resource_name": "scale_in",
+      "resource_status": "SIGNAL_COMPLETE",
+      "resource_status_reason": "alarm state changed from ok to alarm (Transition to alarm due to 3 samples outside threshold, most recent: 350000000.0)",
+      "event_time": "2026-11-21T16:04:38Z",
+      "physical_resource_id": "[uuid]"
+    }
+  ],
+  "heat_nested_events": [
+    {
+      "resource_name": "campus-app-asg_b-ymuh7w3ntcyx",
+      "resource_status": "UPDATE_IN_PROGRESS",
+      "resource_status_reason": "Stack UPDATE started",
+      "event_time": "2026-11-21T15:53:24Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx"
+    },
+    {
+      "resource_name": "u6gd3hqlnj34",
+      "resource_status": "UPDATE_IN_PROGRESS",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:53:25Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx"
+    },
+    {
+      "resource_name": "mkr5ftexu735",
+      "resource_status": "CREATE_IN_PROGRESS",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:53:26Z",
+      "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx"
+    },
+    {
+      "resource_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p",
+      "resource_status": "CREATE_IN_PROGRESS",
+      "resource_status_reason": "Stack CREATE started",
+      "event_time": "2026-11-21T15:53:26Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "port",
+      "resource_status": "CREATE_IN_PROGRESS",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:53:26Z",
+      "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p-port-cr4m43jnmh52",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "port",
+      "resource_status": "CREATE_COMPLETE",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:53:27Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "u6gd3hqlnj34",
+      "resource_status": "UPDATE_COMPLETE",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:53:27Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx"
+    },
+    {
+      "resource_name": "handle",
+      "resource_status": "CREATE_IN_PROGRESS",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:53:27Z",
+      "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p-handle-ylmkqip6fu7p",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "handle",
+      "resource_status": "CREATE_COMPLETE",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:53:28Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "config",
+      "resource_status": "CREATE_IN_PROGRESS",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:53:28Z",
+      "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p-config-ci3lfagoavsv",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "config",
+      "resource_status": "CREATE_COMPLETE",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:53:28Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "server",
+      "resource_status": "CREATE_IN_PROGRESS",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:53:28Z",
+      "physical_resource_id": "ca-tcyx-mkr5ftexu735-clrvz6kxwi4p-server-jd6ad6b6n3nn",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "server",
+      "resource_status": "CREATE_COMPLETE",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:53:40Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "ready",
+      "resource_status": "CREATE_IN_PROGRESS",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:53:41Z",
+      "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p-ready-s4hzualpngmi",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "handle",
+      "resource_status": "SIGNAL_COMPLETE",
+      "resource_status_reason": "Signal: status:SUCCESS reason:ready",
+      "event_time": "2026-11-21T15:54:07Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "ready",
+      "resource_status": "CREATE_COMPLETE",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:54:08Z",
+      "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p-ready-s4hzualpngmi",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "drain",
+      "resource_status": "CREATE_IN_PROGRESS",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:54:08Z",
+      "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p-drain-4tst3tzou34m",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "drain",
+      "resource_status": "CREATE_COMPLETE",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:54:08Z",
+      "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p-drain-4tst3tzou34m",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "member",
+      "resource_status": "CREATE_IN_PROGRESS",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:54:08Z",
+      "physical_resource_id": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p-member-vtw4xiw2aerz",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "member",
+      "resource_status": "CREATE_COMPLETE",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:54:09Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p",
+      "resource_status": "CREATE_COMPLETE",
+      "resource_status_reason": "Stack CREATE completed successfully",
+      "event_time": "2026-11-21T15:54:10Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "mkr5ftexu735",
+      "resource_status": "CREATE_COMPLETE",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T15:54:10Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx"
+    },
+    {
+      "resource_name": "campus-app-asg_b-ymuh7w3ntcyx",
+      "resource_status": "UPDATE_COMPLETE",
+      "resource_status_reason": "Stack UPDATE completed successfully",
+      "event_time": "2026-11-21T15:54:10Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx"
+    },
+    {
+      "resource_name": "scale_out",
+      "resource_status": "SIGNAL_COMPLETE",
+      "resource_status_reason": "alarm state changed from ok to alarm (Transition to alarm due to 2 samples outside threshold, most recent: 37345000000.0)",
+      "event_time": "2026-11-21T15:54:12Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app"
+    },
+    {
+      "resource_name": "campus-app-asg_b-ymuh7w3ntcyx",
+      "resource_status": "UPDATE_IN_PROGRESS",
+      "resource_status_reason": "Stack UPDATE started",
+      "event_time": "2026-11-21T16:04:24Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx"
+    },
+    {
+      "resource_name": "u6gd3hqlnj34",
+      "resource_status": "DELETE_IN_PROGRESS",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T16:04:24Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx"
+    },
+    {
+      "resource_name": "mkr5ftexu735",
+      "resource_status": "UPDATE_IN_PROGRESS",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T16:04:25Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx"
+    },
+    {
+      "resource_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p",
+      "resource_status": "UPDATE_IN_PROGRESS",
+      "resource_status_reason": "Stack UPDATE started",
+      "event_time": "2026-11-21T16:04:26Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p",
+      "resource_status": "UPDATE_COMPLETE",
+      "resource_status_reason": "Stack UPDATE completed successfully",
+      "event_time": "2026-11-21T16:04:28Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx-mkr5ftexu735-clrvz6kxwi4p"
+    },
+    {
+      "resource_name": "mkr5ftexu735",
+      "resource_status": "UPDATE_COMPLETE",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T16:04:28Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx"
+    },
+    {
+      "resource_name": "u6gd3hqlnj34",
+      "resource_status": "DELETE_COMPLETE",
+      "resource_status_reason": "state changed",
+      "event_time": "2026-11-21T16:04:37Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx"
+    },
+    {
+      "resource_name": "campus-app-asg_b-ymuh7w3ntcyx",
+      "resource_status": "UPDATE_COMPLETE",
+      "resource_status_reason": "Stack UPDATE completed successfully",
+      "event_time": "2026-11-21T16:04:37Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app-asg_b-ymuh7w3ntcyx"
+    },
+    {
+      "resource_name": "scale_in",
+      "resource_status": "SIGNAL_COMPLETE",
+      "resource_status_reason": "alarm state changed from ok to alarm (Transition to alarm due to 3 samples outside threshold, most recent: 350000000.0)",
+      "event_time": "2026-11-21T16:04:38Z",
+      "physical_resource_id": "[uuid]",
+      "stack_name": "campus-app"
+    }
+  ],
+  "lb_members": [
+    {
+      "address": "10.20.0.195",
+      "operating_status": "ONLINE"
+    },
+    {
+      "address": "10.20.0.102",
+      "operating_status": "ONLINE"
+    }
+  ],
+  "cpu": {
+    "bucket_seconds": 60,
+    "peak_complete_bucket": {
+      "bucket_start": "2026-11-21T15:50:00Z",
+      "per_vm_cpu_pct": [
+        68.3167,
+        56.65
+      ],
+      "group_cpu_pct": 62.4834
+    },
+    "excluded_buckets": [
+      "15:48 (partial load)",
+      "15:54 (membership change)",
+      "15:58 (partial load)"
+    ],
+    "missing_buckets": [],
+    "measured_buckets": [
+      {
+        "bucket_start": "2026-11-21T15:49:00Z",
+        "per_vm_cpu_pct": [
+          64.3167,
+          30.7333
+        ],
+        "group_cpu_pct": 47.525
+      },
+      {
+        "bucket_start": "2026-11-21T15:50:00Z",
+        "per_vm_cpu_pct": [
+          68.3167,
+          56.65
+        ],
+        "group_cpu_pct": 62.4834
+      },
+      {
+        "bucket_start": "2026-11-21T15:51:00Z",
+        "per_vm_cpu_pct": [
+          68.7,
+          55.7833
+        ],
+        "group_cpu_pct": 62.2416
+      },
+      {
+        "bucket_start": "2026-11-21T15:52:00Z",
+        "per_vm_cpu_pct": [
+          67.1167,
+          54.1167
+        ],
+        "group_cpu_pct": 60.6167
+      },
+      {
+        "bucket_start": "2026-11-21T15:53:00Z",
+        "per_vm_cpu_pct": [
+          65.6833,
+          53.55
+        ],
+        "group_cpu_pct": 59.6166
+      },
+      {
+        "bucket_start": "2026-11-21T15:55:00Z",
+        "per_vm_cpu_pct": [
+          64.2833,
+          52.3667,
+          0.6167
+        ],
+        "group_cpu_pct": 39.0889
+      },
+      {
+        "bucket_start": "2026-11-21T15:56:00Z",
+        "per_vm_cpu_pct": [
+          63.3833,
+          51.7333,
+          0.5833
+        ],
+        "group_cpu_pct": 38.5666
+      },
+      {
+        "bucket_start": "2026-11-21T15:57:00Z",
+        "per_vm_cpu_pct": [
+          62.0667,
+          50.2167,
+          0.55
+        ],
+        "group_cpu_pct": 37.6111
+      }
+    ]
+  },
+  "capture_utc": "2026-11-21T16:06:09.356327+00:00"
+}
+```
+
+</details>
+

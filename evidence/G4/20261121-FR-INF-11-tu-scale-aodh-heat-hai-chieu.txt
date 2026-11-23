@@ -1,0 +1,67 @@
+Evidence FR-INF-11 + NFR-05 + NFR-06 (G4, #77, #44): duong Aodh -> Heat tu scale tren cum that, toi 21/11/2026, voi gate Aodh v2.2 (PR #81). Ket luan: cac moc tai -> ALARM -> Heat event -> VM ready DAT o CA HAI CHIEU tu dong trong mot luot lien tuc (luot 2). THIEU moc "request dau tien toi VM moi" (NFR-06). Khong ghi "dat tron".
+Ngay: 2026-11-21 (UTC; gio VN = UTC + 7). A boot 13:27Z (last -x). campus-keepalive 240 luc 13:34:52Z (date -u tren A). Gio Stop cum: xem #4 (lay tu last -x lan Start toi).
+Nguoi lam: TV2 (stack update bat/go action, alarm history, Heat event, LB; JSON tho da che UUID va URL dang o #77, comment 16:15:42Z, issuecomment-7065510182); TV1 (tai ab tu host A, journal Aodh chi doc, LB, CPU DB tu Gnocchi, ghi file nay); TV3 (tao slug moi tv3dc-20261121, #90). Nguoi dung tu bam Console va go moi lenh ghi tren A; tro ly AI khong SSH.
+Pham vi da thong nhat voi TV2 (Zalo 20:37 gio VN): giu nguong cpu_high 60% (36e9) va cpu_low 25% (15e9); khong doi NFR-05; khong nhan scale tay la tu dong (#44).
+File nay la TOM TAT TINH TAY tu output nguoi chay dan lai va tu bao cao cua TV2; cac tep kem theo (muc E) la output nguyen van (da che ID).
+
+A. KET LUAN NGAN
+ DAT (luot 2, slug tv3dc-20261121, khong signal tay theo TV2): tai -> cpu_high ALARM 15:53:22.719Z -> Heat scale_out SIGNAL_COMPLETE 15:54:12Z -> 3 member ONLINE 15:54:19.543Z; tai dung 15:58:39Z -> cpu_low ALARM 16:04:22.582Z -> Heat scale_in SIGNAL_COMPLETE 16:04:38Z -> 2 member ONLINE (16:04:57.781Z).
+ DAT (luot 1, slug tv4fix1): cpu_low ALARM 14:21:22.581Z -> Heat scale_in 14:21:38Z -> 2 member ONLINE (14:21:43.424Z). Scale-out luot 1 la TAY (TV2 14:06:43Z, truoc khi bat action) de dua nhom len 3.
+ CHUA DAT / KHONG DO: request dau tien toi VM moi (NFR-06); phan loai ma HTTP cua "Non-2xx" trong ab.
+ Duong action (trust) khong loi: journal notifier va evaluator khong co 401, 403, error, Traceback quanh hai ALARM luot 2 (muc D).
+
+B. LUOT 1 (slug tv4fix1, ~124 nghin visit) - UTC
+ 14:06:43.289  TV2 gui DUNG MOT signal scale_out TAY (stack core, OS_CLOUD=campus-tv2); TV1 duyet qua Zalo. Heat SIGNAL_COMPLETE 14:07:34; lan dau thay 3 member ONLINE 14:07:37.894 (VM moi 10.20.0.170). [TAY]
+ 14:17:19-14:17:21  TV2 stack update --dry-run --existing tren stack alarm: chi cpu_high va cpu_low la UPDATE; added/deleted/replaced rong. [DOC]
+ 14:20:37.690  TV2 stack update that tren stack alarm campus-app-cpu-alarms (bat evaluation va action; khong dung core); UPDATE_COMPLETE 14:20:43.815. [TAY]
+ 14:21:22.581  cpu_low -> ALARM (38,8 s sau UPDATE_COMPLETE; nhom ranh) [TU DONG, theo alarm history cua TV2]
+ 14:21:38      Heat scale_in SIGNAL_COMPLETE [TU DONG, theo Heat event cua TV2]
+ 14:21:43.424  LB con 2 member ONLINE (.170, .195); B cu (.166) roi LB [DOC, TV2]
+ 14:25:46-14:35:47  TV1 phat tai ab -k -c 64 -t 600 -s 10 http://172.24.4.117:8080/tv4fix1 tu host A (xem muc E, tep luot1): 14.096 request, 23,49 RPS, p95 3075 ms, Failed 0, Non-2xx 14.096 (chua phan loai ma).
+ Ket qua: nhom app toi da 27,35% (bucket 14:27:00Z), cpu_high giu ok suot luot tai, KHONG co scale_out tu dong (TV2). CPU campus-db khoang 99,5-99,7% (14:27-14:35Z), con ~98,7-98,9% den it nhat 14:56Z, tu ha 0,5% tu 15:03Z (TV3, #90).
+ 15:05:18      TV2 go action (stack update --existing, actions_enabled=false, evaluation_enabled=false); bao hoan tat. [TAY]
+
+C. LUOT 2 (slug moi tv3dc-20261121, 0 visit luc bat dau) - UTC
+ 15:35:42      TV3 tao slug moi (POST /rest/v3/short-urls), visitsSummary.total=0. [TAY, TV3]
+ 15:37:31.248  TV2 stack update bat lai evaluation va action, nguong giu 60%/25%: UPDATE_COMPLETE; hai alarm bat, moi alarm dung mot action (theo TV2). [TAY]
+ 15:48:39-15:58:39  TV1 phat tai ab -k -c 64 -t 600 -s 10 http://172.24.4.117:8080/tv3dc-20261121 tu host A (xem muc E, tep luot2): 23.724 request, 39,54 RPS, p50 1660 ms, p95 2017 ms, p99 2128 ms, Failed 0, Non-2xx 23.724 (chua phan loai ma).
+ 15:53:22.719  cpu_high -> ALARM, 4 phut 43,7 giay sau khi bat dau tai (nguong 60%, 2 cua so 60 s) [TU DONG]
+ 15:53:40      VM moi CREATE_COMPLETE; readiness 15:54:08 (Heat) [DOC, TV2]
+ 15:54:12      Heat scale_out SIGNAL_COMPLETE (49,3 s sau ALARM) [TU DONG]
+ 15:54:19.543  LB 3 member ONLINE, them 10.20.0.102 (56,8 s sau ALARM) [DOC, TV2]
+ 15:54:22-15:59:22  Hai alarm tam sang insufficient data khi VM moi vao nhom (campus-gate reject=gnocchi_400); cpu_high ve ok 15:58:22.57, cpu_low ve ok 15:59:22.56 [TU DONG, theo gate v2.2]
+ 15:58:39      Tai dung (ab ket thuc dung 600 s).
+ 16:04:22.582  cpu_low -> ALARM [TU DONG]
+ 16:04:38      Heat scale_in SIGNAL_COMPLETE [TU DONG]
+ 16:04:57.781  LB con 2 member ONLINE (.195, .102); Nova xac nhan VM .170 (B cu) da xoa [DOC, TV2]
+ 16:06:00      TV1 do doc lap (openstack loadbalancer status show): dung 2 member ONLINE (.102 va .195) [DOC, TV1]
+ CPU nhom app dinh 62,48% (bucket 15:50:00Z), theo TV2.
+ 16:11:07.154  TV2 go action: stack update tren stack alarm UPDATE_COMPLETE; hau kiem 16:11:10.357: hai alarm enabled=false, ba danh sach action rong, LB dung 2 member ONLINE [TAY + DOC, TV2]
+ TV2 khang dinh khong gui signal tay trong luot 2 (loi TV2; so cho ghi trong JSON tho o #77).
+
+D. JOURNAL AODH (TV1, CHI DOC)
+ devstack@aodh-notifier va devstack@aodh-evaluator, loc grep -Ei "401|403|error|traceback|notifying", cat cot 120 ky tu:
+ - Cua so 15:53:00-15:55:00Z: DEBUG "Notifying alarm 37680d7a... (cpu_high)" luc 15:53:22 va hai dong INFO aodh.notifier.rest "Notifying alarm" luc 15:53:22 va 15:53:23.
+ - Cua so 16:04:00-16:05:30Z: tuong tu cho alarm 90f9060e... (cpu_low) luc 16:04:22 va 16:04:23.
+ - Khong co dong 401, 403, error hay Traceback. Luot 1 (cua so 14:20:30-14:22:30Z): dung mot dong notifying (cpu_low), cung khong co loi.
+ Gioi han: phan hoi HTTP cua notifier nam ngoai phan loc; chung cu la Heat ghi SIGNAL_COMPLETE dung gio (15:54:12 va 16:04:38). Dong DEBUG co phan dinh danh trust nen KHONG dua nguyen dong len repo.
+
+E. TEP KEM THEO (cung thu muc, output nguyen van tu host A, da che ID 32 ky tu hex thanh <id-che-32hex>, khong sua gi khac)
+ 20261121-FR-INF-11-ab-tv4fix1-c64-luot1.txt                  ab luot 1 (14:25:46-14:35:47Z)
+ 20261121-FR-INF-11-ab-tv3dc-20261121-c64-luot2.txt           ab luot 2 (15:48:39-15:58:39Z)
+ 20261121-FR-INF-11-gate-v21-bad-timestamp-aodh-evaluator-0844Z.txt   journal evaluator 08:44:59-08:49:09Z: gate v2.1 tu choi moi cua so bad_timestamp (gnocchiclient tra datetime, ADR-12 v2.1 gia dinh sai chuoi ISO)
+ 20261121-FR-INF-11-gate-v22-aodh-evaluator-0946Z.txt         journal evaluator 09:47:05-10:12:15Z: gate v2.2 chi-danh-gia, actions rong; gnocchi_400 khi VM moi vao nhom, khong reject khi VM roi nhom
+ 20261121-FR-INF-11-gate-v22-alarm-history.txt                alarm history (API Aodh) cua hai alarm, 14/11-21/11 (dung o 10:04:06Z sang 21/11 vi alarm tao lai ~10:07Z); khop journal den tung giay; 12 ID 32 ky tu hex (user_id, project_id, created_by_project_id) da che
+ 20261121-FR-INF-11-tv2-luot2-evidence-tho-issue77.txt        chep NGUYEN VAN comment cua TV2 o #77 (16:15:42Z): bang quan sat va JSON alarm history, Heat events, CPU nhom, LB cua luot 2 (TV2 da che UUID va URL); TV1 chi chep, chua duoc TV2 xac nhan lai tung dong
+ Chua co trong repo: tep Gnocchi CPU DB (tinh tay trong muc GIOI HAN), /tmp/tv1-* cua A (mat truoc khi chep duoc, gia tri thap).
+
+F. GIOI HAN / GHI CHU
+ (1) Moc "request dau tien toi VM moi" (NFR-06) KHONG do duoc cho luot tu dong: A khong co route toi 10.20.0.0/24 va chua doi chieu log guest cua VM .102.
+ (2) "Non-2xx" cua ab: moi phan hoi deu bi tinh non-2xx; ky vong la 302 cua slug fixture nhung CHUA phan loai ma HTTP (Failed requests cua ab khong gom 5xx; khong chay vong probe ma trang thai).
+ (3) Tai sinh tu CHINH host A (cung may chua app A va DB VM) qua VIP noi bo 8080, KHONG qua Nginx/Internet; chi-redirect GET, khong phai profile 80/15/5; moi GET ghi 1 visit vao Shlink that.
+ (4) Luot thanh cong dung slug MOI (0 visit); luot 1 dung slug ~124 nghin visit va khong cham 60% (nhom app 27,35%) vi DB 1 vCPU bao hoa truoc. TV3 (#90, theo ma Shlink v5.1.8, CHUA kiem tren DB VM) giai thich: moi visit chay 4 lenh COUNT(*) tren visit cua slug nen chi phi DB tang theo so visit. TV1 tinh tay tu Gnocchi: luot 1 ~148 ms CPU DB moi visit, luot 2 ~25 ms moi visit (596 CPU-giay / 23.724 visit); % = ns/60e9, gia dinh 1 vCPU (SRS C-06). TUONG QUAN, CHUA DOI CHUNG.
+ (5) CPU DB luot 2 (TV1, Gnocchi cpu, hieu hai diem lien tiep): ~0,6% truoc tai; ~79% (bucket 15:49), ~87,5% (15:50), ~92-94% (15:53-15:58), ~84% (15:59), ~6,5% (16:00), ~0,5% tu 16:01. Duoi sau tai 1-2 phut (luot 1 khoang 26 phut).
+ (6) Gate v2.2 (PR #81): patch day du sha256 ea9aa702..., delta v2.1->v2.2 46a0f8de..., gnocchi.py sau v1+v2.2 529d40bb... (ap tren A 09:38:04Z; con dung luc 13:35Z, after-start 2.9). PR #81 CHUA merge luc ghi file nay (chua co review quyet dinh).
+ (7) Gio "~" va "chua ghi gio" la khong co moc chinh xac; khong uoc them. Gio TV2 lay tu alarm history va Heat event (do TV2 bao); khong tu kiem lai tung dong.
+ (8) Nguong 60%/25% giu nguyen; O-10 (hieu chinh nguong) chi la han che/de xuat, khong doi NFR-05 trong freeze. Chi giai thich duoc mot luot thanh cong; chua lap lai de do on dinh.
+ (9) Quet tay: khong co secret, email, Account ID, IP nha; chi IP noi bo cua cum (VIP 172.24.4.117, 10.20.0.x); 0 CR, 0 NUL (dem bang od, khong dung grep). gitleaks va pytest chua chay cuc bo; de CI chay.

@@ -1,0 +1,47 @@
+This is ApacheBench, Version 2.3 <$Revision: 1903618 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+
+Benchmarking 172.24.4.117 (be patient)
+Completed 5000 requests
+Completed 10000 requests
+Finished 14096 requests
+
+
+Server Software:        
+Server Hostname:        172.24.4.117
+Server Port:            8080
+
+Document Path:          /tv4fix1
+Document Length:        0 bytes
+
+Concurrency Level:      64
+Time taken for tests:   600.031 seconds
+Complete requests:      14096
+Failed requests:        0
+Non-2xx responses:      14096
+Keep-Alive requests:    14096
+Total transferred:      2903776 bytes
+HTML transferred:       0 bytes
+Requests per second:    23.49 [#/sec] (mean)
+Time per request:       2724.316 [ms] (mean)
+Time per request:       42.567 [ms] (mean, across all concurrent requests)
+Transfer rate:          4.73 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.1      0       2
+Processing:    38 2716 237.8   2746    3381
+Waiting:       38 2716 237.8   2746    3381
+Total:         38 2716 237.8   2746    3381
+
+Percentage of the requests served within a certain time (ms)
+  50%   2746
+  66%   2823
+  75%   2865
+  80%   2895
+  90%   2992
+  95%   3075
+  98%   3162
+  99%   3210
+ 100%   3381 (longest request)
