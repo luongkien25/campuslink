@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block title %}Kết quả nhập CSV{% endblock %}
+{% block body %}
+<p><a href="/campaigns/{{ c.id }}">← {{ c.name }}</a></p>
+<h1>Kết quả nhập CSV</h1>
+<section>
+  <p id="tong" data-ok="{{ n.ok }}" data-exists="{{ n.exists }}" data-error="{{ n.error }}">
+    <b>{{ n.ok }}</b> link mới · <b>{{ n.exists }}</b> đã có từ trước (bỏ qua) · <b>{{ n.error }}</b> dòng lỗi</p>
+</section>
+<section class="scroll">
+  <table><tr><th>Dòng</th><th>URL đích</th><th>Kết quả</th><th>Short link</th></tr>
+  {% for r in results %}<tr>
+    <td>{{ r.line }}</td><td><code>{{ r.long_url }}</code></td>
+    <td><span class="tag {{ {'ok': 'open', 'error': 'closed'}.get(r.status, '') }}">{{ {'ok': 'ok', 'exists': 'đã có', 'error': 'lỗi'}[r.status] }}</span>
+      {% if r.status == 'error' %}<code>{{ r.detail }}</code>{% endif %}</td>
+    <td>{% if r.short_url %}<code>{{ r.short_url }}</code>{% endif %}</td></tr>
+  {% endfor %}</table>
+</section>
+{% endblock %}

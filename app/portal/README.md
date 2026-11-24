@@ -7,7 +7,12 @@ Cổng chiến dịch cho đơn vị, bao quanh Shlink 5.1.8 qua REST v3 (ADR-08
 | FR-APP-13 | Tối thiểu | Đăng nhập, 3 vai trò (`admin`, `unit`, `viewer`). Mỗi đơn vị một API key Shlink `--author-only`, mã hóa Fernet trong DB `campus_portal` |
 | FR-APP-14 | Có | Chiến dịch tạo, sửa, đóng. Link mang tag `campaign-<id>`, có `validUntil` = hạn chiến dịch. Đóng thì `validUntil` = lúc đóng |
 | FR-APP-16 | Đường lùi | 1 lô, chạy đồng bộ, tối đa 300 người. Mỗi người một short link riêng; PDF A4 8 thẻ/trang; lưu `<campaign_id>/v<n>/lo-1.pdf` |
-| FR-APP-15, 17, 20, 21 | Không | Bỏ theo #40. `ROLE=worker` thoát mã 2 |
+| FR-APP-17 | Có | Luật chuyển hướng theo thiết bị (android/ios/desktop), ngôn ngữ, trước/sau một mốc giờ. Admin và đơn vị đặt được, người xem thì không. Luật lưu trong Shlink, trang `/campaigns/<id>/links/<mã>/rules` |
+| FR-APP-15 | Có, chạy đồng bộ | Nhập link từ CSV (cột `long_url`, `custom_slug`, `label`; ≤ 1 MB, ≤ 1000 dòng) ngay trong request, không qua hàng đợi (FR-APP-21 chưa có). Báo kết quả từng dòng; nhập lại cùng file không tạo link trùng |
+| FR-APP-18 | Một phần (polling) | Trang `/campaigns/<id>/live`: số người đã check-in (thẻ QR có ≥ 1 lượt / tổng thẻ), tổng lượt, lượt theo phút trong 60 phút, top 5 link. Tự làm mới 15 giây bằng cách gọi REST Shlink (kết quả giữ 10 giây trong bộ nhớ), **không** dùng Redis pub/sub, SSE hay `campus-stats` |
+| FR-APP-19 | Có, chạy đồng bộ | Nút "Xuất báo cáo" ở trang chiến dịch: CSV từng link (mã, short URL, đích, nhãn, số lượt) và dòng tổng, số lượt lấy từ Shlink bằng key của đơn vị. Lưu `<campaign_id>/<yyyymmddThhmmZ>.csv` vào container `campus-reports` (swift) hoặc `QR_LOCAL_DIR/reports/` (local); admin và đơn vị xuất, mọi vai trò xem được tải về |
+| FR-APP-20 | Có | Nhật ký thao tác (ai, làm gì, đối tượng, lúc nào) ở bảng `audit_log`, admin xem tại `/admin/audit` (mới nhất trước, 200 dòng). Không ghi API key, mật khẩu |
+| FR-APP-21 | Không | Bỏ theo #40. `ROLE=worker` thoát mã 2 |
 
 ## Chạy trên Compose local
 
@@ -27,7 +32,7 @@ Smoke theo cột "Kiểm bằng" của SRS: `app/portal/smoke/portal-smoke.sh` (
 ## Cấu hình (SRS 4.6)
 
 Secret chỉ đọc qua `*_FILE`: `PORTAL_DB_URL_FILE`, `PORTAL_SECRET_KEY_FILE`, `REDIS_SERVERS_FILE`, `SWIFT_APP_CRED_FILE` (khi `QR_STORAGE=swift`).
-Không secret: `ROLE`, `PORTAL_PORT` (8081), `SHLINK_API_URL`, `QR_STORAGE` (`local`|`swift`), `QR_LOCAL_DIR`, `OS_AUTH_URL`, `SWIFT_URL`, `SWIFT_CONTAINER_QR`, `TIMEZONE`.
+Không secret: `ROLE`, `PORTAL_PORT` (8081), `SHLINK_API_URL`, `QR_STORAGE` (`local`|`swift`), `QR_LOCAL_DIR`, `OS_AUTH_URL`, `SWIFT_URL`, `SWIFT_CONTAINER_QR`, `SWIFT_CONTAINER_REPORTS` (mặc định `campus-reports`), `TIMEZONE`.
 
 - `GET /healthz`: 200 `{"status":"pass"}` khi DB `campus_portal` và Redis trả lời, ngược lại 503.
 - Migration chạy lúc khởi động, khóa `pg_advisory_xact_lock` nên nhiều replica khởi động cùng lúc vẫn an toàn.

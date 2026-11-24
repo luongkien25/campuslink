@@ -1,7 +1,9 @@
-"""Luu PDF the QR (FR-APP-16). Ten object theo SRS 4.6: <campaign_id>/v<phien ban>/lo-<n>.pdf.
+"""Luu PDF the QR (FR-APP-16) va CSV bao cao chien dich (FR-APP-19). Ten object theo SRS 4.6:
+the <campaign_id>/v<phien ban>/lo-<n>.pdf, bao cao <campaign_id>/<yyyymmddThhmmZ>.csv.
 
-local: thu muc QR_LOCAL_DIR (Compose). swift: container campus-qr bang application credential campus-svc
-(SWIFT_APP_CRED_FILE, 2 dong id= va secret=, ADR-10/H3b). Ten co dinh nen chay lai thi ghi de.
+local: thu muc QR_LOCAL_DIR (Compose); bao cao nam trong thu muc con reports/ cua no.
+swift: container campus-qr (the) va campus-reports (bao cao), cung application credential campus-svc
+(SWIFT_APP_CRED_FILE, 2 dong id= va secret=, ADR-10/H3b). Credential khong co quyen DELETE; ten co dinh nen chay lai thi ghi de.
 """
 import os
 
@@ -12,7 +14,7 @@ class LocalStorage:
     def __init__(self, root: str):
         self.root = root
 
-    def put(self, name: str, data: bytes) -> None:
+    def put(self, name: str, data: bytes, content_type: str = "") -> None:   # content_type chi de Swift dung
         path = os.path.join(self.root, name)
         os.makedirs(os.path.dirname(path), exist_ok=True)
         tmp = path + ".tmp"
@@ -38,9 +40,9 @@ class SwiftStorage:
             raise RuntimeError(f"Keystone tra {r.status_code}")
         return r.headers["X-Subject-Token"]
 
-    def put(self, name: str, data: bytes) -> None:
+    def put(self, name: str, data: bytes, content_type: str = "application/pdf") -> None:
         r = httpx.put(f"{self.swift_url}/{self.container}/{name}", content=data, timeout=120,
-                      headers={"X-Auth-Token": self._token(), "Content-Type": "application/pdf"})
+                      headers={"X-Auth-Token": self._token(), "Content-Type": content_type})
         if r.status_code != 201:
             raise RuntimeError(f"Swift PUT {name} tra {r.status_code}")
 
@@ -51,7 +53,9 @@ class SwiftStorage:
         return r.content
 
 
-def make(cfg):
+def make(cfg, reports: bool = False):
+    """Kho the QR, hoac kho bao cao (reports=True)."""
     if cfg.qr_storage == "swift":
-        return SwiftStorage(cfg.os_auth_url, cfg.swift_url, cfg.swift_container_qr, cfg.swift_app_cred_file)
-    return LocalStorage(cfg.qr_local_dir)
+        container = cfg.swift_container_reports if reports else cfg.swift_container_qr
+        return SwiftStorage(cfg.os_auth_url, cfg.swift_url, container, cfg.swift_app_cred_file)
+    return LocalStorage(os.path.join(cfg.qr_local_dir, "reports") if reports else cfg.qr_local_dir)

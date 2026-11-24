@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block title %}Nhật ký thao tác{% endblock %}
+{% block body %}
+<p><a href="/admin">← Quản trị</a></p>
+<h1>Nhật ký thao tác</h1>
+<section class="scroll">
+  <p class="muted">Mới nhất trước, tối đa {{ limit }} dòng. Giờ theo {{ tzname }}. Nhật ký không ghi API key hay mật khẩu.</p>
+  <table><tr><th>Lúc</th><th>Ai</th><th>Vai trò</th><th>Làm gì</th><th>Đối tượng</th><th>Chi tiết</th></tr>
+  {% for r in rows %}<tr><td>{{ r.at|fmt }}</td><td>{{ r.username }}</td><td>{{ r.role }}</td><td>{{ r.action }}</td><td>{{ r.target }}</td><td>{{ r.detail }}</td></tr>
+  {% else %}<tr><td colspan="6" class="muted">Chưa có thao tác nào</td></tr>{% endfor %}</table>
+</section>
+{% endblock %}

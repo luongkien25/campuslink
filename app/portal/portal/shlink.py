@@ -1,5 +1,6 @@
 """Goi REST v3 cua Shlink bang key --author-only cua don vi (SRS 4.1, ADR-08). Key khong bao gio ghi log."""
 from datetime import datetime
+from urllib.parse import quote, urlsplit
 
 import httpx
 
@@ -8,6 +9,12 @@ class ShlinkError(Exception):
     def __init__(self, status: int, detail: str):
         super().__init__(f"Shlink {status}: {detail}")
         self.status, self.detail = status, detail
+
+
+def valid_url(u: str) -> bool:
+    """Dich chuyen huong phai la http(s) co ten mien (dung cho luat chuyen huong va nhap CSV)."""
+    p = urlsplit(u)
+    return p.scheme in ("http", "https") and bool(p.netloc) and len(u) <= 2048
 
 
 def _iso(dt: datetime | None) -> str | None:
@@ -36,8 +43,9 @@ class Shlink:
         return r.json() if r.content else {}
 
     def create(self, long_url: str, tags: list[str], valid_until: datetime,
-               valid_since: datetime | None = None, slug: str | None = None, title: str | None = None) -> dict:
-        body = {"longUrl": long_url, "tags": tags, "validUntil": _iso(valid_until), "findIfExists": False}
+               valid_since: datetime | None = None, slug: str | None = None, title: str | None = None,
+               find_if_exists: bool = False) -> dict:
+        body = {"longUrl": long_url, "tags": tags, "validUntil": _iso(valid_until), "findIfExists": find_if_exists}
         if valid_since:
             body["validSince"] = _iso(valid_since)
         if slug:
@@ -52,6 +60,41 @@ class Shlink:
     def get(self, short_code: str) -> dict:
         return self._check(self._c.get(f"/rest/v3/short-urls/{short_code}"))
 
+    def links_by_tag(self, tag: str) -> list[dict]:
+        """Moi link mang tag, kem visitsSummary.total (tong luot, gom ca bot, cung cach dem voi tags/{tag}/visits)."""
+        links, page = [], 1
+        while True:
+            d = self._check(self._c.get("/rest/v3/short-urls", params={"tags[]": tag, "itemsPerPage": 100, "page": page}))["shortUrls"]
+            links += d["data"]
+            if page >= d["pagination"]["pagesCount"]:
+                return links
+            page += 1
+
+    def tag_visits_since(self, tag: str, since: datetime, limit: int) -> tuple[list[datetime], bool]:
+        """Thoi diem cac luot truy cap tu `since` (startDate cua Shlink, bao gom ca bot), moi nhat truoc, doc nhieu trang.
+        Toi da `limit` luot de khong treo; tra (danh sach, True neu con luot chua doc)."""
+        times, page = [], 1
+        while True:
+            d = self._check(self._c.get(f"/rest/v3/tags/{quote(tag, safe='')}/visits",
+                                        params={"startDate": _iso(since), "itemsPerPage": 500, "page": page}))["visits"]
+            times += [datetime.fromisoformat(v["date"]) for v in d["data"]]
+            if page >= d["pagination"]["pagesCount"]:
+                return times, False
+            if len(times) >= limit:
+                return times[:limit], True
+            page += 1
+
     def tag_visits_total(self, tag: str) -> int:
         d = self._check(self._c.get(f"/rest/v3/tags/{tag}/visits", params={"itemsPerPage": 1}))
         return int(d["visits"]["pagination"]["totalItems"])
+
+    # Luat chuyen huong (FR-APP-17). Shlink luu ca bo luat cua mot link: POST la THAY CA BO, nen
+    # portal doc bo luat hien co, sua tren danh sach roi gui lai ca danh sach. Thu tu trong danh sach = do uu tien.
+    def redirect_rules(self, short_code: str) -> list[dict]:
+        d = self._check(self._c.get(f"/rest/v3/short-urls/{quote(short_code, safe='')}/redirect-rules"))
+        return d.get("redirectRules", [])
+
+    def set_redirect_rules(self, short_code: str, rules: list[dict]) -> list[dict]:
+        """rules: [{"longUrl": ..., "conditions": [{"type", "matchKey", "matchValue"}]}], tu tren xuong uu tien giam dan."""
+        d = self._check(self._c.post(f"/rest/v3/short-urls/{quote(short_code, safe='')}/redirect-rules", json={"redirectRules": rules}))
+        return d.get("redirectRules", [])

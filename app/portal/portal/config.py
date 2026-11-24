@@ -30,6 +30,7 @@ class Config:
     os_auth_url: str
     swift_url: str
     swift_container_qr: str
+    swift_container_reports: str
     swift_app_cred_file: str
 
 
@@ -47,5 +48,6 @@ def load() -> Config:
         os_auth_url=_env("OS_AUTH_URL", "http://10.11.0.10/identity").rstrip("/"),
         swift_url=_env("SWIFT_URL", "") if storage == "swift" else "",
         swift_container_qr=_env("SWIFT_CONTAINER_QR", "campus-qr"),
+        swift_container_reports=_env("SWIFT_CONTAINER_REPORTS", "campus-reports"),
         swift_app_cred_file=_env("SWIFT_APP_CRED_FILE", "") if storage == "swift" else "",
     )

@@ -2,29 +2,38 @@
 
 Phan quyen (FR-APP-13):
   admin  : tao don vi (kem API key --author-only cua don vi), tao tai khoan; xem moi chien dich, khong tao link
-  unit   : tao/sua/dong chien dich va phat hanh the cua DON VI MINH, bang key cua don vi
+  unit   : tao/sua/dong chien dich, nhap link tu CSV va phat hanh the cua DON VI MINH, bang key cua don vi
   viewer : chi xem chien dich cua don vi minh
+Luat chuyen huong (FR-APP-17) dat duoc boi admin va unit cua dung don vi; viewer nhan 403.
 Chien dich cua don vi khac luon tra 404 (khong lo la co ton tai).
 """
 import logging
+import re
 import secrets
-from datetime import datetime, timezone
+import time
+from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
+import httpx
 import psycopg
 import redis
-from fastapi import Depends, FastAPI, Form, HTTPException, Request
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import cards, db, security, storage
+from . import audit, cards, csvimport, db, live, reports, security, storage
 from .config import Config
-from .shlink import Shlink, ShlinkError
+from .shlink import Shlink, ShlinkError, valid_url
 
 log = logging.getLogger("campus-portal")
 MAX_LINKS = 50        # link moi lan tao chien dich
 MAX_CARDS = 300       # nguoi tham du moi lo (duong lui: 1 lo, chay dong bo)
+MAX_RULES = 20        # luat chuyen huong toi da tren mot link
+LIVE_TTL = 10         # giay giu ket qua trang theo doi trong bo nho
+LIVE_MAX_VISITS = 5000   # so luot toi da doc tu Shlink cho bieu do theo phut
+DEVICES = ("android", "ios", "desktop")
 
 
 def create_app(cfg: Config) -> FastAPI:
@@ -34,6 +43,7 @@ def create_app(cfg: Config) -> FastAPI:
     tpl = Jinja2Templates(directory=__file__.rsplit("/", 1)[0] + "/templates")
     fer = security.fernet(cfg.secret_key)
     store = storage.make(cfg)
+    report_store = storage.make(cfg, reports=True)
     tz = ZoneInfo(__import__("os").environ.get("TIMEZONE", "UTC"))
 
     def conn():
@@ -48,6 +58,24 @@ def create_app(cfg: Config) -> FastAPI:
         return dt.astimezone(tz).strftime("%Y-%m-%d %H:%M") if dt else ""
 
     tpl.env.filters["fmt"] = fmt
+
+    def cond_text(cd: dict) -> str:
+        """Dieu kien luat cua Shlink -> cau tieng Viet de hien tren trang luat."""
+        t, v = cd.get("type"), cd.get("matchValue") or ""
+        if t == "device":
+            return f"thiết bị là {v}"
+        if t == "language":
+            return f"ngôn ngữ trình duyệt là {v}"
+        if t in ("before-date", "after-date"):
+            try:
+                d = datetime.fromisoformat(v)
+                shown = fmt(d if d.tzinfo else d.replace(tzinfo=tz)) + f" ({tz})"
+            except ValueError:
+                shown = v
+            return ("trước mốc " if t == "before-date" else "sau mốc ") + shown
+        return f"{t} {cd.get('matchKey') or ''}={v}".strip()   # luat tao ngoai portal (vd query-param): chi hien, khong sua
+
+    tpl.env.filters["cond"] = cond_text
 
     def render(request: Request, name: str, **ctx):
         request.session.setdefault("csrf", secrets.token_urlsafe(24))
@@ -135,6 +163,11 @@ def create_app(cfg: Config) -> FastAPI:
                           "ORDER BY c.id DESC").fetchall()
         return render(request, "admin.html", units=units, users=users, campaigns=camps, msg=request.query_params.get("msg"))
 
+    @app.get("/admin/audit", response_class=HTMLResponse)
+    def audit_page(request: Request, u=Depends(user), c=Depends(conn)):
+        need(u, "admin")
+        return render(request, "audit.html", rows=audit.latest(c), limit=audit.LIMIT)
+
     @app.post("/admin/units")
     def add_unit(request: Request, name: str = Form(...), api_key: str = Form(...), csrf: str = Form(""),
                  u=Depends(user), c=Depends(conn)):
@@ -151,6 +184,7 @@ def create_app(cfg: Config) -> FastAPI:
         except psycopg.errors.UniqueViolation:
             raise HTTPException(400, "Tên đơn vị đã có")
         log.info("admin=%s tao don vi %s", u["username"], name)
+        audit.record(c, u, "tạo đơn vị", name.strip())   # chi ghi ten, khong ghi API key
         return RedirectResponse("/admin?msg=Đã thêm đơn vị", 303)
 
     @app.post("/admin/users")
@@ -166,6 +200,7 @@ def create_app(cfg: Config) -> FastAPI:
                       (username.strip(), security.hash_password(password), role, uid))
         except psycopg.errors.UniqueViolation:
             raise HTTPException(400, "Tên đăng nhập đã có")
+        audit.record(c, u, "tạo tài khoản", username.strip(), f"vai trò {role}")   # khong ghi mat khau
         return RedirectResponse("/admin?msg=Đã thêm tài khoản", 303)
 
     # ---------- chien dich (FR-APP-14) ----------
@@ -191,7 +226,8 @@ def create_app(cfg: Config) -> FastAPI:
             cid = row["id"]
             tag = f"campaign-{cid}"
             c.execute("UPDATE campaigns SET tag = %s WHERE id = %s", (tag, cid))
-        _add_links(c, u, cid, tag, lines, start, end)
+        errs = _add_links(c, u, cid, tag, lines, start, end)
+        audit.record(c, u, "tạo chiến dịch", f"chiến dịch #{cid}", f"{name.strip()}; {len(lines) - len(errs)} link, {len(errs)} lỗi")
         return RedirectResponse(f"/campaigns/{cid}", 303)
 
     def _add_links(c, u, cid, tag, lines, start, end, batch_id=None):
@@ -216,6 +252,8 @@ def create_app(cfg: Config) -> FastAPI:
         row = campaign_of(c, u, cid)
         links = c.execute("SELECT * FROM campaign_links WHERE campaign_id = %s AND batch_id IS NULL ORDER BY id", (cid,)).fetchall()
         batches = c.execute("SELECT * FROM card_batches WHERE campaign_id = %s ORDER BY version DESC", (cid,)).fetchall()
+        report_rows = c.execute("SELECT * FROM campaign_reports WHERE campaign_id = %s ORDER BY created_at DESC, id DESC LIMIT 20",
+                                (cid,)).fetchall()
         visits = None
         if u["role"] != "admin":
             try:
@@ -223,7 +261,7 @@ def create_app(cfg: Config) -> FastAPI:
                     visits = s.tag_visits_total(row["tag"])
             except ShlinkError:
                 visits = None
-        return render(request, "campaign.html", c=row, links=links, batches=batches, visits=visits,
+        return render(request, "campaign.html", c=row, links=links, batches=batches, reports=report_rows, visits=visits,
                       now=datetime.now(timezone.utc), msg=request.query_params.get("msg"))
 
     @app.post("/campaigns/{cid}/links")
@@ -235,7 +273,73 @@ def create_app(cfg: Config) -> FastAPI:
             raise HTTPException(400, "Chiến dịch đã đóng")
         lines = [l.strip() for l in links.splitlines() if l.strip()][:MAX_LINKS]
         errs = _add_links(c, u, cid, row["tag"], lines, row["starts_at"], row["ends_at"])
+        audit.record(c, u, "thêm link", f"chiến dịch #{cid}", f"{len(lines) - len(errs)} link, {len(errs)} lỗi")
         return RedirectResponse(f"/campaigns/{cid}?msg=" + (f"{len(errs)} link lỗi: " + "; ".join(errs)[:300] if errs else "Đã thêm link"), 303)
+
+    # ---------- nhap link tu CSV (FR-APP-15, chay DONG BO trong request, khong co hang doi) ----------
+    def _import_rows(c, row, rows):
+        """Moi dong CSV -> mot ket qua {status: ok | exists | error, detail}. Nhap lai cung file khong tao link trung:
+        slug da co trong chien dich, hoac URL (khong slug) da co trong chien dich, thi tinh la 'exists'."""
+        have = c.execute("SELECT short_code, long_url FROM campaign_links WHERE campaign_id = %s AND batch_id IS NULL",
+                         (row["id"],)).fetchall()
+        urls = {h["long_url"] for h in have}
+        codes = {h["short_code"]: h["long_url"] for h in have}
+        out, down = [], False
+        with unit_shlink(c, row["unit_id"]) as s:
+            for r in rows:
+                res = {"line": r["line"], "long_url": r["long_url"], "short_url": "", "status": "error", "detail": r["error"] or ""}
+                out.append(res)
+                if r["error"]:
+                    continue
+                if down:                       # Shlink da khong tra loi: khong cho het timeout o tung dong con lai
+                    res["detail"] = "bỏ qua vì Shlink không trả lời"
+                    continue
+                slug = r["slug"]
+                if slug in codes:              # slug da dung trong chien dich nay
+                    if codes[slug] == r["long_url"]:
+                        res.update(status="exists")
+                    else:
+                        res["detail"] = "non-unique-slug"
+                    continue
+                if not slug and r["long_url"] in urls:
+                    res.update(status="exists")
+                    continue
+                try:
+                    # findIfExists: neu lan nhap truoc dung giua chung (Shlink da tao, DB chua ghi) thi lay lai link do
+                    d = s.create(r["long_url"], [row["tag"]], row["ends_at"], row["starts_at"], slug=slug or None,
+                                 title=r["label"] or None, find_if_exists=True)
+                except ShlinkError as e:
+                    res["detail"] = e.detail or f"shlink-{e.status}"
+                    continue
+                except httpx.TransportError:
+                    down, res["detail"] = True, "Shlink không trả lời"
+                    continue
+                new = c.execute("INSERT INTO campaign_links (campaign_id, short_code, short_url, long_url, label) "
+                                "VALUES (%s, %s, %s, %s, %s) ON CONFLICT (short_code) DO NOTHING RETURNING id",
+                                (row["id"], d["shortCode"], d["shortUrl"], r["long_url"], r["label"] or None)).fetchone()
+                c.commit()                     # tung dong: Shlink va DB khong lech nhau neu request bi ngat giua chung
+                codes[d["shortCode"]] = r["long_url"]
+                urls.add(r["long_url"])
+                res.update(status="ok" if new else "exists", short_url=d["shortUrl"])
+        return out
+
+    @app.post("/campaigns/{cid}/import")
+    def import_csv(request: Request, cid: int, file: UploadFile = File(...), csrf: str = Form(""),
+                   u=Depends(user), c=Depends(conn)):
+        check_csrf(request, csrf)
+        need(u, "unit")
+        row = campaign_of(c, u, cid)
+        if row["status"] != "open":
+            raise HTTPException(400, "Chiến dịch đã đóng")
+        try:
+            rows = csvimport.parse(file.file.read(csvimport.MAX_BYTES + 1))
+        except csvimport.CsvError as e:
+            return RedirectResponse(f"/campaigns/{cid}?msg=" + quote(f"File CSV không nhập được: {e}"), 303)
+        results = _import_rows(c, row, rows)
+        n = {k: sum(1 for r in results if r["status"] == k) for k in ("ok", "exists", "error")}
+        log.info("unit=%s nhap CSV campaign=%s: %s", u["unit_id"], cid, n)
+        audit.record(c, u, "nhập CSV", f"chiến dịch #{cid}", f"{n['ok']} link mới, {n['exists']} đã có, {n['error']} dòng lỗi")
+        return render(request, "import_result.html", c=row, results=results, n=n)
 
     def _set_valid_until(c, row, until):
         with unit_shlink(c, row["unit_id"]) as s:
@@ -253,6 +357,7 @@ def create_app(cfg: Config) -> FastAPI:
         c.commit()
         if row["status"] == "open" and end != row["ends_at"]:
             _set_valid_until(c, {**row, "ends_at": end}, end)
+        audit.record(c, u, "sửa chiến dịch", f"chiến dịch #{cid}", f"{name.strip()}; hết hạn {fmt(end)}")
         return RedirectResponse(f"/campaigns/{cid}?msg=Đã lưu", 303)
 
     @app.post("/campaigns/{cid}/close")
@@ -265,7 +370,194 @@ def create_app(cfg: Config) -> FastAPI:
         c.execute("UPDATE campaigns SET status = 'closed', ends_at = %s, updated_at = now() WHERE id = %s", (now, cid))
         c.commit()
         log.info("unit=%s dong chien dich %s", u["unit_id"], cid)
+        audit.record(c, u, "đóng chiến dịch", f"chiến dịch #{cid}", row["name"])
         return RedirectResponse(f"/campaigns/{cid}?msg=Đã đóng chiến dịch, link không còn chuyển hướng", 303)
+
+    # ---------- luat chuyen huong (FR-APP-17) ----------
+    # Luat luu trong Shlink (khong luu o DB portal): portal doc ca bo luat, sua, gui lai ca bo. Thu tu = do uu tien:
+    # Shlink xet tu tren xuong, luat dau tien khop thi chuyen toi longUrl cua luat do, khong luat nao khop thi ve dich cua link.
+    def link_of(c, u: dict, cid: int, code: str):
+        need(u, "admin", "unit")          # viewer: 403. Admin dung key cua don vi chu chien dich (nhu khi xem so luot).
+        camp = campaign_of(c, u, cid)     # don vi khac: 404
+        link = c.execute("SELECT * FROM campaign_links WHERE campaign_id = %s AND short_code = %s", (cid, code)).fetchone()
+        if not link:
+            raise HTTPException(404, "Không có link này trong chiến dịch")
+        return camp, link
+
+    def rule_condition(kind: str, device: str, language: str, when: str) -> tuple[dict, str]:
+        """Form -> dieu kien Shlink va nhan hien thi. Shlink chi kiem 'device'; ngay va ngon ngu portal phai tu kiem."""
+        if kind == "device":
+            if device not in DEVICES:
+                raise ValueError("Thiết bị phải là android, ios hoặc desktop")
+            return {"type": kind, "matchKey": None, "matchValue": device}, f"thiết bị = {device}"
+        if kind == "language":
+            lang = language.strip()
+            if not re.fullmatch(r"[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})?", lang):
+                raise ValueError("Ngôn ngữ viết dạng vi, en hoặc en-US")
+            return {"type": kind, "matchKey": None, "matchValue": lang}, f"ngôn ngữ = {lang}"
+        if kind in ("before-date", "after-date"):
+            try:
+                at = parse_dt(when)
+            except ValueError:
+                at = None
+            if not at:
+                raise ValueError("Chọn mốc giờ hợp lệ")
+            # ISO 8601 co mui gio (vd 2026-12-01T10:00:00+07:00): dang Shlink doc duoc
+            return ({"type": kind, "matchKey": None, "matchValue": at.isoformat(timespec="seconds")},
+                    ("trước " if kind == "before-date" else "sau ") + f"{fmt(at)} ({tz})")
+        raise ValueError("Loại luật không hợp lệ")
+
+    def rules_back(cid: int, code: str, text: str) -> RedirectResponse:
+        return RedirectResponse(f"/campaigns/{cid}/links/{code}/rules?msg={quote(text)}", 303)
+
+    def edit_rules(c, camp, code: str, change):
+        """Doc bo luat tu Shlink, de `change(rules)` sua tai cho, roi gui lai ca bo. Tra ve chuoi loi, hoac None neu xong."""
+        try:
+            with unit_shlink(c, camp["unit_id"]) as s:
+                # chi giu 2 truong Shlink nhan vao; 'priority' do Shlink tu danh lai theo thu tu
+                rules = [{"longUrl": r["longUrl"], "conditions": r["conditions"]} for r in s.redirect_rules(code)]
+                err = change(rules)
+                if err:
+                    return err
+                s.set_redirect_rules(code, rules)
+        except ShlinkError as e:
+            return f"Shlink từ chối ({e.status} {e.detail})"
+        except httpx.TransportError:
+            return "Shlink không trả lời"
+        return None
+
+    @app.get("/campaigns/{cid}/links/{code}/rules", response_class=HTMLResponse)
+    def rules_page(request: Request, cid: int, code: str, u=Depends(user), c=Depends(conn)):
+        camp, link = link_of(c, u, cid, code)
+        rules, err = [], None
+        try:
+            with unit_shlink(c, camp["unit_id"]) as s:
+                rules = s.redirect_rules(code)
+        except (ShlinkError, httpx.TransportError) as e:
+            err = f"Không đọc được luật từ Shlink: {e}"
+        return render(request, "rules.html", c=camp, link=link, rules=rules, err=err, devices=DEVICES,
+                      msg=request.query_params.get("msg"))
+
+    @app.post("/campaigns/{cid}/links/{code}/rules")
+    def add_rule(request: Request, cid: int, code: str, kind: str = Form(...), long_url: str = Form(...),
+                 device: str = Form(""), language: str = Form(""), when: str = Form(""), position: str = Form(""),
+                 csrf: str = Form(""), u=Depends(user), c=Depends(conn)):
+        check_csrf(request, csrf)
+        camp, _ = link_of(c, u, cid, code)
+        if camp["status"] != "open":
+            raise HTTPException(400, "Chiến dịch đã đóng")
+        long_url = long_url.strip()
+        if not valid_url(long_url):
+            return rules_back(cid, code, "Đích phải là URL http(s) hợp lệ")
+        try:
+            pos = int(position) if position.strip() else None
+        except ValueError:
+            return rules_back(cid, code, "Vị trí ưu tiên phải là số")
+        try:
+            cond, label = rule_condition(kind, device, language, when)
+        except ValueError as e:
+            return rules_back(cid, code, str(e))
+
+        def change(rules):
+            if len(rules) >= MAX_RULES:
+                return f"Tối đa {MAX_RULES} luật mỗi link"
+            # vi tri 1 = xet dau tien; bo trong hoac qua cuoi thi them vao cuoi
+            at = len(rules) if pos is None else min(max(pos - 1, 0), len(rules))
+            rules.insert(at, {"longUrl": long_url, "conditions": [cond]})
+
+        err = edit_rules(c, camp, code, change)
+        if err:
+            return rules_back(cid, code, err)
+        log.info("user=%s dat luat link=%s campaign=%s", u["username"], code, cid)
+        audit.record(c, u, "đặt luật chuyển hướng", f"link {code} (chiến dịch #{cid})", f"nếu {label} thì tới {long_url}")
+        return rules_back(cid, code, f"Đã đặt luật: nếu {label} thì chuyển tới {long_url}")
+
+    @app.post("/campaigns/{cid}/links/{code}/rules/delete")
+    def delete_rule(request: Request, cid: int, code: str, index: int = Form(...), expect: str = Form(""),
+                    csrf: str = Form(""), u=Depends(user), c=Depends(conn)):
+        check_csrf(request, csrf)
+        camp, _ = link_of(c, u, cid, code)
+        if camp["status"] != "open":
+            raise HTTPException(400, "Chiến dịch đã đóng")
+
+        def change(rules):
+            # `expect` la dich cua luat luc nguoi dung bam xoa: danh sach vua bi doi thi khong xoa nham luat khac
+            if not 1 <= index <= len(rules) or rules[index - 1]["longUrl"] != expect:
+                return "Danh sách luật vừa thay đổi, hãy xem lại rồi xóa lại"
+            del rules[index - 1]
+
+        err = edit_rules(c, camp, code, change)
+        if err:
+            return rules_back(cid, code, err)
+        log.info("user=%s xoa luat link=%s campaign=%s", u["username"], code, cid)
+        audit.record(c, u, "xóa luật chuyển hướng", f"link {code} (chiến dịch #{cid})", f"luật số {index} tới {expect}")
+        return rules_back(cid, code, "Đã xóa luật")
+
+    # ---------- bao cao chien dich CSV (FR-APP-19, chay DONG BO, chua co hang doi FR-APP-21) ----------
+    @app.post("/campaigns/{cid}/reports")
+    def export_report(request: Request, cid: int, csrf: str = Form(""), u=Depends(user), c=Depends(conn)):
+        check_csrf(request, csrf)
+        need(u, "admin", "unit")          # viewer chi xem va tai. Admin dung key cua don vi chu chien dich. Chien dich da dong van xuat duoc.
+        row = campaign_of(c, u, cid)
+        try:
+            with unit_shlink(c, row["unit_id"]) as s:
+                links = s.links_by_tag(row["tag"])
+        except (ShlinkError, httpx.TransportError) as e:
+            return RedirectResponse(f"/campaigns/{cid}?msg=" + quote(f"Không đọc được số liệu từ Shlink: {e}"), 303)
+        data, total = reports.build(links)
+        obj = f"{cid}/{datetime.now(timezone.utc):%Y%m%dT%H%MZ}.csv"      # ten theo SRS 4.6
+        try:
+            report_store.put(obj, data, "text/csv; charset=utf-8")
+        except Exception as e:  # noqa: BLE001
+            log.error("campaign=%s luu bao cao loi: %s", cid, e)
+            return RedirectResponse(f"/campaigns/{cid}?msg=" + quote(f"Lưu báo cáo lỗi: {e}"), 303)
+        c.execute("INSERT INTO campaign_reports (campaign_id, object_name, n_links, total_visits) VALUES (%s, %s, %s, %s) "
+                  "ON CONFLICT (campaign_id, object_name) DO UPDATE "
+                  "SET n_links = EXCLUDED.n_links, total_visits = EXCLUDED.total_visits, created_at = now()",
+                  (cid, obj, len(links), total))
+        c.commit()
+        log.info("campaign=%s xuat bao cao %s: %d link, %d luot", cid, obj, len(links), total)
+        audit.record(c, u, "xuất báo cáo", f"chiến dịch #{cid}", f"{len(links)} link, tổng {total} lượt, {obj}")
+        return RedirectResponse(f"/campaigns/{cid}?msg=" + quote(f"Đã xuất báo cáo: {len(links)} link, tổng {total} lượt"), 303)
+
+    @app.get("/campaigns/{cid}/reports/{rid}.csv")
+    def report_csv(cid: int, rid: int, u=Depends(user), c=Depends(conn)):
+        campaign_of(c, u, cid)            # moi vai tro xem duoc chien dich thi tai duoc; don vi khac: 404
+        r = c.execute("SELECT * FROM campaign_reports WHERE id = %s AND campaign_id = %s", (rid, cid)).fetchone()
+        if not r:
+            raise HTTPException(404, "Không có báo cáo này")
+        return Response(report_store.get(r["object_name"]), media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="bao-cao-{cid}-{r["object_name"].rsplit("/", 1)[1]}"'})
+
+    # ---------- theo doi chien dich (FR-APP-18 dang polling: doc REST Shlink, KHONG dung Redis pub/sub hay SSE) ----------
+    live_cache: dict[int, tuple[float, dict]] = {}   # id chien dich -> (luc tinh, du lieu): nhieu nguoi mo trang van chi hoi Shlink 1 lan / LIVE_TTL
+
+    def live_data(c, row) -> dict:
+        hit = live_cache.get(row["id"])
+        if hit and time.monotonic() - hit[0] < LIVE_TTL:
+            return hit[1]
+        now = datetime.now(timezone.utc)
+        # the QR ca nhan (FR-APP-16) la link co batch_id; link tao tay khong co
+        card_codes = [r["short_code"] for r in c.execute(
+            "SELECT short_code FROM campaign_links WHERE campaign_id = %s AND batch_id IS NOT NULL", (row["id"],))]
+        with unit_shlink(c, row["unit_id"]) as s:
+            links = s.links_by_tag(row["tag"])
+            times, truncated = s.tag_visits_since(row["tag"], live.window_start(now, tz), LIVE_MAX_VISITS)
+        data = live.build(links, card_codes, times, truncated, now, tz)
+        live_cache[row["id"]] = (time.monotonic(), data)
+        return data
+
+    @app.get("/campaigns/{cid}/live", response_class=HTMLResponse)
+    def live_page(request: Request, cid: int, u=Depends(user), c=Depends(conn)):
+        return render(request, "live.html", c=campaign_of(c, u, cid))   # chi doc, moi vai tro xem duoc chien dich
+
+    @app.get("/campaigns/{cid}/live.json")
+    def live_json(cid: int, u=Depends(user), c=Depends(conn)):
+        row = campaign_of(c, u, cid)      # kiem quyen truoc khi tra du lieu trong bo nho
+        try:
+            return JSONResponse(live_data(c, row))
+        except (ShlinkError, httpx.TransportError) as e:
+            return JSONResponse({"error": f"Không đọc được số liệu từ Shlink: {e}"}, status_code=502)
 
     # ---------- phat hanh the QR (FR-APP-16, duong lui: 1 lo, chay dong bo) ----------
     @app.post("/campaigns/{cid}/cards")
@@ -310,6 +602,8 @@ def create_app(cfg: Config) -> FastAPI:
             c.commit()
             log.error("campaign=%s phat hanh the loi: %s", cid, e)
             msg = f"Phát hành lỗi: {e}"
+        else:   # ngoai khoi try: loi ghi nhat ky khong bi nham thanh loi phat hanh
+            audit.record(c, u, "phát hành thẻ", f"chiến dịch #{cid}", f"{len(out)} thẻ, lô v{ver}")
         return RedirectResponse(f"/campaigns/{cid}?msg={msg}", 303)
 
     @app.get("/campaigns/{cid}/cards/{bid}.pdf")
