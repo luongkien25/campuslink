@@ -1,0 +1,214 @@
+heat_template_version: '2021-04-16'
+description: Portal MVP rieng cho issue 98. Tao VM private va LB OVN rieng tren cong 8081.
+
+parameters:
+  portal_image_ref:
+    type: string
+    constraints:
+      - allowed_pattern: 'ghcr\.io/(dqh1215|luongkien25)/campus-portal@sha256:[a-f0-9]{64}\Z'
+  shlink_api_url:
+    type: string
+    description: VIP noi bo cua LB loi (http://VIP:8080), lay tu vip_address.
+    constraints:
+      - allowed_pattern: 'http://10\.20\.0\.(?:[1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4]):8080\Z'
+  qr_storage:
+    type: string
+    default: swift
+    constraints:
+      - allowed_values: [swift, local]
+  keystone_url:
+    type: string
+    description: Endpoint Keystone, ket thuc bang /identity.
+    constraints:
+      - allowed_pattern: 'https?://[0-9.]+(?::[0-9]{1,5})?/identity\Z'
+  swift_url:
+    type: string
+    description: Endpoint Swift gom /v1/AUTH_project.
+    constraints:
+      - allowed_pattern: 'https?://[0-9.]+(?::[0-9]{1,5})?/v1/AUTH_[A-Za-z0-9]+\Z'
+  bootstrap_credential_id:
+    type: string
+    hidden: true
+    constraints:
+      - allowed_pattern: '[a-fA-F0-9]{32}\Z'
+  bootstrap_credential_secret:
+    type: string
+    hidden: true
+    constraints:
+      - allowed_pattern: '[A-Za-z0-9_+/=-]{16,256}\Z'
+  base_image:
+    type: string
+    default: ubuntu-noble-base
+  key_name:
+    type: string
+    default: campus-tv2
+    description: Keypair Nova de TV2 vao VM portal theo duong SSH noi bo da duyet.
+  flavor:
+    type: string
+    default: campus.app
+    constraints:
+      - allowed_values: [campus.app]
+  app_network:
+    type: string
+    default: campus-net
+  app_subnet:
+    type: string
+    default: campus-subnet
+  app_security_group:
+    type: string
+    default: campus-app-sg
+  external_network:
+    type: string
+    default: public
+  availability_zone:
+    type: string
+    default: campus-az-a
+    constraints:
+      - allowed_values: [campus-az-a]
+
+resources:
+  port:
+    type: OS::Neutron::Port
+    properties:
+      name: campus-portal-2411-port
+      network: {get_param: app_network}
+      fixed_ips:
+        - subnet: {get_param: app_subnet}
+      security_groups:
+        - {get_param: app_security_group}
+  config:
+    type: OS::Heat::CloudConfig
+    properties:
+      cloud_config:
+        package_update: true
+        packages: [ca-certificates, curl, docker.io, iptables]
+        write_files:
+          - path: /etc/docker/daemon.json
+            owner: root:root
+            permissions: '0644'
+            content: '{"mtu":1400}'
+          - path: /etc/campuslink-portal-2411/boot.json
+            owner: root:root
+            permissions: '0600'
+            content:
+              str_replace:
+                template: |
+                  {"portal_image_ref":"%PORTAL_IMAGE%","shlink_api_url":"%SHLINK_URL%",
+                   "keystone_url":"%KEYSTONE_URL%","swift_url":"%SWIFT_URL%","qr_storage":"%QR_STORAGE%",
+                   "credential_id":"%BOOT_ID%","credential_secret":"%BOOT_SECRET%"}
+                params:
+                  '%PORTAL_IMAGE%': {get_param: portal_image_ref}
+                  '%SHLINK_URL%': {get_param: shlink_api_url}
+                  '%KEYSTONE_URL%': {get_param: keystone_url}
+                  '%SWIFT_URL%': {get_param: swift_url}
+                  '%QR_STORAGE%': {get_param: qr_storage}
+                  '%BOOT_ID%': {get_param: bootstrap_credential_id}
+                  '%BOOT_SECRET%': {get_param: bootstrap_credential_secret}
+          - path: /opt/campuslink-portal-2411/runtime.py
+            owner: root:root
+            permissions: '0644'
+            content: {get_file: bootstrap/runtime.py}
+          - path: /opt/campuslink-portal-2411/fetch_secrets.py
+            owner: root:root
+            permissions: '0644'
+            content: {get_file: bootstrap/fetch_secrets.py}
+          - path: /opt/campuslink-portal-2411/controls.py
+            owner: root:root
+            permissions: '0644'
+            content: {get_file: bootstrap/controls.py}
+          - path: /opt/campuslink-portal-2411/portal_bootstrap.py
+            owner: root:root
+            permissions: '0644'
+            content: {get_file: bootstrap/portal_bootstrap.py}
+          - path: /etc/systemd/system/campus-portal-2411.service
+            owner: root:root
+            permissions: '0644'
+            content: |
+              [Unit]
+              Description=CampusLink portal 2411
+              Requires=docker.service
+              PartOf=docker.service
+              Wants=network-online.target
+              After=docker.service network-online.target
+              StartLimitIntervalSec=600
+              StartLimitBurst=2
+
+              [Service]
+              ExecStart=/usr/bin/python3 -B /opt/campuslink-portal-2411/portal_bootstrap.py
+              ExecStop=-/usr/bin/docker stop --time 10 campus-portal-2411
+              Restart=on-failure
+              RestartSec=10
+              TimeoutStopSec=25
+              UMask=0077
+
+              [Install]
+              WantedBy=multi-user.target
+        runcmd:
+          - [systemctl, daemon-reload]
+          - [systemctl, enable, --now, campus-portal-2411.service]
+  server:
+    type: OS::Nova::Server
+    properties:
+      name: campus-portal-2411-vm
+      image: {get_param: base_image}
+      flavor: {get_param: flavor}
+      key_name: {get_param: key_name}
+      availability_zone: {get_param: availability_zone}
+      networks:
+        - port: {get_resource: port}
+      metadata:
+        campus_role: portal
+      user_data_format: SOFTWARE_CONFIG
+      user_data: {get_resource: config}
+  lb:
+    type: OS::Octavia::LoadBalancer
+    properties:
+      name: campus-portal-2411-lb
+      provider: ovn
+      vip_subnet: {get_param: app_subnet}
+  listener:
+    type: OS::Octavia::Listener
+    properties:
+      name: campus-portal-2411-listener
+      loadbalancer: {get_resource: lb}
+      protocol: TCP
+      protocol_port: 8081
+  pool:
+    type: OS::Octavia::Pool
+    properties:
+      name: campus-portal-2411-pool
+      listener: {get_resource: listener}
+      protocol: TCP
+      lb_algorithm: SOURCE_IP_PORT
+  monitor:
+    type: OS::Octavia::HealthMonitor
+    properties:
+      pool: {get_resource: pool}
+      type: TCP
+      delay: 5
+      timeout: 3
+      max_retries: 3
+  member:
+    type: OS::Octavia::PoolMember
+    depends_on: [server, monitor]
+    properties:
+      pool: {get_resource: pool}
+      subnet: {get_param: app_subnet}
+      address: {get_attr: [port, fixed_ips, 0, ip_address]}
+      protocol_port: 8081
+  vip_fip:
+    type: OS::Neutron::FloatingIP
+    depends_on: member
+    properties:
+      floating_network: {get_param: external_network}
+      port_id: {get_attr: [lb, vip_port_id]}
+
+outputs:
+  portal_fip:
+    value: {get_attr: [vip_fip, floating_ip_address]}
+  portal_lb:
+    value: {get_resource: lb}
+  portal_pool:
+    value: {get_resource: pool}
+  portal_server:
+    value: {get_resource: server}
