@@ -36,8 +36,8 @@ Thứ tự đọc gợi ý (khoảng 20 phút):
 
 Phạm vi cần biết trước khi đọc bằng chứng:
 
-- Phần mở rộng ứng dụng (portal, worker, stats; SRS mục 3.3) chỉ có **MVP portal chạy trên Compose** (`app/portal`, `app/compose`), không chạy trên cụm; lý do và phạm vi đã rút ở issue #40 và `docs/SRS.md` mục 6.3.
-- Chỗ nào chưa đạt hoặc chỉ đạt một phần được ghi thẳng trong `docs/acceptance.md` kèm số đo; tiêu chí gốc nằm ở `docs/SRS.md` và không được nới để "PASS" (`AGENTS.md` mục 7).
+- Phần mở rộng cổng quản lý chiến dịch (`app/portal`) chạy trên cụm qua stack Heat độc lập (`infra/heat/portal-stack.yaml`, vhost `app.`, Octavia OVN `:8081`), dùng chung mạng `campus-net`, CSDL và Swift với cụm lõi mà không ảnh hưởng các phiên đo tải lõi.
+- Chỗ nào chưa đạt hoặc chỉ đạt một phần được ghi thẳng trong `docs/acceptance.md` kèm số đo; tiêu chí gốc nằm ở `docs/SRS.md` và không được nới để "PASS".
 
 ### Chạy lại
 
@@ -47,23 +47,19 @@ Phạm vi cần biết trước khi đọc bằng chứng:
 
 ## Bắt đầu
 
-- Người mới: đọc `CONTRIBUTING.md` (quy trình nhóm, cách dùng AI, dùng chung cloud).
-- AI agent: đọc `AGENTS.md` (Claude Code đọc qua `CLAUDE.md`).
+- Thành viên mới: đọc `CONTRIBUTING.md` (quy trình nhóm, dùng chung cloud, Git/PR và bảo mật secret).
 - TV2 triển khai app bằng Heat: [template, tests offline và trình tự kiểm cloud](infra/heat/README.md).
 
 ## Cấu trúc
 
 ```
-AGENTS.md                 # ngữ cảnh + luật cho AI (mọi công cụ)
-CLAUDE.md                 # trỏ tới AGENTS.md cho Claude Code
-GEMINI.md                 # trỏ tới AGENTS.md cho Gemini CLI
-CONTRIBUTING.md           # quy trình nhóm
+CONTRIBUTING.md           # quy trình làm việc nhóm
 cost.csv                  # sổ giờ chạy và chi phí (bản gốc; bản trong evidence/ để nộp)
 .github/                  # CODEOWNERS, mẫu issue, mẫu PR, workflows/supply-chain.yml (gitleaks, Trivy, SBOM)
 docs/
   SRS.md                  # yêu cầu có mã FR/NFR (bản Markdown của SRS)
   acceptance.md           # ma trận 8 hạng mục (TV4)
-  troubleshooting.md      # lỗi đã gặp → cách sửa (AI tra ở đây trước)
+  troubleshooting.md      # lỗi đã gặp → cách sửa
   inventory.yaml          # tài nguyên thật: ID, IP, tên (TV1); không secret
   versions.lock           # phiên bản/SHA/digest đã kiểm
   images/                 # kien-truc.png, kien-truc.mmd
@@ -75,16 +71,16 @@ docs/
 infra/
   aws/                    # bảng subnet/route/SG với ID thật, IAM start/stop (TV1)
   devstack/               # A/B.local.conf.example, patches/ (bản vá Aodh ADR-12) (TV1, TV2)
-  heat/                   # root.yaml, app-unit.yaml, alarms.yaml, env.example.yaml, telemetry (TV2)
+  heat/                   # root.yaml, app-unit.yaml, alarms.yaml, portal-stack.yaml, env.example.yaml, telemetry (TV2)
   nginx/                  # campus.conf.example (TV1)
   apache/                 # campus-acme.conf.example (cấp cert, TV1)
 app/
   shlink.env.example      # hợp đồng env (SRS mục 4.3)
   compose/                # Compose local để phát triển (TV3), không dùng cho production
   db/                     # DB VM: user-data, backup/restore, secret (TV3)
-  portal/                 # MVP campus-portal (chạy trên Compose, TV3)
+  portal/                 # cổng quản lý chiến dịch campus-portal (FastAPI)
   smoke/                  # smoke H1 trên cụm và Compose
-ops/                      # campus-nat, campus-check, campus-keepalive, idle-shutdown, add-member.sh (TV1); ai-snapshot.sh (mọi người); dr/ (DR tầng 1-2), campus-chaos/ (FR-INF-24)
+ops/                      # campus-nat, campus-check, campus-keepalive, idle-shutdown, add-member.sh (TV1); cluster-snapshot.sh (mọi người); dr/ (DR tầng 1-2), campus-chaos/ (FR-INF-24)
 tests/
   smoke/                  # contract test (TV4)
   load/                   # workload.py, setup-fixture.sh (TV4)
@@ -96,7 +92,7 @@ evidence/                 # G0..G5, đặt theo <yyyymmdd>-<mã>-<mô tả>; đ�
 ## Quy tắc làm việc
 
 - Nhánh theo người: `tv1/network`, `tv2/scaling`, `tv3/app`, `tv4/loadtest`. PR nhỏ theo mốc, một người review chéo (TV4 → TV1, TV1 → TV2, TV2 → TV3, TV3 → TV4).
-- Chủ sở hữu thư mục (xem `.github/CODEOWNERS`): mặc định, `docs/inventory.yaml`, `infra/aws`, `AGENTS.md` → TV1; `infra/devstack` → TV1 + TV2; `infra/heat` → TV2; `app` → TV3; `ops` → TV3 + TV1; `tests`, `evidence`, `docs/acceptance.md` → TV4.
+- Chủ sở hữu thư mục (xem `.github/CODEOWNERS`): mặc định, `docs/inventory.yaml`, `infra/aws` → TV1; `infra/devstack` → TV1 + TV2; `infra/heat` → TV2; `app` → TV3; `ops` → TV3 + TV1; `tests`, `evidence`, `docs/acceptance.md` → TV4.
 - Mỗi issue ghi: mã yêu cầu SRS (FR/NFR), owner, reviewer, đầu vào, lệnh kiểm tra, kết quả mong đợi, bằng chứng, rollback.
 - Không commit secret. Chỉ commit file `.example`; giá trị thật để `REPLACE_...`.
 - Ảnh evidence phải che Account ID, IP nhà, thông tin thanh toán trước khi commit; bản gốc để trong `evidence/**/raw/` (bị ignore).
@@ -104,7 +100,7 @@ evidence/                 # G0..G5, đặt theo <yyyymmdd>-<mã>-<mô tả>; đ�
 
 ## Tài liệu nhóm (ngoài repo)
 
-- SRS – CampusLink (Claude Doc); bản Markdown trong repo là `docs/SRS.md`
+- SRS – CampusLink; bản Markdown trong repo là `docs/SRS.md`
 - Phân công chi tiết và kế hoạch phối hợp, bản 1.1 - Shlink (22/10/2026)
 - Đề xuất xin xét duyệt (4 trang)
 - Lab TV1 bản 1.1 (trích phần liên quan cho từng thành viên)

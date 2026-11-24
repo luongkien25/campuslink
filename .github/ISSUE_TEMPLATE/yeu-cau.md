@@ -1,6 +1,6 @@
 ---
 name: Yêu cầu cho thành viên khác
-about: Nhờ một thành viên làm một việc; AI của người nhận sẽ báo đầu phiên (AGENTS.md mục 10)
+about: Nhờ một thành viên làm một việc cụ thể có tiêu chí kiểm tra rõ ràng
 title: "[YC-TV?][FR-XXX-NN] "
 labels: "yeu-cau"
 ---

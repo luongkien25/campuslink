@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# ai-snapshot.sh - chup trang thai cloud (CHI DOC) de dan cho AI khi debug.
+# cluster-snapshot.sh - chup trang thai cum OpenStack (CHI DOC) de chan doan khi debug.
 #
 # Chay tu may ca nhan (khong can copy script len A):
-#   ssh campus-a 'OS_CLOUD=<ten-cloud> bash -s -- lb' < ops/ai-snapshot.sh > snap.txt
+#   ssh campus-a 'OS_CLOUD=<ten-cloud> bash -s -- lb' < ops/cluster-snapshot.sh > snap.txt
 # Phan: base | net | lb | heat | telemetry | storage | logs | all   (co the ghi nhieu phan)
 #
 # Script tu che chuoi giong mat khau/token/API key/Account ID, nhung VAN DOC LAI truoc khi dan.

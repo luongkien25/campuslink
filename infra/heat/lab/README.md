@@ -68,7 +68,7 @@ export OS_CLOUD=campus-tv2
 openstack --version
 ```
 
-Nếu CLI không nằm trong PATH, kiểm tra đường dẫn CLI theo H2 và `ops/ai-snapshot.sh`. Không source `openrc` hoặc dùng credential admin. Không đọc/in `clouds.yaml`, private key hoặc cấu hình dịch vụ chứa secret.
+Nếu CLI không nằm trong PATH, kiểm tra đường dẫn CLI theo H2 và `ops/cluster-snapshot.sh`. Không source `openrc` hoặc dùng credential admin. Không đọc/in `clouds.yaml`, private key hoặc cấu hình dịch vụ chứa secret.
 
 ### Xác minh CLI và schema
 
