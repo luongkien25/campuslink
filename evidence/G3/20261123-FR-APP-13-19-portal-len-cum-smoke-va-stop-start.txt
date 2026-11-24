@@ -1,0 +1,31 @@
+Evidence: portal (campus-portal) chạy trên cụm OpenStack, smoke + sống qua stop/start
+Ngày: 23/11/2026 (UTC). Người chạy: TV1 (smoke), TV2 (stack Heat), TV3 (bật lại cụm, quay clip).
+Nguồn gốc: chép lại từ comment trên issue #98 (TV1, 14:05Z) và #101 (TV3, 17:05Z) của repo campuslink.
+Ghi chú: mật khẩu, API key và link Drive không nằm trong file này (giao riêng qua Zalo).
+
+== Phiên bản đã chạy ==
+- Image: ghcr.io/luongkien25/campus-portal@sha256:1e8a794fdcba41e89a0dd919ab5d98e7c8f4dc2ac7436f2735cc7c4f9f024944 (linux/amd64)
+- Commit nguồn: 61eeb18 (nhánh PR #100, CHƯA merge vào main tại thời điểm ghi file này)
+- Stack Heat: campus-portal-2411 (template PR #99, đã merge main 0b8a6ba), TV2 update UPDATE_COMPLETE 13:51:35Z
+- qr_storage=swift, portal_fip=172.24.4.131, vhost app. thêm 13:19:59Z (tv1-vhost-app.sh add)
+
+== A. Smoke trên cụm (TV1, #98, 14:05Z) ==
+1. https://app.44-198-215-187.sslip.io/healthz từ laptop: 200. Route mới /campaigns/1/live và /reports/1.csv khi chưa đăng nhập: 303 /login (trước update là 404).
+2. Đăng nhập khoa-cntt-user, tạo chiến dịch portal-demo-2411 (tag campaign-1), 2 link: short link dạng https://s.44-198-215-187.sslip.io/<code>.
+3. Phát hành 5 thẻ QR, tải PDF: Swift campus-qr object 1/v1/lo-1.pdf (lần đầu portal ghi Swift thật bằng application credential campus-svc).
+4. Quét 2 thẻ bằng điện thoại, mở Theo dõi trực tiếp: check-in 2/5, tổng 4 lượt, cột theo phút 14:02 (UTC), top 2 đúng 2 thẻ đã quét, tự làm mới 15 s.
+5. Xuất báo cáo: Swift campus-reports object 1/20261123T1403Z.csv, tải CSV được.
+6. Lõi Shlink: s./tv4fix1 trả 302; theo TV2 lõi 2/2 member ONLINE, updated_time stack lõi không đổi.
+Object kiểm bằng "openstack object list campus-qr|campus-reports" (credential campus-tv3 trên host A).
+Chưa làm trên cụm: kiểm quyền (đơn vị khác 404, viewer 403, nhật ký) chỉ PASS trên Compose (PR #100), nhập CSV 200 dòng chỉ chạy trên Compose.
+
+== B. Clip quay portal (TV3, #101) ==
+File 08-tv3-portal-1651Z.mp4 (bắt đầu 16:51:26Z, dài 4:14, 3840x2160, có đồng hồ UTC), 5 cảnh:
+đăng nhập và mở portal-demo-2411 -> luật chuyển hướng theo thiết bị (ios -> shlink.io, android -> openstack.org; điện thoại và máy tính mở cùng link ra 2 trang khác nhau) -> Thẻ QR, tải và mở PDF -> Theo dõi trực tiếp, quét 1 thẻ chưa ai quét -> Xuất báo cáo, mở CSV.
+
+== C. Portal sống qua stop/start cụm (TV3, #101, FR-INF-19) ==
+- A boot 16:24:42Z (uptime -s), B bật ngay sau A. campus-keepalive 120 lúc 16:39Z.
+- After-start Phần 1 (16:39Z, OS_CLOUD=campus-tv3): br-ex có 172.24.4.1/24; không unit failed; campus-nat, nginx, apache2 active; campus-db-data in-use.
+- campus-portal-2411-vm ACTIVE ngay, không phải "server start"; 2 VM app và campus-db cũng ACTIVE.
+- Từ laptop 16:39:54Z (lần kiểm đầu tiên, khoảng 15 phút sau boot): app./healthz 200 (db pass, redis pass); app./ 303 sang /login; s./rest/health 200; s./tv4fix1 302; admin. 200.
+- Tắt cụm: campus-keepalive 0 và campus-check OK lúc 17:01Z; TV3 Stop B rồi A sau 17:05Z. Giờ Stop thật lấy từ "last -x" ở lần bật tới (chưa có số trong file này).
