@@ -11,6 +11,15 @@ Repo này **không chứa mã nguồn Shlink**. Hai repo upstream dùng nguyên 
 
 Chỉ khi thật sự phải vá upstream mới lưu patch kèm lý do (ADR). Hiện có một bản vá cho Aodh (không phải Shlink) ở `infra/devstack/patches/`, theo `docs/decisions/ADR-12-aodh-rate-tung-vm.md`.
 
+## Thành viên nhóm
+
+| Thành viên | Họ và tên | GitHub | Mảng phụ trách chính |
+| --- | --- | --- | --- |
+| TV1 | Lương Đức Kiên *(Nhóm trưởng)* | `@luongkien25` | Hạ tầng AWS & OpenStack nền, mạng 2 AZ, bảo mật/IAM, Ingress/TLS, Cinder/Swift, runbook, DR tầng 1–2 |
+| TV2 | Nguyễn Công Huy Hoàng | `@nchh06` | Cân bằng tải (Octavia OVN), image Glance, Heat IaC, tự động co giãn (Aodh/Gnocchi), giám sát |
+| TV3 | Đinh Quang Huy | `@dqh1215` | Ứng dụng Shlink, Web Client, `campus-portal`, DB VM (PostgreSQL & Redis), sao lưu/khôi phục, DR tầng 3 |
+| TV4 | Cao Song Toàn | `@toancst` | Kiểm thử tự động, đo hiệu năng & chịu lỗi, quản trị/dự toán chi phí, ma trận nghiệm thu |
+
 ## Dành cho người chấm (đọc trước)
 
 Luồng: Internet → EIP → Nginx trên host A (:443, Let's Encrypt) → VIP Octavia OVN → các app VM Shlink ở 2 AZ → PostgreSQL + Redis trên DB VM. Sơ đồ: [`docs/images/kien-truc.png`](docs/images/kien-truc.png).
