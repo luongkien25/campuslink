@@ -77,6 +77,18 @@ TV3 cùng TV1 chuẩn bị trước giờ bấm đồng hồ:
 
 TV4 chuẩn bị video ở ổ máy trình chiếu, không phụ thuộc tải file từ mạng lúc demo. Clip portal `08-tv3-portal-1651Z.mp4` ngày 23/11 dài 4:14 có luật thiết bị, PDF, check-in và CSV; chọn trước các đoạn ngắn cần dùng, không mở cả clip rồi tìm cảnh. Với autoscaling, chuẩn bị cả chiều tăng và chiều giảm, ghi rõ ngày quay.
 
+## Request được gửi từ đâu
+
+TV1 dùng laptop để điều khiển. Lệnh `d load-start <slug-moi> 420` được gõ **trong phiên SSH Host A**; wrapper khởi động ApacheBench (`ab`) trên Host A, không chạy bộ phát tải trên laptop.
+
+| Luồng | Máy gửi request và đường đi | Mục đích |
+| --- | --- | --- |
+| Tải thử autoscaling | Host A chạy `ab` → VIP HTTP nội bộ của Octavia → các App VM Shlink | Tạo tải thực vào ứng dụng để quan sát CPU/alarm và scale-out; không cần máy TV2 phát tải |
+| Người tham dự quét QR | Điện thoại TV1 hoặc TV4 → HTTPS công khai `s.` → Nginx/LB → Shlink | Minh họa truy cập người dùng và check-in |
+| Thao tác portal | Trình duyệt trên laptop TV1 → HTTPS `app.` → portal stack riêng | Quản lý chiến dịch, QR, bảng theo dõi và CSV |
+
+Tải `ab` đi nội bộ qua LB; phép kiểm HTTPS/QR từ laptop hoặc điện thoại kiểm đường truy cập công khai. Khi trình bày, nói rõ đây là tải thử bằng công cụ, không coi số request là số người tham dự thật.
+
 ## Kiểm cụm trước khi demo
 
 TV1 thực hiện phần này trước khi cả nhóm ráp lượt, sau khi TV2 xác nhận phần alarm/Heat/LB và cách khôi phục. Một laptop đủ để gọi lệnh và quan sát; gọi TV2 hỗ trợ khi gặp cấu hình chưa rõ hoặc lỗi thuộc phần đó. Dùng [after-start](../runbooks/after-start.md), [inventory](../inventory.yaml) và [versions.lock](../versions.lock) hiện tại để đối chiếu; không mặc định UUID/IP cũ trong script còn đúng.
