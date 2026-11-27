@@ -2,11 +2,27 @@
 
 Demo đi theo tình huống tổ chức một sự kiện: **đơn vị tạo chiến dịch và link → phát hành thẻ QR → người tham dự quét → theo dõi check-in và xuất CSV → chỉ ra dữ liệu, quyền truy cập và cụm xử lý tự mở rộng**. Phần live kết hợp với bằng chứng ghi trước có ngày, theo mốc thời gian dưới đây.
 
-**Phân công đề xuất để thành viên xác nhận:** TV1 Kiên điều khiển toàn bộ demo trên một laptop; TV3 Huy nói phần portal và dữ liệu; TV2 Hoàng nói phần monitoring, autoscaling và failover; TV4 Toàn giữ giờ, hỗ trợ quét QR, trình bày bằng chứng và chi phí. TV1 cũng nói phần mạng và phân quyền.
+**Cách demo đã thống nhất:** dùng một laptop chung khi bảo vệ, **đến phần ai thì người đó tự thao tác và tự nói**. TV1 Kiên phụ trách mạng và phân quyền; TV2 Hoàng phụ trách monitoring, autoscaling và failover; TV3 Huy phụ trách portal và dữ liệu; TV4 Toàn phụ trách bằng chứng vận hành, chi phí và hỗ trợ quét QR. TV4 giữ giờ khi không trình bày.
 
-**Cách chuẩn bị:** không cần họp đông đủ tối 27/11 chỉ để đọc lại tài liệu. Từng người kiểm phần mình và phản hồi trong issue. TV1 có thể tự chạy thử trên laptop của mình sau khi TV2 xác nhận cấu hình và trình tự phần alarm/Heat/LB; TV2 review bất đồng bộ, chỉ cần tham gia khi có vướng mắc cần hỗ trợ. Trước buổi bảo vệ 30/11, cả nhóm ráp một lượt 10–15 phút để khớp người nói với người bấm. Giờ chạy cụm và giờ ráp nhóm do TV1 chốt trong issue.
+**Thứ tự chuẩn bị tối 27/11:** từng người **chốt kịch bản phần mình trước → tự tập trên laptop của mình → gửi kết quả và điều chỉnh**. Không yêu cầu TV1 thao tác thay các phần khác. Trước buổi bảo vệ 30/11, ráp một lượt 10–15 phút trên laptop chung để tập bàn giao bàn phím/cửa sổ. Các phép thử trên cụm dùng chung phải đăng ký lượt để không phát tải hoặc failover chồng nhau.
 
-**Trạng thái:** kịch bản để nhóm review; thời lượng là mục tiêu, chưa phải kết quả diễn tập. Hai script TV1 đang có còn các điểm cần xử lý ở mục “Điều kiện sử dụng script”. Không coi cú pháp đúng là đã chạy thành công trên cụm.
+**Trạng thái:** timeline bên dưới là khung để từng chủ phần chốt, chưa phải kịch bản đã được họ xác nhận. [Bộ script](../../ops/demo/) đã bổ sung bản chạy theo tài khoản thành viên và kiểm thử offline; chưa kiểm end-to-end trên cụm. Cụm đang tắt theo TV1, nên chưa cài bộ mới lên Host A.
+
+## Chốt kịch bản từng phần trước khi thử
+
+Mỗi người comment trong [issue 104](https://github.com/luongkien25/campuslink/issues/104), hoặc đề xuất sửa trực tiếp phần mình trong PR 103, theo mẫu:
+
+```text
+TVx chốt phần ...
+1. Bấm/chạy ... → màn hình phải thấy ... → mình nói ...
+2. ...
+Thời lượng mục tiêu: ...
+Dữ liệu/tài khoản/file/script cần chuẩn bị: ... (không đưa secret)
+Đoạn chạy live / video và mốc chuyển dự phòng: ...
+Sau khi chốt: tự tập lúc ..., cần lượt cloud hay chỉ laptop ...
+```
+
+Chưa rõ bước bấm, output hoặc thời lượng thì sửa kịch bản trước. Việc đọc script hoặc chạy `help` có thể làm ngay; thử có tải/thay đổi trạng thái chỉ làm sau khi chốt phạm vi và lượt sử dụng cụm. Hướng dẫn lấy script và dùng tài khoản riêng ở [hướng dẫn script](huong-dan-script.md).
 
 ## Phạm vi và bằng chứng hiện có
 
@@ -30,10 +46,10 @@ Portal xử lý lô đồng bộ và bảng check-in polling API 15 giây. `camp
 
 | Người | Việc cần làm trước phiên kiểm | Kết quả gửi vào issue |
 | --- | --- | --- |
-| **TV1 Kiên** | Chốt bản script; xử lý lỗi đọc JSON, hash và phần output không phù hợp; chuẩn bị laptop, cửa sổ, nguồn evidence; giữ cụm đúng runbook | Xác nhận bản script dùng, kết quả thử cục bộ và sau đó kết quả kiểm cụm; phần nào phải dùng video |
-| **TV2 Hoàng — @nchh06** | Review bất đồng bộ trình tự phát tải, alarm, Heat, LB, failover và khôi phục; xác nhận ID tài nguyên/file env private để TV1 tự kiểm; hỗ trợ nếu có vướng mắc | Comment lệnh/trình tự nào cần sửa; tên stack/LB cần theo dõi, điều kiện bắt đầu/kết thúc; đường dẫn evidence/video 2→3→2; khung hỗ trợ nếu cần, không bắt buộc online cùng lúc |
-| **TV3 Huy — @dqh1215** | Review luồng portal bên dưới; chuẩn bị tài khoản đơn vị đã đăng nhập, chiến dịch chưa hết hạn, 3–5 thẻ, link mẫu có luật và CSV; kiểm DB/backup | Comment tên chiến dịch mẫu, thứ tự bấm đã thử, phần chưa chạy được trên cụm và vị trí clip dự phòng; không gửi mật khẩu/API key |
-| **TV4 Toàn — @toancst** | Chuẩn bị clip local đã tua/cắt, ảnh chi phí có ngày và số liệu đối chiếu; hỗ trợ quét QR; review thời lượng | Comment cảnh đã có/còn thiếu, mốc video hoặc tên clip ngắn, bảng chi phí có nguồn và ngày, đoạn nào cần rút ngắn |
+| **TV1 Kiên** | Chốt mạng/IAM; tự bấm và nói phần đó; chuẩn bị máy chung, bộ script và cài bản dùng chung khi cụm bật | Kịch bản TV1, output đã thử, trạng thái cài script trên cloud và dữ liệu/màn hình cho máy chung |
+| **TV2 Hoàng — @nchh06** | Chốt rồi tự thử tải, alarm, Heat, LB, failover và khôi phục từ laptop riêng bằng user `tv2` | Kịch bản TV2, ID/env đã xác nhận, giờ đăng ký lượt cloud, output/video 2→3→2, trạng thái sau khôi phục |
+| **TV3 Huy — @dqh1215** | Chốt rồi tự thử portal trên trình duyệt; storage qua user `tv3`; chuẩn bị chiến dịch, thẻ, luật, check-in và CSV | Kịch bản TV3, tên dữ liệu mẫu, thứ tự đã tập, thời gian, phần dùng clip; không gửi mật khẩu/API key |
+| **TV4 Toàn — @toancst** | Chốt rồi tự thao tác script laptop, video, bảng chi phí và evidence; review nhịp chuyển phần | Kịch bản TV4, video/mốc tua, số liệu có ngày, kết quả HTTPS từ laptop riêng, output và thời lượng |
 
 **Mẫu phản hồi của mỗi người:**
 
@@ -49,23 +65,15 @@ Nếu mới review tài liệu, ghi “đã đọc, chưa chạy”, không ghi 
 
 ## Điều kiện sử dụng script
 
-TV1 có hai bản nháp tại workspace riêng `D:\Documents\CampusLink\docs\_scripts\demo-10m\`: `demo-host-a.sh` và `demo-laptop.ps1`. Các lệnh `d ...`/`.\demo-laptop.ps1 ...` trong tài liệu là wrapper của hai file này, không phải lệnh có sẵn sau khi clone repo. TV1 chịu trách nhiệm cung cấp bản đã kiểm trước khi dùng; tài liệu này không cài hay chạy script lên cụm.
+Dùng bản trong [ops/demo](../../ops/demo/), không dùng lại bản nháp chỉ có trên máy TV1. Script Host A dùng OpenStack identity hiện có của mỗi người; TV2/TV3 không cần mượn `sudo` của TV1 cho phần mình. Script không cấp thêm quyền và không sao chép credential.
 
-| Điểm đã phát hiện khi đọc/thử cục bộ ngày 27/11 | Phải xử lý hoặc chọn cách thay thế trước demo |
-| --- | --- |
-| Bốn hàm `print_lb_members`, `get_member_status`, `print_alarm_actions_summary`, `print_safe_alarm_history` pipe JSON vào `python3 -` đồng thời dùng here-document | Here-document chiếm stdin nên hàm không đọc được JSON. Sửa cách truyền mã và dữ liệu, thử bằng dữ liệu giả rồi đối chiếu trạng thái thật. Chưa xác minh được trạng thái thì chưa dừng App VM |
-| `hm34` chỉ so 16 ký tự đầu của SHA256 và in toàn vẹn 100% | So đầy đủ hash, nói đúng phạm vi kiểm; chuẩn bị evidence restore riêng |
-| `hm8` in dự báo/credit cũ và chạy cả bộ unittest | Chạy test trước; dùng bảng chi phí có ngày và ảnh đã chuẩn bị trong demo, không đọc số cũ thành actual hiện tại |
-| `cleanup` chỉ dừng tải và kiểm tra một số trạng thái | Tắt action, bật App A, đưa về baseline theo phần cuối tài liệu; không coi `cleanup` tự làm đủ |
-| `hm5` thử `server create` bằng reader | Là yêu cầu tạo VM thật, dự kiến bị từ chối, không phải dry-run. TV1 kiểm phép thử và tài khoản; nếu chưa sẵn sàng, dùng evidence RBAC đã có |
-| Laptop có comment `backup-video` nhưng chưa có nhánh xử lý | Mở video bằng trình phát đã thử; không dựa vào lệnh này |
-| Hai script chưa có thao tác portal và kiểm `app./healthz` | Chuẩn bị thao tác trình duyệt, kiểm thêm endpoint portal; `pre` laptop chưa bao quát portal |
+Bản mới đã sửa cách đọc JSON LB/alarm, so đủ 64 ký tự SHA256, chặn failover khi chưa xác nhận alarm đã tắt, giữ log tải theo user và kiểm PID trước khi dừng. `hm5` chỉ dùng IAM dry-run cùng evidence reader, không thử tạo VM thật. Script laptop kiểm thêm portal health, không tự mở GUI/chạy test và không in dự báo chi phí cũ. `cleanup` kiểm baseline, không tự đổi trạng thái để sửa lỗi.
 
-Các kiểm cục bộ đã thực hiện chỉ gồm cú pháp Bash/PowerShell và tái hiện lỗi đọc JSON bằng dữ liệu giả. TV1 kiểm phần đổi trạng thái/tải trên cụm trong phiên đã thống nhất phạm vi với người phụ trách trước buổi bảo vệ. TV2 xác nhận cấu hình và cách khôi phục qua issue hoặc kênh riêng phù hợp; không cần cùng online nếu TV1 đã có đủ hướng dẫn và quyền thực hiện.
+Các thay đổi có kiểm thử offline; từng chủ phần vẫn cần xác nhận lệnh/quyền và output trên cụm. Việc cài vào `/opt/campuslink-demo` chỉ chép file dùng chung, không sửa sudoers, role, alarm, stack hay dịch vụ. Xem [hướng dẫn cài và tự tập](huong-dan-script.md).
 
 ## Chuẩn bị máy trình chiếu và dữ liệu mẫu
 
-TV1 dùng một laptop với terminal SSH Host A, PowerShell laptop, Chrome và trình phát video. Phóng chữ, tắt thông báo, mở sẵn đúng tab; những người khác nói theo hiệu lệnh, không chuyển máy chiếu giữa từng phần. TV2 có thể theo dõi bằng phiên riêng nhưng chỉ một người thực hiện mỗi thao tác thay đổi tài nguyên.
+Hôm bảo vệ dùng một laptop với terminal SSH Host A, PowerShell, Chrome và trình phát video. Mỗi người ngồi vào máy khi đến phần mình, tự bấm và tự nói, xong thì giao bàn phím/cửa sổ cho người tiếp theo. Mở sẵn các phiên `ubuntu`/`tv2`/`tv3` cần dùng bằng quyền đã có; TV1 có thể chuẩn bị phiên thành viên bằng `sudo -iu tv2` hoặc `sudo -iu tv3` trên Host A từ phiên quản trị hiện có. Không chuyển private key hay mật khẩu thành viên sang máy chung.
 
 TV3 cùng TV1 chuẩn bị trước giờ bấm đồng hồ:
 
@@ -79,42 +87,38 @@ TV4 chuẩn bị video ở ổ máy trình chiếu, không phụ thuộc tải f
 
 ## Request được gửi từ đâu
 
-TV1 dùng laptop để điều khiển. Lệnh `d load-start <slug-moi> 420` được gõ **trong phiên SSH Host A**; wrapper khởi động ApacheBench (`ab`) trên Host A, không chạy bộ phát tải trên laptop.
+TV2 tự gõ `d load-start <slug-moi> 420` **trong phiên SSH user `tv2` trên Host A**; wrapper khởi động ApacheBench (`ab`) trên Host A. Khi tự tập, TV2 điều khiển từ laptop riêng; hôm bảo vệ TV2 dùng laptop chung. `load-start` và `load-stop` phải dùng cùng Linux user vì PID/log nằm trong thư mục riêng của user đó.
 
 | Luồng | Máy gửi request và đường đi | Mục đích |
 | --- | --- | --- |
-| Tải thử autoscaling | Host A chạy `ab` → VIP HTTP nội bộ của Octavia → các App VM Shlink | Tạo tải thực vào ứng dụng để quan sát CPU/alarm và scale-out; không cần máy TV2 phát tải |
+| Tải thử autoscaling | Host A chạy `ab` do TV2 khởi động → VIP HTTP nội bộ của Octavia → các App VM Shlink | TV2 tự kiểm chuỗi CPU/alarm và scale-out; laptop chỉ điều khiển qua SSH |
 | Người tham dự quét QR | Điện thoại TV1 hoặc TV4 → HTTPS công khai `s.` → Nginx/LB → Shlink | Minh họa truy cập người dùng và check-in |
-| Thao tác portal | Trình duyệt trên laptop TV1 → HTTPS `app.` → portal stack riêng | Quản lý chiến dịch, QR, bảng theo dõi và CSV |
+| Thao tác portal | Trình duyệt TV3 đang điều khiển → HTTPS `app.` → portal stack riêng | Quản lý chiến dịch, QR, bảng theo dõi và CSV |
 
 Tải `ab` đi nội bộ qua LB; phép kiểm HTTPS/QR từ laptop hoặc điện thoại kiểm đường truy cập công khai. Khi trình bày, nói rõ đây là tải thử bằng công cụ, không coi số request là số người tham dự thật.
 
 ## Kiểm cụm trước khi demo
 
-TV1 thực hiện phần này trước khi cả nhóm ráp lượt, sau khi TV2 xác nhận phần alarm/Heat/LB và cách khôi phục. Một laptop đủ để gọi lệnh và quan sát; gọi TV2 hỗ trợ khi gặp cấu hình chưa rõ hoặc lỗi thuộc phần đó. Dùng [after-start](../runbooks/after-start.md), [inventory](../inventory.yaml) và [versions.lock](../versions.lock) hiện tại để đối chiếu; không mặc định UUID/IP cũ trong script còn đúng.
+Sau khi chốt phần mình, từng thành viên tự kiểm bằng laptop riêng theo [hướng dẫn script](huong-dan-script.md). TV1 chuẩn bị nền cụm và cài file dùng chung; TV2 chịu trách nhiệm lượt alarm/Heat/LB, tải và failover; TV3 kiểm portal/storage; TV4 kiểm HTTPS và bằng chứng. Dùng [after-start](../runbooks/after-start.md), [inventory](../inventory.yaml) và [versions.lock](../versions.lock) để đối chiếu, không mặc định UUID/IP trong script vẫn đúng.
 
-Trên laptop TV1, sau khi chốt bản script:
+Trên laptop thành viên, lấy bản repo theo hướng dẫn; phần cài trên cloud do TV1 làm. Sau khi file đã cài, SSH bằng tài khoản của mình (ví dụ TV2):
 
 ```powershell
-Set-Location D:\Documents\CampusLink\docs\_scripts\demo-10m
-scp .\demo-host-a.sh campus-a:~/demo-host-a.sh
-ssh campus-a
+ssh tv2@campus-a
 ```
 
-Trong phiên SSH Host A, kiểm file LF và chạy từng lệnh:
+Trong phiên SSH Host A:
 
 ```bash
-bash -n ~/demo-host-a.sh
-chmod +x ~/demo-host-a.sh
-alias d='~/demo-host-a.sh'
-d keepalive 240
+alias d='bash /opt/campuslink-demo/demo-host-a.sh'
+d help
 d pre
 ```
 
-Trong cửa sổ PowerShell khác tại thư mục script:
+Trong cửa sổ PowerShell ở thư mục clone repo:
 
 ```powershell
-.\demo-laptop.ps1 pre
+.\ops\demo\demo-laptop.ps1 pre
 ```
 
 **Baseline cần xác nhận:** hai compute up, DB và hai App VM hoạt động, đúng 2 member LB ONLINE, stack ổn định, không có tải khác; health/admin trả 200 và link thử trả 302 đúng đích. Portal `app./healthz` trả 200, chiến dịch mở được, PDF/CSV tải được, bảng check-in cập nhật. `d pre` trả mã 0 không có nghĩa mọi mục đã PASS; phải đọc cảnh báo.
@@ -127,17 +131,17 @@ Không trình chiếu credential, API key, Manage servers, Account ID hoặc IP 
 
 Thay `<slug-moi>` bằng mã link thật vừa tạo, dùng cùng mã ở Host A và laptop. Đây là lịch để đo khi tập; nếu lệnh gọi API/tải dump lâu hơn khung, dùng output đã kiểm hoặc video đã chuẩn bị và ghi rõ nguồn.
 
-| Mốc | Người nói | TV1 thao tác trên máy chính | Kết quả cần thấy và lời dẫn |
+| Mốc | Người tự thao tác và nói | Thao tác trên máy chung | Kết quả cần thấy và lời dẫn |
 | --- | --- | --- | --- |
 | 0:00–0:25 | TV3 | Mở chiến dịch trong portal `app.`, bấm **Thêm** cho link đã điền, mở link mới | Link 302 đúng đích. “Đơn vị dùng portal quản lý chiến dịch; mỗi link có thể dùng làm QR cho người tham dự.” |
-| 0:25–0:35 | TV1 | Host A: `d load-start <slug-moi> 420` | Probe 302, tải nền đã bắt đầu. “Nhóm phát tải trên lõi xử lý link, trong lúc thu metric sẽ trình bày nghiệp vụ.” |
+| 0:25–0:35 | TV2 | Giao bàn phím cho TV2; phiên `tv2`: `d load-start <slug-moi> 420`, rồi trả TV3 | Probe 302, tải nền đã bắt đầu. “Nhóm phát tải trên lõi xử lý link, trong lúc thu metric sẽ trình bày nghiệp vụ.” |
 | 0:35–2:35 | TV3 | Theo bảng thao tác portal bên dưới; TV4 hỗ trợ quét QR | PDF thẻ, hai thiết bị ra đích khác nhau, check-in cập nhật và CSV tải được |
-| 2:35–3:20 | TV1 | `d hm1`, `d hm2`; laptop `.\demo-laptop.ps1 app <slug-moi>` nếu đã đo chạy kịp | Chỉ dòng Nova AZ/host, private VM, HTTPS và API không key 401. “Request qua Nginx TLS, VIP Octavia rồi tới app; app và DB nằm trong mạng private.” |
+| 2:35–3:20 | TV1 | `d hm1`, `d hm2`; laptop `.\ops\demo\demo-laptop.ps1 app <slug-moi>` nếu đã đo chạy kịp | Chỉ dòng Nova AZ/host, private VM, HTTPS và API không key 401. “Request qua Nginx TLS, VIP Octavia rồi tới app; app và DB nằm trong mạng private.” |
 | 3:20–4:00 | TV3 | `d hm34` sau khi xử lý hash; nếu tải dump lâu, mở kết quả kiểm trước và evidence PDF/CSV trên Swift | “PostgreSQL dùng Cinder; PDF/CSV và backup nằm trên Swift. Hash kiểm toàn vẹn, khả năng restore được kiểm bằng phép thử riêng.” |
 | 4:00–4:40 | TV1 | `d hm5` khi phép thử đã sẵn sàng; nếu chưa thì evidence IAM/RBAC | IAM Role; dry-run được phép volume A, bị chặn volume B; reader bị từ chối ghi. Phân biệt quyền hạ tầng với quyền đơn vị trong portal |
 | 4:40–6:00 | TV2 | Host A: `d watch 10`; Ctrl+C khi cần | CPU/ALARM → Heat → VM/member ONLINE. “Đây là autoscaling cụm Shlink 2→3. Portal là stack riêng.” Chỉ kết luận scale-out khi thấy member mới ONLINE |
 | 6:00–6:25 | TV2 | `d load-stop`, `d hm7`, `d alarm-off`; TV2 xác nhận sau update | Lưu metric/history; hai alarm disabled, action trống trước failover. Nếu chưa xác nhận thì chưa dừng App A |
-| 6:25–7:50 | TV2 | Laptop `.\demo-laptop.ps1 failover <slug-moi> 90` trước; Host A `d fail-stop`, rồi `d fail-start` sau khi đã quan sát | App A lỗi, member còn lại phục vụ, HTTP thực tế được ghi; App A khôi phục. Nếu còn VM scale-out thì số member có thể là 3→2 trong lúc A dừng |
+| 6:25–7:50 | TV4 rồi TV2 | TV4 bấm laptop `.\ops\demo\demo-laptop.ps1 failover <slug-moi> 90`, giao TV2 chạy `d fail-stop`, rồi `d fail-start` trong phiên `tv2` | App A lỗi, member còn lại phục vụ, HTTP thực tế được ghi; App A khôi phục. Nếu còn VM scale-out thì số member có thể là 3→2 trong lúc A dừng |
 | 7:50–8:35 | TV4 và TV2 | Video scale-in đã tua sẵn; TV2 theo dõi App A nếu còn khôi phục | “Đây là bản ghi ngày …, sau giảm tải cụm tự thu về 2 app.” Nếu đã dùng video autoscaling thì rút cảnh để không lặp |
 | 8:35–9:10 | TV4 | Một cảnh evidence vận hành nâng cao đã chọn | Tóm tắt restore trên bản sao, báo cáo chaos và CI quét bảo mật; chỉ số đúng phạm vi, có tài liệu mở sâu khi hỏi |
 | 9:10–9:40 | TV4 | Bảng chi phí có nguồn/ngày, ảnh đã che | Tách dự toán 730 giờ, actual, forecast và credit; không chạy unittest hoặc đọc số cũ từ `hm8` |
@@ -147,7 +151,7 @@ Hai mốc TV4 báo riêng cho nhóm: **5:45** để quyết định phần autos
 
 ## Thao tác và lời nói phần portal
 
-Phần này nằm trong 0:35–2:35, tận dụng thời gian cụm lõi đang chịu tải. TV1 bấm; TV3 nói; TV4 dùng điện thoại đã thử truy cập được. Không để nhiều người nói cùng lúc.
+Phần này nằm trong 0:35–2:35, tận dụng thời gian cụm lõi đang chịu tải. TV3 tự bấm và tự nói; TV4 hỗ trợ quét bằng điện thoại. Không để nhiều người nói cùng lúc.
 
 | Thứ tự | Bấm gì | Chỉ ra và nói gì |
 | --- | --- | --- |
@@ -174,19 +178,19 @@ Không signal tay/ép alarm để trình bày thành autoscaling tự động. T
 
 ## Khôi phục và lưu kết quả sau lượt chạy
 
-TV1 thực hiện theo quy trình khôi phục đã chốt với TV2; nhờ TV2 hỗ trợ nếu có vướng mắc, không cần giữ cả nhóm trong cuộc gọi. Lưu log và mốc thời gian trước khi `cleanup` xóa log tải.
+TV2 thực hiện khôi phục phần tải/alarm/app do mình thử, báo kết quả để TV1 xác nhận/bàn giao; không cần giữ cả nhóm trong cuộc gọi. Bản script mới giữ log riêng, không xóa log khi `cleanup`.
 
 1. `d load-stop`; xác nhận tải của lượt đã dừng. Nếu có tải khác, xác định người chạy trước khi xử lý.
 2. `d alarm-off`; kiểm hai alarm disabled/action trống bằng hàm đã sửa hoặc công cụ đọc đã kiểm.
 3. Nếu App A còn dừng, `d fail-start`; xác nhận VM ACTIVE và member A ONLINE.
-4. Nếu còn 3 member, TV1 đưa về 2 theo quy trình đã chốt với TV2, nhờ hỗ trợ nếu chưa rõ. Nếu signal tay để dọn thì ghi rõ là khôi phục, không tính thành scale-in tự động.
-5. Xác nhận stack ổn định, đúng 2 member ONLINE, health 200, link 302 và portal còn hoạt động. Sau khi lưu log, chạy `d cleanup` và đọc output.
+4. Nếu còn 3 member, TV2 đưa về 2 theo quy trình đã chốt. Nếu signal tay để dọn thì ghi rõ là khôi phục, không tính thành scale-in tự động.
+5. Xác nhận stack ổn định, đúng 2 member ONLINE, health 200, link 302 và portal còn hoạt động. Lưu log, chạy `d cleanup` và đọc output.
 6. Nếu cần lượt tải khác, chờ metric cũ không làm sai điều kiện thử, kiểm lại baseline và dùng mã link mới. Lượt ráp lời nói/chuyển cảnh không cần phát tải lại.
 7. Bàn giao người còn dùng cụm; khi kết thúc phiên, hủy keepalive, đóng phiên của mình và tuân thủ `campus-check`/runbook. Chỉ Stop khi đủ điều kiện, B trước A sau; ghi giờ UTC thật trong [nhật ký cloud #4](https://github.com/luongkien25/campuslink/issues/4).
 
 ## Cách chốt sau khi thành viên kiểm
 
-Mỗi người comment xác nhận hoặc góp ý trong issue chung, không cần họp để đọc lại kịch bản. TV1 tổng hợp bản chốt trước bảo vệ. Lượt ráp nhóm 10–15 phút dùng cửa sổ và dữ liệu đã chuẩn bị để tập nói, bấm và chuyển lượt; một thành viên giữ giờ.
+Mỗi người gửi **bản chốt kịch bản trước**, rồi gửi **kết quả tự tập sau** trong issue chung. TV1 tổng hợp các phần trước bảo vệ; không tự chốt thay thành viên. Lượt ráp nhóm 10–15 phút trên máy chung tập đúng việc từng người tiếp quản bàn phím, tự nói/tự bấm rồi giao cho người tiếp theo. Không coi việc thành viên mới đọc tài liệu là đã tập xong.
 
 | Mục | Ghi sau lượt kiểm |
 | --- | --- |
