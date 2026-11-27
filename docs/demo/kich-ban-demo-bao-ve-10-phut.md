@@ -4,7 +4,7 @@ Demo đi theo tình huống tổ chức một sự kiện: **đơn vị tạo ch
 
 **Phân công đề xuất để thành viên xác nhận:** TV1 Kiên điều khiển toàn bộ demo trên một laptop; TV3 Huy nói phần portal và dữ liệu; TV2 Hoàng nói phần monitoring, autoscaling và failover; TV4 Toàn giữ giờ, hỗ trợ quét QR, trình bày bằng chứng và chi phí. TV1 cũng nói phần mạng và phân quyền.
 
-**Cách chuẩn bị:** không cần họp đông đủ tối 27/11 chỉ để đọc lại tài liệu. Từng người kiểm phần mình và phản hồi trong issue. TV1 cùng TV2 kiểm kỹ thuật trong phiên đã thống nhất; trước buổi bảo vệ 30/11, cả nhóm ráp một lượt 10–15 phút để khớp người nói với người bấm. Giờ chạy cụm và giờ ráp nhóm do TV1 chốt trong issue.
+**Cách chuẩn bị:** không cần họp đông đủ tối 27/11 chỉ để đọc lại tài liệu. Từng người kiểm phần mình và phản hồi trong issue. TV1 có thể tự chạy thử trên laptop của mình sau khi TV2 xác nhận cấu hình và trình tự phần alarm/Heat/LB; TV2 review bất đồng bộ, chỉ cần tham gia khi có vướng mắc cần hỗ trợ. Trước buổi bảo vệ 30/11, cả nhóm ráp một lượt 10–15 phút để khớp người nói với người bấm. Giờ chạy cụm và giờ ráp nhóm do TV1 chốt trong issue.
 
 **Trạng thái:** kịch bản để nhóm review; thời lượng là mục tiêu, chưa phải kết quả diễn tập. Hai script TV1 đang có còn các điểm cần xử lý ở mục “Điều kiện sử dụng script”. Không coi cú pháp đúng là đã chạy thành công trên cụm.
 
@@ -31,7 +31,7 @@ Portal xử lý lô đồng bộ và bảng check-in polling API 15 giây. `camp
 | Người | Việc cần làm trước phiên kiểm | Kết quả gửi vào issue |
 | --- | --- | --- |
 | **TV1 Kiên** | Chốt bản script; xử lý lỗi đọc JSON, hash và phần output không phù hợp; chuẩn bị laptop, cửa sổ, nguồn evidence; giữ cụm đúng runbook | Xác nhận bản script dùng, kết quả thử cục bộ và sau đó kết quả kiểm cụm; phần nào phải dùng video |
-| **TV2 Hoàng — @nchh06** | Review trình tự phát tải, alarm, Heat, LB, failover và khôi phục; kiểm ID tài nguyên/file env private; xác nhận có thể phối hợp phiên thử | Comment lệnh/trình tự nào cần sửa; tên stack/LB cần theo dõi, điều kiện bắt đầu/kết thúc, lịch có thể kiểm; đường dẫn evidence/video 2→3→2 |
+| **TV2 Hoàng — @nchh06** | Review bất đồng bộ trình tự phát tải, alarm, Heat, LB, failover và khôi phục; xác nhận ID tài nguyên/file env private để TV1 tự kiểm; hỗ trợ nếu có vướng mắc | Comment lệnh/trình tự nào cần sửa; tên stack/LB cần theo dõi, điều kiện bắt đầu/kết thúc; đường dẫn evidence/video 2→3→2; khung hỗ trợ nếu cần, không bắt buộc online cùng lúc |
 | **TV3 Huy — @dqh1215** | Review luồng portal bên dưới; chuẩn bị tài khoản đơn vị đã đăng nhập, chiến dịch chưa hết hạn, 3–5 thẻ, link mẫu có luật và CSV; kiểm DB/backup | Comment tên chiến dịch mẫu, thứ tự bấm đã thử, phần chưa chạy được trên cụm và vị trí clip dự phòng; không gửi mật khẩu/API key |
 | **TV4 Toàn — @toancst** | Chuẩn bị clip local đã tua/cắt, ảnh chi phí có ngày và số liệu đối chiếu; hỗ trợ quét QR; review thời lượng | Comment cảnh đã có/còn thiếu, mốc video hoặc tên clip ngắn, bảng chi phí có nguồn và ngày, đoạn nào cần rút ngắn |
 
@@ -61,7 +61,7 @@ TV1 có hai bản nháp tại workspace riêng `D:\Documents\CampusLink\docs\_sc
 | Laptop có comment `backup-video` nhưng chưa có nhánh xử lý | Mở video bằng trình phát đã thử; không dựa vào lệnh này |
 | Hai script chưa có thao tác portal và kiểm `app./healthz` | Chuẩn bị thao tác trình duyệt, kiểm thêm endpoint portal; `pre` laptop chưa bao quát portal |
 
-Các kiểm cục bộ đã thực hiện chỉ gồm cú pháp Bash/PowerShell và tái hiện lỗi đọc JSON bằng dữ liệu giả. Toàn bộ phần đổi trạng thái/tải trên cụm phải được TV1 và TV2 kiểm trong phiên riêng trước buổi bảo vệ.
+Các kiểm cục bộ đã thực hiện chỉ gồm cú pháp Bash/PowerShell và tái hiện lỗi đọc JSON bằng dữ liệu giả. TV1 kiểm phần đổi trạng thái/tải trên cụm trong phiên đã thống nhất phạm vi với người phụ trách trước buổi bảo vệ. TV2 xác nhận cấu hình và cách khôi phục qua issue hoặc kênh riêng phù hợp; không cần cùng online nếu TV1 đã có đủ hướng dẫn và quyền thực hiện.
 
 ## Chuẩn bị máy trình chiếu và dữ liệu mẫu
 
@@ -79,7 +79,7 @@ TV4 chuẩn bị video ở ổ máy trình chiếu, không phụ thuộc tải f
 
 ## Kiểm cụm trước khi demo
 
-TV1 và TV2 thực hiện phần này trước khi cả nhóm ráp lượt. Dùng [after-start](../runbooks/after-start.md), [inventory](../inventory.yaml) và [versions.lock](../versions.lock) hiện tại để đối chiếu; không mặc định UUID/IP cũ trong script còn đúng.
+TV1 thực hiện phần này trước khi cả nhóm ráp lượt, sau khi TV2 xác nhận phần alarm/Heat/LB và cách khôi phục. Một laptop đủ để gọi lệnh và quan sát; gọi TV2 hỗ trợ khi gặp cấu hình chưa rõ hoặc lỗi thuộc phần đó. Dùng [after-start](../runbooks/after-start.md), [inventory](../inventory.yaml) và [versions.lock](../versions.lock) hiện tại để đối chiếu; không mặc định UUID/IP cũ trong script còn đúng.
 
 Trên laptop TV1, sau khi chốt bản script:
 
@@ -162,12 +162,12 @@ Không signal tay/ép alarm để trình bày thành autoscaling tự động. T
 
 ## Khôi phục và lưu kết quả sau lượt chạy
 
-TV1 và TV2 chịu trách nhiệm phần này, không cần giữ cả nhóm trong cuộc gọi. Lưu log và mốc thời gian trước khi `cleanup` xóa log tải.
+TV1 thực hiện theo quy trình khôi phục đã chốt với TV2; nhờ TV2 hỗ trợ nếu có vướng mắc, không cần giữ cả nhóm trong cuộc gọi. Lưu log và mốc thời gian trước khi `cleanup` xóa log tải.
 
 1. `d load-stop`; xác nhận tải của lượt đã dừng. Nếu có tải khác, xác định người chạy trước khi xử lý.
 2. `d alarm-off`; kiểm hai alarm disabled/action trống bằng hàm đã sửa hoặc công cụ đọc đã kiểm.
 3. Nếu App A còn dừng, `d fail-start`; xác nhận VM ACTIVE và member A ONLINE.
-4. Nếu còn 3 member, TV2 đưa về 2 theo quy trình đã thống nhất. Nếu signal tay để dọn thì ghi rõ là khôi phục, không tính thành scale-in tự động.
+4. Nếu còn 3 member, TV1 đưa về 2 theo quy trình đã chốt với TV2, nhờ hỗ trợ nếu chưa rõ. Nếu signal tay để dọn thì ghi rõ là khôi phục, không tính thành scale-in tự động.
 5. Xác nhận stack ổn định, đúng 2 member ONLINE, health 200, link 302 và portal còn hoạt động. Sau khi lưu log, chạy `d cleanup` và đọc output.
 6. Nếu cần lượt tải khác, chờ metric cũ không làm sai điều kiện thử, kiểm lại baseline và dùng mã link mới. Lượt ráp lời nói/chuyển cảnh không cần phát tải lại.
 7. Bàn giao người còn dùng cụm; khi kết thúc phiên, hủy keepalive, đóng phiên của mình và tuân thủ `campus-check`/runbook. Chỉ Stop khi đủ điều kiện, B trước A sau; ghi giờ UTC thật trong [nhật ký cloud #4](https://github.com/luongkien25/campuslink/issues/4).
